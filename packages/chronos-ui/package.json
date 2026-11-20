@@ -1,0 +1,31 @@
+{
+	"name": "@chronos-ui/svelte",
+	"version": "0.0.7",
+	"description": "Zero-dependency Svelte 5 Runes perimeter HUD presentation framework with true-stroke chamfer/round vector borders, configurable corner radius, 21-state hardened CSS cursor engine, 14 parametric shapes, UUID v7 entity registry, and acyclic DAG wire broker.",
+	"author": "Oblx <code@oblx.dev>",
+	"license": "MIT",
+	"type": "module",
+	"sideEffects": ["*.css"],
+	"exports": {
+		".": { "svelte": "./src/index.ts", "types": "./src/index.ts", "default": "./src/index.ts" },
+		"./manifest": { "types": "./src/manifest.ts", "default": "./src/manifest.ts" },
+		"./styles.css": "./src/styles.css",
+		"./tokens": { "types": "./src/tokens/index.ts", "default": "./src/tokens/index.ts" },
+		"./wire": { "svelte": "./src/wire/index.ts", "types": "./src/wire/index.ts", "default": "./src/wire/index.ts" },
+		"./input": { "svelte": "./src/input/index.ts", "types": "./src/input/index.ts", "default": "./src/input/index.ts" },
+		"./motion": { "types": "./src/motion/index.ts", "default": "./src/motion/index.ts" },
+		"./cursor": { "svelte": "./src/cursor/index.ts", "types": "./src/cursor/index.ts", "default": "./src/cursor/index.ts" },
+		"./machines": { "svelte": "./src/machines/index.ts", "types": "./src/machines/index.ts", "default": "./src/machines/index.ts" },
+		"./atoms": { "svelte": "./src/atoms/index.ts", "types": "./src/atoms/index.ts", "default": "./src/atoms/index.ts" },
+		"./forms": { "svelte": "./src/forms/index.ts", "types": "./src/forms/index.ts", "default": "./src/forms/index.ts" },
+		"./molecules": { "svelte": "./src/molecules/index.ts", "types": "./src/molecules/index.ts", "default": "./src/molecules/index.ts" },
+		"./organisms": { "svelte": "./src/organisms/index.ts", "types": "./src/organisms/index.ts", "default": "./src/organisms/index.ts" },
+		"./modals": { "svelte": "./src/modals/index.ts", "types": "./src/modals/index.ts", "default": "./src/modals/index.ts" },
+		"./assistant": { "svelte": "./src/assistant/index.ts", "types": "./src/assistant/index.ts", "default": "./src/assistant/index.ts" },
+		"./canvas": { "types": "./src/canvas/index.ts", "default": "./src/canvas/index.ts" }
+	},
+	"peerDependencies": {
+		"svelte": "^5.0.0"
+	},
+	"dependencies": {}
+}

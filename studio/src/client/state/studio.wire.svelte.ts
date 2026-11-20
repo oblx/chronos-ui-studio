@@ -1,0 +1,149 @@
+import {
+	applyAccessibilityPrefs, applyCursorPackToDocument, applySafeCorridorCssVars, applyThemeToRoot,
+	BUILTIN_CURSOR_PACKS, clampCornerRadiusRem, computeSafeCorridor, createModalMachine,
+	createMultimodalInputManager, createOverlayDismissMiddleware, createSpotlightMachine,
+	createTooltipController, createUiEntityRegistry, createUiWireBroker, DEFAULT_ACCESSIBILITY_PREFS,
+	DEFAULT_VIEWPORT, probeEnvironmentCapabilities, setActiveCornerRadiusRem, THEME_PACKS,
+	type GamepadProfileId, type HudZoneId, type IntentKind, type ThemePack, type ViewportTier, type VoiceCaptureMode
+} from '@chronos-ui/svelte';
+import { STARTER_BLUEPRINTS, STUDIO_SPOTLIGHT_STEPS, type UiBlueprint } from '../../config';
+import { apiFetchCursorPacks, createInitialStudioState, createLifecycleActions, GENESIS_FALLBACK, STUDIO_INITIAL_LAYOUT } from './lifecycle';
+import { apiCloneBlueprint, apiCreateTheme, apiDeleteBlueprint, apiFetchAuthMe, apiFetchBlueprints, apiFetchServerTraces, apiFetchThemes, apiPollCollab, apiSaveBlueprint, apiToggleThemeStar } from './studio.api';
+import { executeStudioCommand } from './studio.commands';
+import { registerStudioIntentHandlers } from './studio.handlers';
+import { apiCreateProject, apiFetchAiProfiles, apiFetchChat, apiFetchEnvCapabilities, apiFetchProjects, apiSaveAiProfile, apiSendAssistantPrompt } from './studio.project.api';
+import type { StudioModalId, StudioState, StudioUser } from './studio.types';
+import { createV003Actions } from './studio.v003.handlers';
+
+function createStudioOps(broker: ReturnType<typeof createUiWireBroker<StudioState>>, sessionId: string) {
+	const pushToast = (title: string, tone: 'info' | 'success' | 'warning' | 'error' = 'info'): void => { broker.dispatch('UI_PUSH_TOAST', { title, tone }); };
+	const syncCatalog = async (): Promise<void> => {
+		const [themes, blueprints, projects] = await Promise.all([apiFetchThemes(), apiFetchBlueprints(), apiFetchProjects()]);
+		broker.patchState((s) => ({ ...s, themes: themes.length ? themes : s.themes, blueprints: blueprints.length ? blueprints : s.blueprints, projects: projects.length ? projects : s.projects }));
+	};
+	const pollCollab = async (): Promise<void> => {
+		const cur = broker.state;
+		const data = await apiPollCollab({ sessionId, label: cur.user?.displayName ?? 'Operator', x: STUDIO_INITIAL_LAYOUT.peerOriginX + cur.panX, y: STUDIO_INITIAL_LAYOUT.peerOriginY + cur.panY });
+		if (!data) return;
+		broker.patchState((s) => ({ ...s, peers: data.peers.filter((p) => p.sessionId !== sessionId) }));
+		for (const cmd of data.commands) { broker.dispatch(cmd.kind as IntentKind, cmd.payload, 'MCP_TWIN'); broker.patchState((s) => ({ ...s, lastMcpActivity: `MCP executed ${cmd.kind}` })); }
+	};
+	const hydrate = async (): Promise<void> => {
+		applyThemeToRoot(THEME_PACKS[0]);
+		applyAccessibilityPrefs(DEFAULT_ACCESSIBILITY_PREFS);
+		applyCursorPackToDocument(BUILTIN_CURSOR_PACKS[0]);
+		applySafeCorridorCssVars(computeSafeCorridor(false, typeof window !== 'undefined' ? window.innerWidth : DEFAULT_VIEWPORT.width, typeof window !== 'undefined' ? window.innerHeight : DEFAULT_VIEWPORT.height));
+		const [themes, blueprints, user, projects, aiProfiles, serverEnv, cursorPacks] = await Promise.all([apiFetchThemes(), apiFetchBlueprints(), apiFetchAuthMe(), apiFetchProjects(), apiFetchAiProfiles(), apiFetchEnvCapabilities(), apiFetchCursorPacks()]);
+		const activeProj = projects.find((p) => p.id === GENESIS_FALLBACK.id) ?? projects[0] ?? GENESIS_FALLBACK;
+		const customDef = aiProfiles.find((p) => p.isDefault && p.providerKind !== 'local');
+		const [chatMessages, envCapabilities] = await Promise.all([apiFetchChat(activeProj.id), probeEnvironmentCapabilities(serverEnv, Boolean(customDef))]);
+		const nextPacks = cursorPacks.length ? cursorPacks : broker.state.cursorPacks;
+		const activeCursorPackId = activeProj.activeCursorPackId ?? nextPacks[0]?.uuid ?? BUILTIN_CURSOR_PACKS[0].uuid;
+		const matchedPack = nextPacks.find((c) => c.uuid === activeCursorPackId || c.slug === activeCursorPackId) ?? BUILTIN_CURSOR_PACKS[0];
+		applyCursorPackToDocument(matchedPack);
+		const radius = clampCornerRadiusRem(activeProj.cornerRadiusRem);
+		setActiveCornerRadiusRem(radius);
+		const nextAccess = { ...broker.state.accessibility, cornerMode: activeProj.cornerMode, cornerRadiusRem: radius };
+		applyAccessibilityPrefs(nextAccess);
+		broker.patchState((s) => ({ ...s, themes: themes.length ? themes : THEME_PACKS, blueprints: blueprints.length ? blueprints : STARTER_BLUEPRINTS, activeBlueprintId: blueprints[0]?.id ?? STARTER_BLUEPRINTS[0].id, projects: projects.length ? projects : [GENESIS_FALLBACK], activeProjectId: activeProj.id, accessibility: nextAccess, cursorPacks: nextPacks, activeCursorPackId: matchedPack.uuid, aiProfiles: aiProfiles.length ? aiProfiles : s.aiProfiles, chatMessages, user, envCapabilities, activeAdapterBadge: customDef ? customDef.modelId : envCapabilities.badgeLabel }));
+	};
+	return { pushToast, syncCatalog, pollCollab, hydrate };
+}
+
+function createProjectAndAiActions(broker: ReturnType<typeof createUiWireBroker<StudioState>>, ops: ReturnType<typeof createStudioOps>, openModal: (id: StudioModalId) => void) {
+	const sendAssistantPrompt = async (prompt: string): Promise<void> => {
+		if (prompt.trim().toLowerCase() === '/dock') { broker.dispatch('UI_ASSISTANT_DOCK', {}); ops.pushToast('Assistant docked to bottom center', 'info'); return; }
+		const userMsg = { id: `u-${Date.now()}`, role: 'user' as const, content: prompt, createdAt: Date.now() };
+		broker.patchState((s) => ({ ...s, assistantBusy: true, assistantOcular: 'BUILDING_UI', chatMessages: [...s.chatMessages, userMsg] }));
+		try {
+			const res = await apiSendAssistantPrompt(broker.state.activeProjectId, prompt);
+			if (res.error) throw new Error(res.error);
+			broker.patchState((s) => ({ ...s, assistantBusy: false, assistantOcular: 'IDLE', activeAdapterBadge: res.modelLabel ?? s.activeAdapterBadge, projects: res.projects?.length ? res.projects : s.projects, activeProjectId: res.project?.id ?? s.activeProjectId, activeThemeId: res.project?.themeId ?? s.activeThemeId, chatMessages: res.message ? [...s.chatMessages, res.message] : s.chatMessages }));
+			if (res.project?.themeId) applyThemeToRoot(broker.state.themes.find((t) => t.id === res.project?.themeId) ?? THEME_PACKS[0]);
+			for (const ci of res.clientIntents ?? []) {
+				if (ci.kind === 'UI_OPEN_MODAL' && typeof ci.payload.id === 'string') {
+					if (typeof ci.payload.zoneId === 'string') broker.patchState((s) => ({ ...s, selectedZoneId: ci.payload.zoneId as HudZoneId }));
+					openModal(ci.payload.id as StudioModalId);
+				} else broker.dispatch(ci.kind as IntentKind, ci.payload, 'ASSISTANT_CHAT');
+			}
+		} catch (err) {
+			broker.patchState((s) => ({ ...s, assistantBusy: false, assistantOcular: 'ERROR' }));
+			ops.pushToast(err instanceof Error ? err.message : 'Assistant request failed', 'error');
+		}
+	};
+	const createProject = async (name: string): Promise<void> => {
+		const proj = await apiCreateProject(name);
+		if (!proj) return;
+		await ops.syncCatalog();
+		broker.dispatch('UI_SWITCH_PROJECT', { projectId: proj.id });
+		broker.patchState((s) => ({ ...s, chatMessages: [] }));
+		ops.pushToast(`Created empty canvas: ${proj.name}`, 'success');
+	};
+	const switchProject = async (projectId: string): Promise<void> => { broker.dispatch('UI_SWITCH_PROJECT', { projectId }); const msgs = await apiFetchChat(projectId); broker.patchState((s) => ({ ...s, chatMessages: msgs })); };
+	const saveAiProfile = async (payload: Record<string, unknown>): Promise<void> => {
+		const profiles = await apiSaveAiProfile(payload);
+		const customDef = profiles.find((p) => p.isDefault && p.providerKind !== 'local');
+		broker.patchState((s) => ({ ...s, aiProfiles: profiles, activeAdapterBadge: customDef ? customDef.modelId : (s.envCapabilities?.badgeLabel ?? 'LOCAL AGENT') }));
+		ops.pushToast('Saved AI model profile in AEAD vault', 'success');
+	};
+	return { sendAssistantPrompt, createProject, switchProject, saveAiProfile };
+}
+
+function createCatalogActions(broker: ReturnType<typeof createUiWireBroker<StudioState>>, ops: ReturnType<typeof createStudioOps>) {
+	const mutate = async (fn: () => Promise<unknown>, toast?: string): Promise<void> => { await fn(); await ops.syncCatalog(); if (toast) ops.pushToast(toast, 'success'); };
+	return {
+		saveBlueprint: (bp: UiBlueprint) => mutate(() => apiSaveBlueprint(bp), `Saved blueprint: ${bp.name}`),
+		cloneBlueprint: (id: string) => mutate(() => apiCloneBlueprint(id), 'Cloned blueprint'),
+		deleteBlueprint: async (id: string) => { if (broker.state.blueprints.length <= 1) { ops.pushToast('At least one blueprint must remain active', 'warning'); return; } await mutate(() => apiDeleteBlueprint(id), 'Blueprint deleted'); },
+		toggleThemeStar: (id: string) => mutate(() => apiToggleThemeStar(id)),
+		createCustomTheme: (pack: ThemePack) => mutate(() => apiCreateTheme(pack), `Published theme: ${pack.name}`),
+		refreshServerTraces: async () => { const r = await apiFetchServerTraces(); if (r.traces) broker.ingestServerTraces(r.traces); return r; }
+	};
+}
+
+function attachEntityMiddleware(broker: ReturnType<typeof createUiWireBroker<StudioState>>, entityRegistry: ReturnType<typeof createUiEntityRegistry>, clearSampleTimers: () => void): void {
+	broker.use((env, _s, next) => {
+		if (env.kind === 'UI_UNDO_REVISION' || env.kind === 'UI_REDO_REVISION' || env.kind === 'UI_SWITCH_PROJECT') clearSampleTimers();
+		next();
+		const proj = broker.state.projects.find((p) => p.id === broker.state.activeProjectId) ?? broker.state.projects[0];
+		if (proj) entityRegistry.syncProjectNodes(proj.id, proj.nodes, String(env.timestamp));
+		const p = env.payload as Record<string, unknown>;
+		const nid = typeof p.nodeId === 'string' ? p.nodeId : (typeof (p.node as { id?: string } | undefined)?.id === 'string' ? (p.node as { id: string }).id : null);
+		if (nid) entityRegistry.pulseEntity(nid, String(env.timestamp));
+	});
+}
+
+export function createStudioController() {
+	const broker = createUiWireBroker<StudioState>(createInitialStudioState());
+	const modal = createModalMachine();
+	const spotlight = createSpotlightMachine();
+	const tooltip = createTooltipController();
+	const entityRegistry = createUiEntityRegistry();
+	const sessionId = `studio-${Math.random().toString(36).slice(2, 8)}`;
+	registerStudioIntentHandlers(broker);
+	broker.use(createOverlayDismissMiddleware(() => tooltip.hide()));
+	const ops = createStudioOps(broker, sessionId);
+	const catalog = createCatalogActions(broker, ops);
+	const openModal = (id: StudioModalId, lockSeconds = 0): void => { tooltip.hide(); modal.open({ id, lockSeconds }); if (id === 'wire') void catalog.refreshServerTraces(); };
+	const projectAi = createProjectAndAiActions(broker, ops, openModal);
+	const lifecycle = createLifecycleActions(broker, { pushToast: ops.pushToast });
+	const v003 = createV003Actions(broker, { pushToast: ops.pushToast, sendPrompt: projectAi.sendAssistantPrompt, openModal });
+	attachEntityMiddleware(broker, entityRegistry, v003.clearSampleTimers);
+	const input = createMultimodalInputManager({ onAction: v003.handleSemanticInput, onModalityChange: (inputModality) => broker.patchState((s) => ({ ...s, inputModality })) });
+	const startSpotlight = () => { tooltip.hide(); spotlight.start(STUDIO_SPOTLIGHT_STEPS); };
+	const runCommand = (raw: string) => { broker.patchState((s) => ({ ...s, lastCommandOutput: executeStudioCommand(raw, { getState: () => broker.state, dispatch: broker.dispatch, openModal, startSpotlight, pushToast: ops.pushToast }) })); };
+	return {
+		get state(): StudioState { return broker.state; }, get traces() { return broker.traces; },
+		modal, spotlight, tooltip, entityRegistry, input, sessionId, openModal, startSpotlight, runCommand,
+		dispatch: <P>(kind: IntentKind, payload: P) => { tooltip.hide(); return broker.dispatch(kind, payload); },
+		selectZone: (selectedZoneId: HudZoneId) => broker.patchState((s) => ({ ...s, selectedZoneId })),
+		toggleToolPalette: (open?: boolean) => { tooltip.hide(); broker.patchState((s) => { const next = open ?? !s.toolPaletteOpen; return { ...s, toolPaletteOpen: next, selectedNodeId: s.layoutDensity === 'CALM' && next ? null : s.selectedNodeId }; }); },
+		setVoiceMode: (voiceMode: VoiceCaptureMode) => { input.setVoiceMode(voiceMode); broker.patchState((s) => ({ ...s, voiceMode })); },
+		setGamepadOverride: (gamepadOverride: GamepadProfileId | null) => { input.setGamepadOverride(gamepadOverride); broker.patchState((s) => ({ ...s, gamepadOverride })); },
+		setPreviewTier: (previewTier: ViewportTier) => broker.patchState((s) => ({ ...s, previewTier })),
+		setLowMemoryMode: (lowMemoryMode: boolean) => broker.patchState((s) => ({ ...s, lowMemoryMode })),
+		setUser: (user: StudioUser | null) => broker.patchState((s) => ({ ...s, user })),
+		pushToast: ops.pushToast, pollCollab: ops.pollCollab, hydrate: ops.hydrate, ...catalog, ...projectAi, ...v003, ...lifecycle,
+		destroy: () => { v003.clearSampleTimers(); broker.destroy(); modal.destroy(); }
+	};
+}

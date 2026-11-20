@@ -1,0 +1,33 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "ESNext",
+		"types": ["bun", "vite/client"],
+		"lib": [
+			"ES2022",
+			"DOM",
+			"DOM.Iterable"
+		],
+		"skipLibCheck": true,
+		"moduleResolution": "bundler",
+		"isolatedModules": true,
+		"moduleDetection": "force",
+		"allowJs": true,
+		"strict": true,
+		"paths": {
+			"@chronos-ui/svelte": ["./packages/chronos-ui/src/index.ts"],
+			"@studio/*": ["./studio/src/*"],
+			"@/*": ["./*"]
+		},
+		"allowImportingTsExtensions": true,
+		"noEmit": true
+	},
+	"include": [
+		"packages/**/*.ts",
+		"packages/**/*.svelte",
+		"studio/**/*.ts",
+		"studio/**/*.svelte"
+	],
+	"exclude": ["dist", "node_modules"]
+}
+
