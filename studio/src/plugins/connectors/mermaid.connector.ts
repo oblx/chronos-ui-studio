@@ -1,5 +1,5 @@
 import type { HudZoneId, UiComponentKind, UiNode, UiProjectDefinition } from '@chronos-ui/svelte';
-import { DEFAULT_BUILD_CONFIG } from '../../core';
+import { DEFAULT_BUILD_CONFIG } from '@studio/core';
 import { registerInputConnector } from '../registry';
 import type { ProjectImportResult } from './json.connector';
 

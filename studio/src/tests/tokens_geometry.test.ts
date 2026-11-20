@@ -15,8 +15,8 @@ import {
 } from '@chronos-ui/svelte';
 
 describe('tokens and corner geometry', () => {
-	test('VERSION lock is 0.0.7, theme pack count is 6, and frame shape count is 14', () => {
-		expect(VERSION).toBe('0.0.7');
+	test('VERSION lock is 0.0.9, theme pack count is 6, and frame shape count is 14', () => {
+		expect(VERSION).toBe('0.0.9');
 		expect(THEME_PACKS.length).toBe(6);
 		expect(UI_FRAME_SHAPES.length).toBe(14);
 	});

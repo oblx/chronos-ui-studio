@@ -3,9 +3,9 @@
 		UiChamferButton, UiHorizontalDeck, UiModalFooter, UiModalShell,
 		type CornerKind, type UiProjectDefinition
 	} from '@chronos-ui/svelte';
-	import { emitProjectCssTokens } from '../../plugins/adapters/css.adapter';
-	import { emitProjectJsonBundle } from '../../plugins/adapters/json.adapter';
-	import { emitProjectSvelteScaffold } from '../../plugins/adapters/svelte.adapter';
+	import { emitProjectCssTokens } from '@studio/plugins/adapters/css.adapter';
+	import { emitProjectJsonBundle } from '@studio/plugins/adapters/json.adapter';
+	import { emitProjectSvelteScaffold } from '@studio/plugins/adapters/svelte.adapter';
 	import { apiRunPipelineExport } from '../state';
 
 	interface Props {

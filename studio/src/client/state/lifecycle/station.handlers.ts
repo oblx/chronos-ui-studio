@@ -1,13 +1,13 @@
 import {
-	applyAccessibilityPrefs, clampCornerRadiusRem, findOppositeZone, mirrorCornerTuple,
-	setActiveCornerMorph, setActiveCornerRadiusRem,
-	type HudZoneId, type UiNode, type UiWireBroker
+	applyAccessibilityPrefs, applyStudioDefaults, clampCornerRadiusRem, clampStudioDefaults, DEFAULT_STUDIO_DEFAULTS,
+	findOppositeZone, mirrorCornerTuple, resetActiveStudioDefaults, setActiveCornerMorph, setActiveCornerRadiusRem,
+	setActiveStudioDefaults, type StudioDefaultsConfig, type UiNode, type UiWireBroker
 } from '@chronos-ui/svelte';
-import type { ZoneBlueprintConfig } from '../../../config';
+import type { ZoneBlueprintConfig } from '@studio/config';
 import { apiSaveBlueprint } from '../studio.api';
 import { apiCommitRevision } from '../studio.project.api';
 import type { MoveEntityToZonePayload, StationLayerConfig, StudioState, ZoneEditPayload } from '../studio.types';
-import { apiPatchProjectCornerRadius } from './lifecycle.api';
+import { apiPatchProjectCornerRadius, apiPatchProjectStudioDefaults } from './lifecycle.api';
 
 export { findOppositeZone };
 
@@ -81,23 +81,37 @@ function reduceEntityZoneMove(s: StudioState, p: MoveEntityToZonePayload): Studi
 	};
 }
 
+function applyDefaultsReducer(s: StudioState, next: StudioDefaultsConfig): StudioState {
+	return {
+		...s, studioDefaults: next,
+		accessibility: { ...s.accessibility, cornerRadiusRem: next.baseCornerCutRem },
+		globalEmbellishmentConfig: { offsetRem: next.ornamentOffsetRem, amplitudeRem: next.ornamentDriftAmpRem, periodMs: next.ornamentPeriodMs },
+		projects: s.projects.map((p) => (p.id === s.activeProjectId ? { ...p, cornerRadiusRem: next.baseCornerCutRem, studioDefaults: next } : p)),
+		projectPersistence: { ...s.projectPersistence, autoSave: next.autoSaveMode !== 'OFF', isDirty: true, status: 'DIRTY' }
+	};
+}
+
 export function registerStationAndZoneHandlers(broker: UiWireBroker<StudioState>): void {
 	broker.register<{ cornerRadiusRem: number }>('UI_SET_CORNER_RADIUS', {
 		tier: 'TIER_1_COALESCED_PERSIST',
-		reduce: (s, env) => {
-			const radius = clampCornerRadiusRem(env.payload.cornerRadiusRem);
-			return {
-				...s, accessibility: { ...s.accessibility, cornerRadiusRem: radius },
-				projects: s.projects.map((p) => (p.id === s.activeProjectId ? { ...p, cornerRadiusRem: radius } : p)),
-				projectPersistence: { ...s.projectPersistence, isDirty: true, status: 'DIRTY' }
-			};
-		},
-		effect: (s) => {
-			setActiveCornerRadiusRem(s.accessibility.cornerRadiusRem);
-			applyAccessibilityPrefs(s.accessibility);
-			void apiPatchProjectCornerRadius(s.activeProjectId, s.accessibility.cornerRadiusRem);
-		},
+		reduce: (s, env) => applyDefaultsReducer(s, clampStudioDefaults({ baseCornerCutRem: env.payload.cornerRadiusRem }, s.studioDefaults)),
+		effect: (s) => { setActiveCornerRadiusRem(s.accessibility.cornerRadiusRem); applyStudioDefaults(s.studioDefaults); applyAccessibilityPrefs(s.accessibility); void apiPatchProjectCornerRadius(s.activeProjectId, s.accessibility.cornerRadiusRem); },
 		summarize: (env) => `Corner radius -> ${clampCornerRadiusRem(env.payload.cornerRadiusRem)}rem`
+	});
+	broker.register<Partial<StudioDefaultsConfig> | { studioDefaults?: Partial<StudioDefaultsConfig> }>('UI_SET_STUDIO_DEFAULT', {
+		tier: 'TIER_1_COALESCED_PERSIST',
+		reduce: (s, env) => {
+			const patch = 'studioDefaults' in env.payload && env.payload.studioDefaults ? env.payload.studioDefaults : (env.payload as Partial<StudioDefaultsConfig>);
+			return applyDefaultsReducer(s, clampStudioDefaults(patch, s.studioDefaults));
+		},
+		effect: (s) => { setActiveStudioDefaults(s.studioDefaults); applyStudioDefaults(s.studioDefaults); applyAccessibilityPrefs(s.accessibility); void apiPatchProjectStudioDefaults(s.activeProjectId, s.studioDefaults); },
+		summarize: () => 'Updated Studio defaults'
+	});
+	broker.register<Record<string, never>>('UI_RESET_STUDIO_DEFAULTS', {
+		tier: 'TIER_1_COALESCED_PERSIST',
+		reduce: (s) => applyDefaultsReducer(s, DEFAULT_STUDIO_DEFAULTS),
+		effect: (s) => { resetActiveStudioDefaults(); applyStudioDefaults(DEFAULT_STUDIO_DEFAULTS); applyAccessibilityPrefs(s.accessibility); void apiPatchProjectStudioDefaults(s.activeProjectId, DEFAULT_STUDIO_DEFAULTS); },
+		summarize: () => 'Reset Studio defaults to v0.0.8 baseline'
 	});
 	broker.register<Partial<StationLayerConfig>>('UI_CONFIGURE_STATION_LAYER', {
 		tier: 'TIER_0_LOCAL_UI',

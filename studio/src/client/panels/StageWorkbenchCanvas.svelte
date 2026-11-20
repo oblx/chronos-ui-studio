@@ -8,8 +8,8 @@
 		type HudZoneId,
 		type ViewportTier
 	} from '@chronos-ui/svelte';
-	import { VIEWPORT_PRESETS, type UiBlueprint } from '../../config';
-	import { computeBlueprintGrade } from '../../core';
+	import { VIEWPORT_PRESETS, type UiBlueprint } from '@studio/config';
+	import { computeBlueprintGrade } from '@studio/core';
 
 	interface Props {
 		blueprint: UiBlueprint;

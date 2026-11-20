@@ -1,15 +1,24 @@
 <script lang="ts">
-	import { HUD_METRICS, UiChamferButton, UiProgressGauge, type CornerKind } from '@chronos-ui/svelte';
+	import {
+		AUTO_SAVE_MODES, HUD_METRICS, PERIMETER_GUTTER_OPTIONS, UiChamferButton, UiProgressGauge,
+		type CornerKind, type StudioDefaultsConfig
+	} from '@chronos-ui/svelte';
 
 	interface Props {
 		cornerMode: CornerKind;
+		studioDefaults: StudioDefaultsConfig;
 		projectNodeCount: number;
 		traceCount: number;
 		lowMemoryMode: boolean;
 		onToggleLowMemory: (next: boolean) => void;
+		onSetStudioDefaults: (patch: Partial<StudioDefaultsConfig>) => void;
+		onResetStudioDefaults: () => void;
 	}
 
-	let { cornerMode, projectNodeCount, traceCount, lowMemoryMode, onToggleLowMemory }: Props = $props();
+	let {
+		cornerMode, studioDefaults, projectNodeCount, traceCount, lowMemoryMode,
+		onToggleLowMemory, onSetStudioDefaults, onResetStudioDefaults
+	}: Props = $props();
 
 	let domNodes = $derived(typeof document !== 'undefined' ? document.getElementsByTagName('*').length : 0);
 	let heapMb = $derived.by(() => {
@@ -28,16 +37,29 @@
 			<div>Ring Cap: <strong>{traceCount}/{HUD_METRICS.ringCapacity}</strong></div>
 		</div>
 		<UiProgressGauge label="WireTelemetryRing Utilization" value={traceCount} max={HUD_METRICS.ringCapacity} />
+		<div class="flex flex-col gap-1 pt-1">
+			<span class="ui-font-mono text-[0.66rem]" style="color: var(--ui-muted-content);">Perimeter Gutter Spacing</span>
+			<div class="grid grid-cols-3 gap-1.5">
+				{#each PERIMETER_GUTTER_OPTIONS as rem (rem)}
+					<UiChamferButton {cornerMode} label={`${rem}rem`} active={studioDefaults.perimeterGutterRem === rem} variant={studioDefaults.perimeterGutterRem === rem ? 'secondary' : 'surface'} onclick={() => onSetStudioDefaults({ perimeterGutterRem: rem })} className="w-full py-0.5 text-[0.64rem]" />
+				{/each}
+			</div>
+		</div>
 	</div>
 
 	<div class="flex flex-col justify-between gap-2.5 border p-3" style="border-color: var(--ui-border-subtle); background-color: var(--ui-base-100);">
-		<div class="flex flex-col gap-1">
-			<span class="font-semibold" style="color: var(--ui-muted-content);">512MB SBC Low-Memory Mode</span>
+		<div class="flex flex-col gap-1.5">
+			<span class="font-semibold" style="color: var(--ui-muted-content);">512MB SBC Low-Memory & Auto-Save Policy</span>
 			<p class="leading-relaxed" style="color: var(--ui-muted-content);">
-				Reduces canvas scanline overhead and trims off-viewport node hydration for constrained single-board hardware.
+				Reduces canvas scanline overhead for constrained single-board hardware and tunes automatic project persistence.
 			</p>
+			<div class="grid grid-cols-3 gap-1.5 pt-1">
+				{#each AUTO_SAVE_MODES as mode (mode)}
+					<UiChamferButton {cornerMode} label={mode.replace('_', ' ')} active={studioDefaults.autoSaveMode === mode} variant={studioDefaults.autoSaveMode === mode ? 'primary' : 'surface'} onclick={() => onSetStudioDefaults({ autoSaveMode: mode })} className="w-full px-1 py-0.5 text-[0.62rem]" />
+				{/each}
+			</div>
 		</div>
-		<div>
+		<div class="flex flex-wrap items-center justify-between gap-2">
 			<UiChamferButton
 				{cornerMode}
 				icon="cpu"
@@ -46,6 +68,7 @@
 				variant={lowMemoryMode ? 'primary' : 'surface'}
 				onclick={() => onToggleLowMemory(!lowMemoryMode)}
 			/>
+			<UiChamferButton {cornerMode} icon="reset" label="Reset Defaults" variant="ghost" onclick={onResetStudioDefaults} />
 		</div>
 	</div>
 </div>

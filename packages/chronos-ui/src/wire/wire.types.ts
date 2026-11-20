@@ -60,7 +60,12 @@ export type IntentKind =
 	| 'UI_SET_CORNER_RADIUS'
 	| 'UI_CONFIGURE_STATION_LAYER'
 	| 'UI_EDIT_ZONE_DISPOSITION'
-	| 'UI_MOVE_ENTITY_TO_ZONE';
+	| 'UI_MOVE_ENTITY_TO_ZONE'
+	| 'UI_SET_STUDIO_DEFAULT'
+	| 'UI_RESET_STUDIO_DEFAULTS'
+	| 'UI_ASSISTANT_TOGGLE_FLOAT'
+	| 'UI_ASSISTANT_SUBMIT'
+	| 'UI_STATION_PREVIEW_UPDATE';
 
 export interface DagEnvelope<P = Record<string, unknown>> {
 	readonly id: string;

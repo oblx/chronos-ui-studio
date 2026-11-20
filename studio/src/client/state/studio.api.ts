@@ -1,5 +1,5 @@
 import type { ThemePack, WireTraceRecord } from '@chronos-ui/svelte';
-import type { UiBlueprint } from '../../config';
+import type { UiBlueprint } from '@studio/config';
 import { apiRequest as requestJson, fetchWithIdbFallback as fetchWithIdbMirror } from './lifecycle/http.client';
 import type { StudioUser } from './studio.types';
 
@@ -71,4 +71,10 @@ export async function apiPollCollab(payload: { sessionId: string; label: string;
 	} catch {
 		return null;
 	}
+}
+
+export async function apiBroadcastCollabEvent(sessionId: string, kind: string, payload: Record<string, unknown>): Promise<void> {
+	try {
+		await requestJson('/api/ws/collab', 'POST', { sessionId, label: 'Operator', scope: 'WORKSPACE', event: { kind, payload } });
+	} catch { /* non-blocking realtime broadcast */ }
 }

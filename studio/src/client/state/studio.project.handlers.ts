@@ -2,7 +2,7 @@ import {
 	applyCursorPackToDocument, applySafeCorridorCssVars, applyThemeToRoot, computeSafeCorridor, DEFAULT_VIEWPORT, findThemePack,
 	resetCursorPackOnDocument, type UiNode, type UiNodeTree, type UiWireBroker
 } from '@chronos-ui/svelte';
-import { patchNodeInTreeByUuid } from '../../core/engine';
+import { patchNodeInTreeByUuid } from '@studio/core/engine';
 import { apiCommitRevision } from './studio.project.api';
 import type { StudioState } from './studio.types';
 

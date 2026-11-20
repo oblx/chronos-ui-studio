@@ -1,5 +1,5 @@
 import type { ServerWebSocket } from 'bun';
-import type { IntentKind } from '@chronos-ui/svelte';
+import { PEER_STALE_MS, type IntentKind } from '@chronos-ui/svelte';
 import { pushServerTrace } from './server.telemetry';
 
 export interface CollabSessionInfo {
@@ -9,6 +9,7 @@ export interface CollabSessionInfo {
 	readonly y: number;
 	readonly scope: 'WORKSPACE' | 'FULL_APP';
 	readonly lastSeenAt: number;
+	readonly activePointer?: boolean;
 }
 
 export interface QueuedTwinCommand {
@@ -26,15 +27,15 @@ const activeSessions = new Map<string, CollabSessionInfo>();
 const liveSockets = new Map<string, ServerWebSocket<WsSocketData>>();
 const commandQueues = new Map<string, QueuedTwinCommand[]>();
 
-export function listCollabSessions(): readonly CollabSessionInfo[] {
-	const cutoff = Date.now() - 45_000;
+export function listCollabSessions(excludeSessionId?: string): readonly CollabSessionInfo[] {
+	const cutoff = Date.now() - PEER_STALE_MS;
 	for (const [id, info] of activeSessions.entries()) {
 		if (info.lastSeenAt < cutoff && !liveSockets.has(id)) {
 			activeSessions.delete(id);
 			commandQueues.delete(id);
 		}
 	}
-	return Array.from(activeSessions.values());
+	return Array.from(activeSessions.values()).filter((info) => (!excludeSessionId || info.sessionId !== excludeSessionId) && (info.activePointer === true || liveSockets.has(info.sessionId)));
 }
 
 export function dispatchTwinIntentToSession(
@@ -59,6 +60,19 @@ export function dispatchTwinIntentToSession(
 	return activeSessions.has(sessionId) || Boolean(ws);
 }
 
+export function broadcastCollabEvent(
+	kind: IntentKind,
+	payload: Record<string, unknown>,
+	excludeSessionId?: string
+): number {
+	let delivered = 0;
+	for (const sid of new Set([...activeSessions.keys(), ...liveSockets.keys()])) {
+		if (excludeSessionId && sid === excludeSessionId) continue;
+		if (dispatchTwinIntentToSession(sid, kind, payload)) delivered += 1;
+	}
+	return delivered;
+}
+
 export function handleCollabHttp(req: Request, path: string): Promise<Response> | Response | null {
 	if (path !== '/api/ws/collab') return null;
 	if (req.method === 'GET') {
@@ -66,11 +80,11 @@ export function handleCollabHttp(req: Request, path: string): Promise<Response> 
 		const sid = url.searchParams.get('sessionId') ?? '';
 		const pending = sid ? (commandQueues.get(sid) ?? []) : [];
 		if (sid) commandQueues.set(sid, []);
-		return Response.json({ peers: listCollabSessions(), commands: pending });
+		return Response.json({ peers: listCollabSessions(sid || undefined), commands: pending });
 	}
 	if (req.method === 'POST') {
 		return req.json().then((body) => {
-			const data = body as Partial<CollabSessionInfo>;
+			const data = body as Partial<CollabSessionInfo> & { event?: { kind: IntentKind; payload?: Record<string, unknown> } };
 			const sessionId = String(data.sessionId ?? '').trim();
 			if (!sessionId) return Response.json({ error: 'sessionId required' }, { status: 400 });
 			activeSessions.set(sessionId, {
@@ -79,11 +93,13 @@ export function handleCollabHttp(req: Request, path: string): Promise<Response> 
 				x: Number(data.x ?? 200),
 				y: Number(data.y ?? 200),
 				scope: data.scope === 'FULL_APP' ? 'FULL_APP' : 'WORKSPACE',
-				lastSeenAt: Date.now()
+				lastSeenAt: Date.now(),
+				activePointer: data.activePointer === true
 			});
+			const broadcastCount = data.event?.kind ? broadcastCollabEvent(data.event.kind, data.event.payload ?? {}, sessionId) : 0;
 			const pending = commandQueues.get(sessionId) ?? [];
 			commandQueues.set(sessionId, []);
-			return Response.json({ peers: listCollabSessions(), commands: pending });
+			return Response.json({ peers: listCollabSessions(sessionId), commands: pending, broadcastCount });
 		});
 	}
 	return null;
@@ -93,32 +109,18 @@ export const collabWebsocketHandlers = {
 	open(ws: ServerWebSocket<WsSocketData>): void {
 		const sid = ws.data.sessionId;
 		liveSockets.set(sid, ws);
-		activeSessions.set(sid, {
-			sessionId: sid,
-			label: `Session ${sid.slice(-4)}`,
-			x: 240,
-			y: 240,
-			scope: 'WORKSPACE',
-			lastSeenAt: Date.now()
-		});
+		activeSessions.set(sid, { sessionId: sid, label: `Session ${sid.slice(-4)}`, x: 240, y: 240, scope: 'WORKSPACE', lastSeenAt: Date.now() });
 	},
 	message(ws: ServerWebSocket<WsSocketData>, raw: string | Buffer): void {
 		const sid = ws.data.sessionId;
 		try {
-			const msg = JSON.parse(String(raw)) as { type?: string; x?: number; y?: number; label?: string; scope?: 'WORKSPACE' | 'FULL_APP' };
+			const msg = JSON.parse(String(raw)) as { type?: string; x?: number; y?: number; label?: string; scope?: 'WORKSPACE' | 'FULL_APP'; kind?: IntentKind; payload?: Record<string, unknown> };
 			if (msg.type === 'CURSOR') {
-				activeSessions.set(sid, {
-					sessionId: sid,
-					label: String(msg.label ?? `Session ${sid.slice(-4)}`),
-					x: Number(msg.x ?? 0),
-					y: Number(msg.y ?? 0),
-					scope: msg.scope === 'FULL_APP' ? 'FULL_APP' : 'WORKSPACE',
-					lastSeenAt: Date.now()
-				});
+				activeSessions.set(sid, { sessionId: sid, label: String(msg.label ?? `Session ${sid.slice(-4)}`), x: Number(msg.x ?? 0), y: Number(msg.y ?? 0), scope: msg.scope === 'FULL_APP' ? 'FULL_APP' : 'WORKSPACE', lastSeenAt: Date.now(), activePointer: true });
+			} else if (msg.type === 'EVENT' && msg.kind) {
+				broadcastCollabEvent(msg.kind, msg.payload ?? {}, sid);
 			}
-		} catch {
-			// Ignore malformed client WS frame
-		}
+		} catch { /* Ignore malformed client WS frame */ }
 	},
 	close(ws: ServerWebSocket<WsSocketData>): void {
 		liveSockets.delete(ws.data.sessionId);

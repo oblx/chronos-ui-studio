@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { UiBadge, UiChamferButton, type CornerKind } from '@chronos-ui/svelte';
-	import { STUDIO_SPOTLIGHT_STEPS } from '../../config';
+	import { STUDIO_SPOTLIGHT_STEPS } from '@studio/config';
 
 	interface Props {
 		cornerMode: CornerKind;

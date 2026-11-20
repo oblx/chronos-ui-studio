@@ -1,5 +1,5 @@
 import type { IntentKind, UiIconName } from '@chronos-ui/svelte';
-import { CAPABILITY_BITS } from '../../config';
+import { CAPABILITY_BITS } from '@studio/config';
 import { WORKSPACE_CURSOR_TOOL_DESCRIPTORS } from './cursor.synthesizer';
 import { ENTITY_TOOL_DESCRIPTORS } from './entity.tools';
 import { STATION_TOOL_DESCRIPTORS } from './station.tools';

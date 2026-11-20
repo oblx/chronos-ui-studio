@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { UiChamferButton, type CornerKind, type HudZoneId, type ThemePack } from '@chronos-ui/svelte';
-	import type { UiBlueprint } from '../../config';
+	import type { UiBlueprint } from '@studio/config';
 	import BlueprintLibraryPanel from './BlueprintLibraryPanel.svelte';
 	import SpotlightStudioPanel from './SpotlightStudioPanel.svelte';
 	import ThemeTunerPanel from './ThemeTunerPanel.svelte';

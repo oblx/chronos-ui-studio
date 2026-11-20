@@ -2,7 +2,7 @@
 	import {
 		UiChamferButton, UiHorizontalDeck, UiModalFooter, UiModalShell, uiSwipeDeck,
 		type AccessibilityPrefs, type CornerKind, type EnvironmentCapabilityReport,
-		type GamepadProfileId, type MotionConfig, type ThemePack, type VoiceCaptureMode
+		type GamepadProfileId, type MotionConfig, type StudioDefaultsConfig, type ThemePack, type VoiceCaptureMode
 	} from '@chronos-ui/svelte';
 	import type { AiProfileSummary } from '../state';
 	import { SettingsVisualsTab } from './settings';
@@ -13,6 +13,7 @@
 		open: boolean;
 		prefs: AccessibilityPrefs;
 		motionConfig: MotionConfig;
+		studioDefaults: StudioDefaultsConfig;
 		envCapabilities: EnvironmentCapabilityReport | null;
 		activeAdapterBadge: string;
 		themes: readonly ThemePack[];
@@ -27,6 +28,8 @@
 		onUpdate: (patch: Partial<AccessibilityPrefs>) => void;
 		onSetCornerStyle: (cornerMode: CornerKind) => void;
 		onSetCornerRadius: (cornerRadiusRem: number) => void;
+		onSetStudioDefaults: (patch: Partial<StudioDefaultsConfig>) => void;
+		onResetStudioDefaults: () => void;
 		onSetMotionConfig: (patch: Partial<MotionConfig>) => void;
 		onToggleCornerMorph: (enabled: boolean) => void;
 		onSelectTheme: (themeId: string) => void;
@@ -39,9 +42,9 @@
 	}
 
 	let {
-		open, prefs, motionConfig, envCapabilities, activeAdapterBadge, themes, activeThemeId, aiProfiles,
+		open, prefs, motionConfig, studioDefaults, envCapabilities, activeAdapterBadge, themes, activeThemeId, aiProfiles,
 		projectNodeCount, traceCount, lowMemoryMode, cornerMorphEnabled, voiceMode, gamepadOverride,
-		onUpdate, onSetCornerStyle, onSetCornerRadius, onSetMotionConfig, onToggleCornerMorph,
+		onUpdate, onSetCornerStyle, onSetCornerRadius, onSetStudioDefaults, onResetStudioDefaults, onSetMotionConfig, onToggleCornerMorph,
 		onSelectTheme, onSaveAiProfile, onToggleLowMemory, onSetVoiceMode, onSetGamepadOverride, onOpenCursors, onClose
 	}: Props = $props();
 
@@ -71,7 +74,7 @@
 		{#if activeTab === 'ai'}
 			<SettingsAiTab cornerMode={prefs.cornerMode} profiles={aiProfiles} {envCapabilities} {activeAdapterBadge} onSaveProfile={onSaveAiProfile} />
 		{:else if activeTab === 'visuals'}
-			<SettingsVisualsTab {prefs} {motionConfig} {themes} {activeThemeId} {cornerMorphEnabled} {onUpdate} {onSetCornerStyle} {onSetCornerRadius} {onSetMotionConfig} {onToggleCornerMorph} {onSelectTheme} {onOpenCursors} />
+			<SettingsVisualsTab {prefs} {motionConfig} {studioDefaults} {themes} {activeThemeId} {cornerMorphEnabled} {onUpdate} {onSetCornerStyle} {onSetCornerRadius} {onSetStudioDefaults} {onResetStudioDefaults} {onSetMotionConfig} {onToggleCornerMorph} {onSelectTheme} {onOpenCursors} />
 		{:else if activeTab === 'input'}
 			<div class="grid grid-cols-1 gap-3 text-xs md:grid-cols-2" data-testid="settings-input-tab">
 				<div class="flex flex-col gap-2">
@@ -91,7 +94,7 @@
 				</div>
 			</div>
 		{:else}
-			<SettingsRuntimeTab cornerMode={prefs.cornerMode} {projectNodeCount} {traceCount} {lowMemoryMode} {onToggleLowMemory} />
+			<SettingsRuntimeTab cornerMode={prefs.cornerMode} {studioDefaults} {projectNodeCount} {traceCount} {lowMemoryMode} {onToggleLowMemory} {onSetStudioDefaults} {onResetStudioDefaults} />
 		{/if}
 	</div>
 	{#snippet footer()}

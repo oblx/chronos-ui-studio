@@ -1,4 +1,4 @@
-import { CAPABILITY_BITS } from '../../config';
+import { CAPABILITY_BITS } from '@studio/config';
 
 const IDEM = { readOnlyHint: false, idempotentHint: true, destructiveHint: false } as const;
 const RO = { readOnlyHint: true, idempotentHint: true, destructiveHint: false } as const;
@@ -81,5 +81,31 @@ export const STATION_TOOL_DESCRIPTORS = [
 		inputSchema: { type: 'object', properties: { zoneId: { type: 'string' } } },
 		outputSchema: { type: 'object', properties: { modal: { type: 'string' }, zoneId: { type: 'string' } } },
 		annotations: RO
+	},
+	{
+		name: 'ui_configure_studio_defaults',
+		description: 'Configure persistent Studio geometry, 3-tier corner cuts, stroke weight, ornament offset/drift/period, perimeter gutter, and auto-save defaults.',
+		humanTitle: 'Configure Studio Defaults',
+		plainDescription: 'Tune base, station, and control corner cuts plus ornament timing and stroke weight.',
+		category: 'CUSTOMIZE',
+		icon: 'sliders',
+		intentKind: 'UI_SET_STUDIO_DEFAULT',
+		requiredCapabilityBit: CAPABILITY_BITS.WRITE_BLUEPRINTS,
+		inputSchema: { type: 'object', properties: { projectId: { type: 'string' }, baseCornerCutRem: { type: 'number' }, stationCornerCutRem: { type: 'number' }, controlCornerCutRem: { type: 'number' }, borderStrokePx: { type: 'number' }, ornamentOffsetRem: { type: 'number' }, ornamentDriftAmpRem: { type: 'number' }, ornamentPeriodMs: { type: 'number' }, perimeterGutterRem: { type: 'number' }, autoSaveMode: { type: 'string' }, cornerMode: { type: 'string' }, cornerEmbellishment: { type: 'string' }, cornerAnimation: { type: 'string' } } },
+		outputSchema: { type: 'object', properties: { studioDefaults: { type: 'object' }, project: { type: 'object' } } },
+		annotations: IDEM
+	},
+	{
+		name: 'ui_reset_studio_defaults',
+		description: 'Reset all Studio geometry, ornament, gutter, and auto-save defaults back to canonical v0.0.8 baseline.',
+		humanTitle: 'Reset Studio Defaults',
+		plainDescription: 'Restore default 0.5rem base, 0.75rem station, and 0.3125rem control corner cuts.',
+		category: 'CUSTOMIZE',
+		icon: 'reset',
+		intentKind: 'UI_RESET_STUDIO_DEFAULTS',
+		requiredCapabilityBit: CAPABILITY_BITS.WRITE_BLUEPRINTS,
+		inputSchema: { type: 'object', properties: { projectId: { type: 'string' } } },
+		outputSchema: { type: 'object', properties: { studioDefaults: { type: 'object' }, project: { type: 'object' } } },
+		annotations: IDEM
 	}
 ] as const;

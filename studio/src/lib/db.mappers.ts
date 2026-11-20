@@ -1,7 +1,7 @@
 import {
-	clampCornerRadiusRem, CORNER_RADIUS_LIMITS,
+	clampCornerRadiusRem, clampStudioDefaults, CORNER_RADIUS_LIMITS, DEFAULT_STUDIO_DEFAULTS, STUDIO_DEFAULTS_VERSION,
 	type AssistantMessage, type CornerKind, type CssCursorState, type CursorGeneratorOrigin, type CursorPackDefinition,
-	type CursorStateAsset, type SemanticTokenMap, type UiNodeTree, type UiProjectBuildConfig, type UiProjectDefinition
+	type CursorStateAsset, type SemanticTokenMap, type StudioDefaultsConfig, type UiNodeTree, type UiProjectBuildConfig, type UiProjectDefinition
 } from '@chronos-ui/svelte';
 import type { UiBlueprint } from '../config';
 import type { AiProviderKind } from '../core';
@@ -11,6 +11,20 @@ import type { aiChatMessages, aiProviderProfiles, blueprints, themes, uiProjects
 function normalizeCornerMode(raw: string): CornerKind {
 	if (raw === 'STRAIGHT' || raw === 'ROUND' || raw === 'CHAMFER') return raw;
 	return 'CHAMFER';
+}
+
+export function migrateLegacyStudioDefaults(
+	raw: Partial<StudioDefaultsConfig> | undefined,
+	legacyCornerRadiusRem?: number
+): StudioDefaultsConfig {
+	const hasCurrentVersion = typeof raw?.defaultsVersion === 'number' && raw.defaultsVersion >= STUDIO_DEFAULTS_VERSION;
+	const rawBase = raw?.baseCornerCutRem ?? legacyCornerRadiusRem;
+	const isLegacyDefault = !hasCurrentVersion && (rawBase === undefined || rawBase === 0.75);
+	const resolvedBase = isLegacyDefault ? CORNER_RADIUS_LIMITS.defaultRem : clampCornerRadiusRem(rawBase);
+	return clampStudioDefaults(
+		{ ...raw, baseCornerCutRem: resolvedBase, defaultsVersion: STUDIO_DEFAULTS_VERSION },
+		{ ...DEFAULT_STUDIO_DEFAULTS, baseCornerCutRem: resolvedBase }
+	);
 }
 
 export function mapBlueprintRow(row: typeof blueprints.$inferSelect): UiBlueprint {
@@ -29,10 +43,13 @@ export function mapThemeRow(row: typeof themes.$inferSelect) {
 }
 
 export function mapProjectRow(row: typeof uiProjects.$inferSelect, nodes: UiNodeTree): UiProjectDefinition {
+	const rawDefaults = row.studioDefaultsJson ? (JSON.parse(row.studioDefaultsJson) as Partial<StudioDefaultsConfig>) : undefined;
+	const studioDefaults = migrateLegacyStudioDefaults(rawDefaults, row.cornerRadiusRem);
 	return {
 		id: row.id, slug: row.slug, name: row.name, description: row.description,
 		themeId: row.themeId, cornerMode: normalizeCornerMode(row.cornerStyle),
-		cornerRadiusRem: clampCornerRadiusRem(typeof row.cornerRadiusRem === 'number' ? row.cornerRadiusRem : CORNER_RADIUS_LIMITS.defaultRem),
+		cornerRadiusRem: studioDefaults.baseCornerCutRem, studioDefaults,
+		hasBuiltOnce: row.hasBuiltOnce === 1,
 		...(row.cursorPackUuid ? { activeCursorPackId: row.cursorPackUuid } : {}),
 		activeRevisionId: row.activeRevisionId, nodes,
 		buildConfig: JSON.parse(row.buildConfigJson) as UiProjectBuildConfig, updatedAt: row.updatedAt

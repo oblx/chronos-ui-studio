@@ -3,8 +3,8 @@
 		LAYOUT_DENSITIES, UiChamferButton, UiChamferFrame, UiIcon, uiTransition, Z_LAYERS,
 		type CornerKind, type HudZoneId, type LayoutDensity, type UiComponentKind
 	} from '@chronos-ui/svelte';
-	import { STARTER_SAMPLE_PROJECTS } from '../../config';
-	import { STUDIO_TOOL_REGISTRY, type UiComponentPrototype } from '../../core/engine';
+	import { STARTER_SAMPLE_PROJECTS } from '@studio/config';
+	import { STUDIO_TOOL_REGISTRY, type UiComponentPrototype } from '@studio/core/engine';
 
 	interface Props {
 		open: boolean;

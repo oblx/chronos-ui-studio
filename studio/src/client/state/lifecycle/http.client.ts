@@ -1,4 +1,4 @@
-import { readIdbMirror, writeIdbMirror } from '../../../lib/idb.mirror';
+import { readIdbMirror, writeIdbMirror } from '@studio/lib/idb.mirror';
 
 export async function apiRequest<T>(url: string, method = 'GET', body?: unknown): Promise<{ ok: boolean; status: number; data: T | null }> {
 	const init: RequestInit = { method };

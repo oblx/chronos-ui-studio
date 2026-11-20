@@ -39,7 +39,8 @@ function computeInputCacheKey(opts: StaticBuildOptions): string {
 	const hasher = new Bun.CryptoHasher('sha256');
 	hasher.update(JSON.stringify({
 		id: opts.project.id, themeId: opts.project.themeId, cornerMode: opts.project.cornerMode,
-		cornerRadiusRem: clampCornerRadiusRem(opts.project.cornerRadiusRem ?? CORNER_RADIUS_LIMITS.defaultRem), activeCursorPackId: opts.project.activeCursorPackId ?? null,
+		cornerRadiusRem: clampCornerRadiusRem(opts.project.cornerRadiusRem ?? CORNER_RADIUS_LIMITS.defaultRem),
+		studioDefaults: opts.project.studioDefaults ?? null, activeCursorPackId: opts.project.activeCursorPackId ?? null,
 		nodes: opts.project.nodes, buildConfig: opts.project.buildConfig, motionConfig: opts.motionConfig ?? null
 	}));
 	return hasher.digest('hex');

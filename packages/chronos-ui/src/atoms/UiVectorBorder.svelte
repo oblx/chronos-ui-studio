@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { getActiveCornerMorph, subscribeMotionState } from '../motion';
-	import { buildMorphableCornerPath, DEFAULT_CHAMFER_TUPLE, resolveCornerTuple, type CornerKind, type CornerTuple } from '../tokens';
+	import {
+		buildMorphableCornerPath, clampControlCutPx, DEFAULT_CHAMFER_TUPLE, resolveCornerTuple,
+		type CornerKind, type CornerTuple
+	} from '../tokens';
 
 	interface Props {
 		corners?: CornerTuple;
 		cornerMode?: CornerKind;
 		cutPx?: number;
+		maxCutRatio?: number;
 		strokeVar?: string;
 		strokeWidthVar?: string;
 		strokeWidth?: number;
@@ -18,8 +22,9 @@
 		corners = DEFAULT_CHAMFER_TUPLE,
 		cornerMode = 'CHAMFER',
 		cutPx = 8,
+		maxCutRatio,
 		strokeVar = 'var(--ui-border-subtle)',
-		strokeWidthVar = 'var(--ui-hairline)',
+		strokeWidthVar = 'var(--ui-stroke-w, var(--ui-hairline))',
 		strokeWidth,
 		progressRatio = 0,
 		progressStrokeVar = 'var(--ui-accent)'
@@ -59,7 +64,13 @@
 	});
 
 	let tuple = $derived(resolveCornerTuple(corners, cornerMode));
-	let effectiveCut = $derived(cornerMode === 'STRAIGHT' ? 0 : cutPx);
+	let effectiveCut = $derived(
+		cornerMode === 'STRAIGHT'
+			? 0
+			: maxCutRatio !== undefined
+				? clampControlCutPx(cutPx, boxH, maxCutRatio)
+				: cutPx
+	);
 	let strokePath = $derived(buildMorphableCornerPath(boxW, boxH, effectiveCut, tuple, 0.75));
 	let morphCls = $derived(cornerMorph ? 'ui-morph-path' : '');
 	let perimeter = $derived((boxW + boxH) * 2);
@@ -69,6 +80,7 @@
 <svg
 	bind:this={svgEl}
 	data-ui-vector-border="true"
+	data-effective-cut-px={effectiveCut.toFixed(2)}
 	class="pointer-events-none absolute inset-0 z-20 h-full w-full overflow-visible"
 	viewBox="0 0 {boxW} {boxH}"
 	preserveAspectRatio="none"

@@ -1,7 +1,7 @@
-import { clampCornerRadiusRem, generateUuidV7, THEME_PACKS, type CornerKind, type UiNodeTree, type UiProjectBuildConfig, type UiProjectDefinition } from '@chronos-ui/svelte';
+import { clampCornerRadiusRem, clampStudioDefaults, DEFAULT_STUDIO_DEFAULTS, generateUuidV7, THEME_PACKS, type CornerKind, type StudioDefaultsConfig, type UiNodeTree, type UiProjectBuildConfig, type UiProjectDefinition } from '@chronos-ui/svelte';
 import { desc, eq, inArray } from 'drizzle-orm';
-import { DEFAULT_BUILD_CONFIG, flattenNodesToEntityRecords, formatHlc, patchNodeInTreeByUuid, tickHlc, validateUiNodeTree } from '../../core';
-import { getStudioDb, mapProjectRow, uiEntities, uiProjectRevisions, uiProjects } from '../../lib';
+import { DEFAULT_BUILD_CONFIG, flattenNodesToEntityRecords, formatHlc, patchNodeInTreeByUuid, tickHlc, validateUiNodeTree } from '@studio/core';
+import { getStudioDb, mapProjectRow, uiEntities, uiProjectRevisions, uiProjects } from '@studio/lib';
 import { pushServerTrace } from '../server.telemetry';
 import { HTTP_STATUS, jsonErr, jsonOk, parseJsonSafe, readJsonBody, toSlug } from './http.helpers';
 
@@ -21,10 +21,7 @@ export async function listAllProjects(): Promise<UiProjectDefinition[]> {
 	const revIds = rows.map((r) => r.activeRevisionId);
 	const revs = revIds.length > 0 ? await db.select().from(uiProjectRevisions).where(inArray(uiProjectRevisions.id, revIds)) : [];
 	const revById = new Map(revs.map((r) => [r.id, r]));
-	return rows.map((row) => {
-		const rev = revById.get(row.activeRevisionId);
-		return mapProjectRow(row, rev ? parseJsonSafe<UiNodeTree>(rev.nodesJson, []) : []);
-	});
+	return rows.map((row) => mapProjectRow(row, parseJsonSafe<UiNodeTree>(revById.get(row.activeRevisionId)?.nodesJson ?? '[]', [])));
 }
 
 async function syncEntitiesTx(tx: Parameters<Parameters<Awaited<ReturnType<typeof getStudioDb>>['transaction']>[0]>[0], projectId: string, nodes: UiNodeTree, hlc: string, now: number): Promise<void> {
@@ -84,15 +81,18 @@ export async function commitProjectRevision(projectId: string, nodes: UiNodeTree
 }
 
 async function handleProjectPatch(req: Request, id: string): Promise<Response> {
-	const body = await readJsonBody<{ name?: string; themeId?: string; cornerMode?: CornerKind; cornerRadiusRem?: number; activeCursorPackId?: string | null; buildConfig?: Partial<UiProjectBuildConfig> }>(req);
+	const body = await readJsonBody<{ name?: string; themeId?: string; cornerMode?: CornerKind; cornerRadiusRem?: number; studioDefaults?: Partial<StudioDefaultsConfig>; activeCursorPackId?: string | null; hasBuiltOnce?: boolean; buildConfig?: Partial<UiProjectBuildConfig> }>(req);
 	const db = await getStudioDb();
 	const rows = await db.select().from(uiProjects).where(eq(uiProjects.id, id)).limit(1);
 	if (!rows[0]) return jsonErr('Project not found', HTTP_STATUS.NOT_FOUND);
 	const mergedCfg = { ...parseJsonSafe<Partial<UiProjectBuildConfig>>(rows[0].buildConfigJson, {}), ...(body.buildConfig ?? {}) };
-	const radius = body.cornerRadiusRem !== undefined ? clampCornerRadiusRem(Number(body.cornerRadiusRem)) : rows[0].cornerRadiusRem;
+	const curDefaults = clampStudioDefaults(rows[0].studioDefaultsJson ? parseJsonSafe<Partial<StudioDefaultsConfig>>(rows[0].studioDefaultsJson, {}) : undefined, { ...DEFAULT_STUDIO_DEFAULTS, baseCornerCutRem: rows[0].cornerRadiusRem });
+	const nextDefaults = clampStudioDefaults({ ...body.studioDefaults, ...(body.cornerRadiusRem !== undefined ? { baseCornerCutRem: Number(body.cornerRadiusRem) } : {}) }, curDefaults);
 	await db.update(uiProjects).set({
 		name: body.name ?? rows[0].name, themeId: body.themeId ?? rows[0].themeId, cornerStyle: body.cornerMode ?? rows[0].cornerStyle,
-		cornerRadiusRem: radius, cursorPackUuid: body.activeCursorPackId !== undefined ? body.activeCursorPackId : rows[0].cursorPackUuid,
+		cornerRadiusRem: nextDefaults.baseCornerCutRem, studioDefaultsJson: JSON.stringify(nextDefaults),
+		cursorPackUuid: body.activeCursorPackId !== undefined ? body.activeCursorPackId : rows[0].cursorPackUuid,
+		hasBuiltOnce: body.hasBuiltOnce !== undefined ? (body.hasBuiltOnce ? 1 : 0) : rows[0].hasBuiltOnce,
 		buildConfigJson: JSON.stringify(mergedCfg), updatedAt: Date.now()
 	}).where(eq(uiProjects.id, id));
 	return jsonOk({ project: await loadProjectWithNodes(id) });

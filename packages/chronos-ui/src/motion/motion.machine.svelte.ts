@@ -1,8 +1,12 @@
-import { clampCornerRadiusRem, CORNER_RADIUS_LIMITS } from '../tokens';
+import {
+	applyStudioDefaults, clampCornerRadiusRem, clampStudioDefaults, DEFAULT_CORNER_CUT_REM,
+	DEFAULT_STUDIO_DEFAULTS, type StudioDefaultsConfig
+} from '../tokens';
 import { DEFAULT_MOTION_CONFIG, type MotionConfig } from './motion.types';
 
 let activeMotionConfig: MotionConfig = DEFAULT_MOTION_CONFIG;
-let activeCornerRadiusRem: number = CORNER_RADIUS_LIMITS.defaultRem;
+let activeCornerRadiusRem: number = DEFAULT_CORNER_CUT_REM;
+let activeStudioDefaults: StudioDefaultsConfig = { ...DEFAULT_STUDIO_DEFAULTS };
 let activeCornerMorph = true;
 const listeners = new Set<() => void>();
 
@@ -35,8 +39,29 @@ export function getActiveCornerRadiusRem(): number {
 
 export function setActiveCornerRadiusRem(value: number): number {
 	activeCornerRadiusRem = clampCornerRadiusRem(value);
+	activeStudioDefaults = { ...activeStudioDefaults, baseCornerCutRem: activeCornerRadiusRem };
 	notifyMotionListeners();
 	return activeCornerRadiusRem;
+}
+
+export function getActiveStudioDefaults(): StudioDefaultsConfig {
+	return activeStudioDefaults;
+}
+
+export function setActiveStudioDefaults(patch: Partial<StudioDefaultsConfig>): StudioDefaultsConfig {
+	activeStudioDefaults = clampStudioDefaults(patch, activeStudioDefaults);
+	activeCornerRadiusRem = activeStudioDefaults.baseCornerCutRem;
+	applyStudioDefaults(activeStudioDefaults);
+	notifyMotionListeners();
+	return activeStudioDefaults;
+}
+
+export function resetActiveStudioDefaults(): StudioDefaultsConfig {
+	activeStudioDefaults = { ...DEFAULT_STUDIO_DEFAULTS };
+	activeCornerRadiusRem = activeStudioDefaults.baseCornerCutRem;
+	applyStudioDefaults(activeStudioDefaults);
+	notifyMotionListeners();
+	return activeStudioDefaults;
 }
 
 export function getActiveCornerMorph(): boolean {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { UiBentoRadar, uiSpotlight, type CornerKind, type RadarActionItem, type RegisteredUiEntity } from '@chronos-ui/svelte';
-	import type { ZoneBlueprintConfig } from '../../config';
+	import type { ZoneBlueprintConfig } from '@studio/config';
 
 	interface Props {
 		cornerMode: CornerKind;

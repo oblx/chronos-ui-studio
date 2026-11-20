@@ -1,5 +1,5 @@
-import { CURSOR_LIMITS, type CornerKind, type CssCursorState, type CursorPackDefinition, type UiNodeTree, type UiProjectDefinition } from '@chronos-ui/svelte';
-import { readIdbMirror, writeIdbMirror } from '../../../lib/idb.mirror';
+import { CURSOR_LIMITS, type CornerKind, type CssCursorState, type CursorPackDefinition, type StudioDefaultsConfig, type UiNodeTree, type UiProjectDefinition } from '@chronos-ui/svelte';
+import { readIdbMirror, writeIdbMirror } from '@studio/lib/idb.mirror';
 import { apiJsonOrThrow as jsonReq } from './http.client';
 
 export async function apiSaveProject(projectId: string, snapshot: {
@@ -32,6 +32,14 @@ export async function apiPatchProjectCornerRadius(projectId: string, cornerRadiu
 	const data = await jsonReq<{ project?: UiProjectDefinition }>(`/api/projects/${encodeURIComponent(projectId)}`, {
 		method: 'PATCH',
 		body: JSON.stringify({ cornerRadiusRem })
+	});
+	return data.project ?? null;
+}
+
+export async function apiPatchProjectStudioDefaults(projectId: string, studioDefaults: Partial<StudioDefaultsConfig>): Promise<UiProjectDefinition | null> {
+	const data = await jsonReq<{ project?: UiProjectDefinition }>(`/api/projects/${encodeURIComponent(projectId)}`, {
+		method: 'PATCH',
+		body: JSON.stringify({ studioDefaults })
 	});
 	return data.project ?? null;
 }

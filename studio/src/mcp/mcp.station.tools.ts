@@ -1,6 +1,7 @@
 import {
-	clampCornerRadiusRem, CORNER_RADIUS_LIMITS, findOppositeZone, HUD_ZONES, mirrorCornerTuple,
-	type CornerKind, type CornerTuple, type HudZoneId
+	clampCornerRadiusRem, clampStudioDefaults, CORNER_RADIUS_LIMITS, DEFAULT_STUDIO_DEFAULTS,
+	findOppositeZone, HUD_ZONES, mirrorCornerTuple,
+	type CornerKind, type CornerTuple, type HudZoneId, type StudioDefaultsConfig
 } from '@chronos-ui/svelte';
 import { eq } from 'drizzle-orm';
 import type { ZoneBlueprintConfig } from '../config';
@@ -85,12 +86,49 @@ async function toolMoveEntityToZone(args: Record<string, unknown>) {
 	return { summary: `moved ${target.label} -> ${targetZone}`, project: res.project, clientIntents: [{ kind: 'UI_MOVE_ENTITY_TO_ZONE', payload: { nodeId: target.id, targetZone } }] };
 }
 
+async function toolConfigureStudioDefaults(args: Record<string, unknown>) {
+	const key = String(args.projectId ?? 'proj-genesis');
+	const project = await loadProjectWithNodes(key);
+	if (!project) throw new Error(`Project not found: ${key}`);
+	const nextDefaults = clampStudioDefaults(args as Partial<StudioDefaultsConfig>, project.studioDefaults ?? DEFAULT_STUDIO_DEFAULTS);
+	const cornerStyle = typeof args.cornerMode === 'string' ? (args.cornerMode as CornerKind) : project.cornerMode;
+	const db = await getStudioDb();
+	await db.update(uiProjects).set({
+		cornerRadiusRem: nextDefaults.baseCornerCutRem, cornerStyle,
+		studioDefaultsJson: JSON.stringify(nextDefaults), updatedAt: Date.now()
+	}).where(eq(uiProjects.id, project.id));
+	const updated = await loadProjectWithNodes(project.id);
+	const clientIntents: Array<{ kind: string; payload: Record<string, unknown> }> = [
+		{ kind: 'UI_SET_STUDIO_DEFAULT', payload: { studioDefaults: nextDefaults } }
+	];
+	if (typeof args.cornerMode === 'string') clientIntents.push({ kind: 'UI_SET_ACCESSIBILITY', payload: { cornerMode: cornerStyle } });
+	if (typeof args.cornerAnimation === 'string' || typeof args.cornerEmbellishment === 'string') {
+		clientIntents.push({ kind: 'UI_SET_EMBELLISHMENT_CONFIG', payload: { cornerAnimation: args.cornerAnimation, cornerEmbellishment: args.cornerEmbellishment } });
+	}
+	return { summary: `studio defaults base=${nextDefaults.baseCornerCutRem}rem station=${nextDefaults.stationCornerCutRem}rem ctrl=${nextDefaults.controlCornerCutRem}rem`, studioDefaults: nextDefaults, project: updated, clientIntents };
+}
+
+async function toolResetStudioDefaults(args: Record<string, unknown>) {
+	const key = String(args.projectId ?? 'proj-genesis');
+	const project = await loadProjectWithNodes(key);
+	if (!project) throw new Error(`Project not found: ${key}`);
+	const db = await getStudioDb();
+	await db.update(uiProjects).set({
+		cornerRadiusRem: DEFAULT_STUDIO_DEFAULTS.baseCornerCutRem,
+		studioDefaultsJson: JSON.stringify(DEFAULT_STUDIO_DEFAULTS), updatedAt: Date.now()
+	}).where(eq(uiProjects.id, project.id));
+	const updated = await loadProjectWithNodes(project.id);
+	return { summary: 'reset studio defaults to v0.0.8 baseline', studioDefaults: DEFAULT_STUDIO_DEFAULTS, project: updated, clientIntents: [{ kind: 'UI_RESET_STUDIO_DEFAULTS', payload: {} }] };
+}
+
 export function buildStationMcpTools(): readonly [string, ProjectMcpToolFn][] {
 	return [
 		['ui_set_corner_radius', toolSetCornerRadius],
 		['ui_configure_station_layer', toolConfigureStationLayer],
 		['ui_edit_zone_disposition', toolEditZoneDisposition],
 		['ui_move_entity_to_zone', toolMoveEntityToZone],
+		['ui_configure_studio_defaults', toolConfigureStudioDefaults],
+		['ui_reset_studio_defaults', toolResetStudioDefaults],
 		['ui_open_station_builder', async (args) => ({
 			summary: 'opened Station Builder modal', modal: 'station-builder',
 			clientIntents: [{ kind: 'UI_OPEN_MODAL', payload: { id: 'station-builder', layer: args.layer ?? 'substrate' } }]

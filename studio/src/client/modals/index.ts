@@ -1,4 +1,3 @@
-export { default as FieldTomeModal } from './FieldTomeModal.svelte';
 export { default as SettingsModal } from './SettingsModal.svelte';
 export { default as SettingsAiTab } from './SettingsAiTab.svelte';
 export { default as SettingsRuntimeTab } from './SettingsRuntimeTab.svelte';
@@ -10,3 +9,4 @@ export { default as StudioModalStack } from './StudioModalStack.svelte';
 export * from './cursor';
 export * from './settings';
 export * from './station';
+export * from './tome';

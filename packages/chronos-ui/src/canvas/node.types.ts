@@ -5,6 +5,7 @@ import type {
 	CornerTuple,
 	EmbellishmentConfig,
 	HudZoneId,
+	StudioDefaultsConfig,
 	UiFrameShape
 } from '../tokens';
 
@@ -58,6 +59,8 @@ export interface UiProjectDefinition {
 	readonly themeId: string;
 	readonly cornerMode: CornerKind;
 	readonly cornerRadiusRem?: number;
+	readonly studioDefaults?: StudioDefaultsConfig;
+	readonly hasBuiltOnce?: boolean;
 	readonly activeCursorPackId?: string;
 	readonly activeRevisionId: string;
 	readonly nodes: UiNodeTree;

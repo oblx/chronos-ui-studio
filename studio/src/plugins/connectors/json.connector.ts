@@ -1,5 +1,5 @@
 import type { UiProjectDefinition } from '@chronos-ui/svelte';
-import { validateProjectDefinition } from '../../core';
+import { validateProjectDefinition } from '@studio/core';
 import { registerInputConnector } from '../registry';
 
 export type ProjectImportResult = { ok: true; project: UiProjectDefinition } | { ok: false; error: string };

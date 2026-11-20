@@ -5,8 +5,8 @@
 		type CornerAnimation, type CornerEmbellishment, type CornerKind, type CornerTuple,
 		type HudZoneId, type UiFrameShape, type UiNode
 	} from '@chronos-ui/svelte';
-	import type { UiBlueprint, ZoneDensityMode, ZoneDispositionMode } from '../../../config';
-	import type { ZoneEditPayload } from '../../state';
+	import type { UiBlueprint, ZoneDensityMode, ZoneDispositionMode } from '@studio/config';
+	import type { ZoneEditPayload } from '@studio/client/state';
 	import ZoneSchematicGrid from './ZoneSchematicGrid.svelte';
 
 	interface Props {

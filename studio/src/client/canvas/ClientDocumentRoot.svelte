@@ -4,7 +4,7 @@
 		type CornerKind, type EntityMeasuredRect, type HudZoneId, type UiNode, type UiNodeTree, type WireTraceRecord
 	} from '@chronos-ui/svelte';
 	import type { Action } from 'svelte/action';
-	import { STARTER_SAMPLE_PROJECTS } from '../../config';
+	import { STARTER_SAMPLE_PROJECTS } from '@studio/config';
 	import { resolveClientComponent } from './client.components';
 
 	interface Props {

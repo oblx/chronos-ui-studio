@@ -1,4 +1,4 @@
-import { CAPABILITY_BITS } from '../../config';
+import { CAPABILITY_BITS } from '@studio/config';
 import type { UiDocumentGraph } from './document.tree';
 
 export const GOVERNANCE_LIMITS = {

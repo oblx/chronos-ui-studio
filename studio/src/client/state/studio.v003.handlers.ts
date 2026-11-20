@@ -2,31 +2,22 @@ import {
 	applyAccessibilityPrefs, applyThemeToRoot, findThemePack, generateUuidV7, HUD_METRICS,
 	type HudZoneId, type SemanticInputAction, type UiComponentKind, type UiNode, type UiWireBroker
 } from '@chronos-ui/svelte';
-import { CAPABILITY_BITS, findStarterSample, SAMPLE_LOAD_CHOREOGRAPHY, sortNodesForChoreography } from '../../config';
+import { CAPABILITY_BITS, findStarterSample, SAMPLE_LOAD_CHOREOGRAPHY, sortNodesForChoreography } from '@studio/config';
 import {
 	applyJsonPatchWithInverse, derivePrototypeFromNode, documentGraphToNodeTree,
 	evaluateGovernanceGate, instantiateFromPrototype, nodeTreeToDocumentGraph, STUDIO_ROLE_MASKS,
 	type JsonPatchOp, type UiComponentPrototype
-} from '../../core/engine';
+} from '@studio/core/engine';
 import { apiCommitRevision } from './studio.project.api';
 import type { StudioModalId, StudioState } from './studio.types';
 
 const clamp = (v: number, min: number, max: number): number => Math.max(min, Math.min(max, v));
-
-export interface ChoreographyEpochGuard {
-	epoch: number;
-	controller: AbortController | null;
-	timers: ReturnType<typeof setTimeout>[];
-}
-
+export interface ChoreographyEpochGuard { epoch: number; controller: AbortController | null; timers: ReturnType<typeof setTimeout>[]; }
 export function cancelChoreographyEpoch(guard: ChoreographyEpochGuard): number {
-	guard.epoch += 1;
-	guard.controller?.abort();
-	guard.controller = null;
+	guard.epoch += 1; guard.controller?.abort(); guard.controller = null;
 	for (const t of guard.timers.splice(0)) clearTimeout(t);
 	return guard.epoch;
 }
-
 const getRootPx = (): number => typeof window !== 'undefined' ? (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) : 16;
 
 function moveAssistantDockState(s: StudioState, dxPx: number, dyPx: number, rect?: { left: number; top: number; width: number; height: number }): StudioState {
@@ -38,15 +29,16 @@ function moveAssistantDockState(s: StudioState, dxPx: number, dyPx: number, rect
 	const m = HUD_METRICS.viewportMarginRem;
 	const baseX = s.assistantDock.mode === 'FLOATING' ? s.assistantDock.xRem : (rect ? rect.left / rootPx : (vwRem - panelWRem) / 2);
 	const baseY = s.assistantDock.mode === 'FLOATING' ? s.assistantDock.yRem : (rect ? rect.top / rootPx : vhRem - panelHRem - m);
-	const xRem = Number(clamp(baseX + dxPx / rootPx, m, Math.max(m, vwRem - panelWRem - m)).toFixed(3));
-	const yRem = Number(clamp(baseY + dyPx / rootPx, m, Math.max(m, vhRem - panelHRem - m)).toFixed(3));
-	return { ...s, assistantDock: { ...s.assistantDock, mode: 'FLOATING', xRem, yRem } };
+	return { ...s, assistantDock: { ...s.assistantDock, mode: 'FLOATING', xRem: Number(clamp(baseX + dxPx / rootPx, m, Math.max(m, vwRem - panelWRem - m)).toFixed(3)), yRem: Number(clamp(baseY + dyPx / rootPx, m, Math.max(m, vhRem - panelHRem - m)).toFixed(3)) } };
 }
 
 function registerAssistantDockHandlers(broker: UiWireBroker<StudioState>): void {
 	broker.register<{ dxPx: number; dyPx: number; rect?: { left: number; top: number; width: number; height: number } }>('UI_ASSISTANT_MOVE', { tier: 'TIER_0_LOCAL_UI', reduce: (s, env) => moveAssistantDockState(s, env.payload.dxPx, env.payload.dyPx, env.payload.rect) });
 	broker.register('UI_ASSISTANT_DROP', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => ({ ...s, assistantDock: { ...s.assistantDock, mode: 'FLOATING' } }), summarize: () => 'Anchored floating assistant dock' });
 	broker.register('UI_ASSISTANT_DOCK', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => ({ ...s, assistantDock: { ...s.assistantDock, mode: 'DOCKED', xRem: 0, yRem: 0 } }), summarize: () => 'Returned assistant dock to BOTTOM_CENTER' });
+	broker.register<{ rect?: { left: number; top: number; width: number; height: number } }>('UI_ASSISTANT_TOGGLE_FLOAT', { tier: 'TIER_0_LOCAL_UI', reduce: (s, env) => s.assistantDock.mode === 'FLOATING' ? { ...s, assistantDock: { ...s.assistantDock, mode: 'DOCKED', xRem: 0, yRem: 0 } } : moveAssistantDockState(s, 0, -24, env.payload.rect), summarize: () => 'Toggled assistant dock float/dock' });
+	broker.register<{ projectId?: string }>('UI_ASSISTANT_SUBMIT', { tier: 'TIER_0_LOCAL_UI', reduce: (s, env) => ({ ...s, projects: s.projects.map((p) => (p.id === (env.payload.projectId ?? s.activeProjectId) ? { ...p, hasBuiltOnce: true } : p)) }), summarize: () => 'Assistant build -> send lifecycle active' });
+	broker.register<Record<string, unknown>>('UI_STATION_PREVIEW_UPDATE', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => s, summarize: () => 'Station live preview synced' });
 	broker.register<{ expanded?: boolean }>('UI_ASSISTANT_EXPAND', {
 		tier: 'TIER_0_LOCAL_UI',
 		reduce: (s, env) => {
@@ -86,23 +78,20 @@ export function registerV003Handlers(broker: UiWireBroker<StudioState>): void {
 	broker.register<{ sampleId: string; title: string }>('UI_LOAD_SAMPLE', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => s, summarize: (env) => `Choreographed sample: ${env.payload.title}` });
 }
 
-function cloneWithFreshUuids(nodes: readonly UiNode[]): readonly UiNode[] {
-	return nodes.map((n) => ({ ...n, id: generateUuidV7(), ...(n.children ? { children: cloneWithFreshUuids(n.children) } : {}) }));
-}
+const cloneWithFreshUuids = (nodes: readonly UiNode[]): readonly UiNode[] =>
+	nodes.map((n) => ({ ...n, id: generateUuidV7(), ...(n.children ? { children: cloneWithFreshUuids(n.children) } : {}) }));
 
 function scheduleSampleAssembly(broker: UiWireBroker<StudioState>, sampleId: string, guard: ChoreographyEpochGuard, pushToast: (msg: string, tone?: 'info' | 'success' | 'warning' | 'error') => void): void {
 	const sample = findStarterSample(sampleId);
 	const cur = broker.state.projects.find((p) => p.id === broker.state.activeProjectId) ?? broker.state.projects[0];
 	if (!sample || !cur) return;
 	const epoch = cancelChoreographyEpoch(guard);
-	const controller = new AbortController();
-	guard.controller = controller;
+	const controller = new AbortController(); guard.controller = controller;
 	const ordered = sortNodesForChoreography(cloneWithFreshUuids(sample.nodes));
 	const reduced = !broker.state.accessibility.kineticMotion || (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 	broker.patchState((s) => ({
 		...s, activeThemeId: sample.themeId, selectedNodeId: null, accessibility: { ...s.accessibility, cornerMode: sample.cornerMode },
-		projectPersistence: { ...s.projectPersistence, isDirty: true, status: 'DIRTY' },
-		undoStack: [...s.undoStack.slice(-19), cur.nodes], redoStack: [],
+		projectPersistence: { ...s.projectPersistence, isDirty: true, status: 'DIRTY' }, undoStack: [...s.undoStack.slice(-19), cur.nodes], redoStack: [],
 		projects: s.projects.map((p) => (p.id === cur.id ? { ...p, themeId: sample.themeId, cornerMode: sample.cornerMode, nodes: reduced ? ordered : [] } : p))
 	}));
 	broker.dispatch('UI_LOAD_SAMPLE', { sampleId: sample.id, title: sample.title });
@@ -110,12 +99,11 @@ function scheduleSampleAssembly(broker: UiWireBroker<StudioState>, sampleId: str
 	applyAccessibilityPrefs(broker.state.accessibility);
 	if (reduced) { void apiCommitRevision(cur.id, ordered, 'USER'); pushToast(`Loaded ${sample.title}`, 'success'); return; }
 	ordered.forEach((node, idx) => {
-		const timer = setTimeout(() => {
+		guard.timers.push(setTimeout(() => {
 			if (guard.epoch !== epoch || controller.signal.aborted) return;
 			broker.patchState((s) => ({ ...s, projects: s.projects.map((p) => (p.id === cur.id ? { ...p, nodes: [...p.nodes.filter((x) => x.id !== node.id), node] } : p)) }));
 			if (idx === ordered.length - 1) { void apiCommitRevision(cur.id, ordered, 'USER'); pushToast(`Assembled ${sample.title}`, 'success'); }
-		}, idx * SAMPLE_LOAD_CHOREOGRAPHY.stepDelayMs);
-		guard.timers.push(timer);
+		}, idx * SAMPLE_LOAD_CHOREOGRAPHY.stepDelayMs));
 	});
 }
 

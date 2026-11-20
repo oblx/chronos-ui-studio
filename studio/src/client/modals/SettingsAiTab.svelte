@@ -3,7 +3,7 @@
 		UiBadge, UiChamferButton, UiChamferFrame, UiInput, UiSelect, UiSlider,
 		type CornerKind, type EnvironmentCapabilityReport
 	} from '@chronos-ui/svelte';
-	import type { AiProviderKind } from '../../core';
+	import type { AiProviderKind } from '@studio/core';
 	import type { AiProfileSummary } from '../state';
 
 	interface Props {

@@ -3,8 +3,8 @@
 		UiBadge, UiChamferButton, UiChamferFrame, UiProgressGauge, uiSpotlight,
 		UiUtilityIconButton, VERSION, ZONE_CORNER_PRESETS, type CornerKind, type ThemePolarity
 	} from '@chronos-ui/svelte';
-	import type { UiBlueprint } from '../../config';
-	import { computeBlueprintGrade } from '../../core';
+	import type { UiBlueprint } from '@studio/config';
+	import { computeBlueprintGrade } from '@studio/core';
 	import type { StudioUser } from '../state';
 
 	interface Props {
@@ -41,6 +41,7 @@
 			corners={zoneCorners}
 			cornerMode={props.cornerMode}
 			cornerRadiusRem={zoneCfg?.cornerRadiusRem}
+			cutTier="station"
 			shape={zoneCfg?.shape ?? 'BOX'}
 			cornerEmbellishment={zoneCfg?.cornerEmbellishment}
 			cornerAnimation={zoneCfg?.cornerAnimation ?? 'NONE'}
@@ -80,6 +81,7 @@
 			corners={zoneCorners}
 			cornerMode={props.cornerMode}
 			cornerRadiusRem={zoneCfg?.cornerRadiusRem}
+			cutTier="station"
 			shape={zoneCfg?.shape ?? 'BOX'}
 			cornerEmbellishment={zoneCfg?.cornerEmbellishment}
 			cornerAnimation={zoneCfg?.cornerAnimation ?? 'NONE'}
@@ -88,18 +90,18 @@
 		>
 			<div class="flex h-full flex-col justify-between" data-testid="top-right-pod">
 				<div class="flex items-center justify-between gap-1">
-					<UiUtilityIconButton icon="cursor" label="Cursor Studio" active={props.activeModalId === 'cursors'} onclick={props.onOpenCursors} />
-					<UiUtilityIconButton icon="user" label={`Session & Auth (${identityLabel})`} active={props.activeModalId === 'auth'} onclick={props.onOpenAuth} />
-					<UiUtilityIconButton icon="wire" label="Wire Tap Observatory" active={props.activeModalId === 'wire'} onclick={props.onOpenWire} />
-					<UiUtilityIconButton icon={props.polarity === 'dark' ? 'sun' : 'moon'} label="Toggle Polarity" onclick={props.onTogglePolarity} />
-					<UiUtilityIconButton icon="help" label="Contextual Help (F1)" active={props.activeModalId === 'tome'} glitterBurst={props.glitterBurst} onclick={props.onOpenHelp} />
-					<UiUtilityIconButton icon="settings" label="Accessibility Settings" active={props.activeModalId === 'settings'} onclick={props.onOpenSettings} />
+					<UiUtilityIconButton cornerMode={props.cornerMode} icon="cursor" label="Cursor Studio" active={props.activeModalId === 'cursors'} onclick={props.onOpenCursors} />
+					<UiUtilityIconButton cornerMode={props.cornerMode} icon="user" label={`Session & Auth (${identityLabel})`} active={props.activeModalId === 'auth'} onclick={props.onOpenAuth} />
+					<UiUtilityIconButton cornerMode={props.cornerMode} icon="wire" label="Wire Tap Observatory" active={props.activeModalId === 'wire'} onclick={props.onOpenWire} />
+					<UiUtilityIconButton cornerMode={props.cornerMode} icon={props.polarity === 'dark' ? 'sun' : 'moon'} label="Toggle Polarity" onclick={props.onTogglePolarity} />
+					<UiUtilityIconButton cornerMode={props.cornerMode} icon="help" label="Contextual Help (F1)" active={props.activeModalId === 'tome'} glitterBurst={props.glitterBurst} onclick={props.onOpenHelp} testId="open-tome-btn" />
+					<UiUtilityIconButton cornerMode={props.cornerMode} icon="settings" label="Accessibility Settings" active={props.activeModalId === 'settings'} onclick={props.onOpenSettings} />
 				</div>
 				<div class="flex items-center justify-between gap-1.5">
 					<UiChamferButton cornerMode={props.cornerMode} icon="spotlight" label="Tour" onclick={props.onStartSpotlight} className="flex-1 py-0.5" />
 					<UiChamferButton cornerMode={props.cornerMode} icon="wire" label="DAG" onclick={props.onOpenWire} className="flex-1 py-0.5" />
 				</div>
-				<div class="ui-font-mono flex items-center justify-between gap-1 text-[0.62rem]" style="color: var(--ui-muted-content);" data-testid="top-right-status-row">
+				<div class="ui-font-mono flex items-center justify-between gap-1 text-[0.62rem]" style="color: var(--ui-muted-content); padding-inline: calc(var(--ui-station-cut, 0.75rem) + 0.375rem);" data-testid="top-right-status-row">
 					<span class="whitespace-nowrap">{identityLabel.toUpperCase()} · {props.polarity.toUpperCase()}</span>
 					<span class="whitespace-nowrap">X = 50vw</span>
 				</div>

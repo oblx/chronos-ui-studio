@@ -1,5 +1,5 @@
 import type { AssistantMessage, ServerAiCapabilityFlags, UiNodeTree, UiProjectDefinition } from '@chronos-ui/svelte';
-import { readIdbMirror, writeIdbMirror } from '../../lib/idb.mirror';
+import { readIdbMirror, writeIdbMirror } from '@studio/lib/idb.mirror';
 import { apiJsonOrThrow as jsonReq } from './lifecycle/http.client';
 import type { AiProfileSummary } from './studio.types';
 

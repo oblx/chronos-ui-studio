@@ -3,7 +3,7 @@
 		CSS_CURSOR_STATES, CURSOR_LIMITS, THEME_PACKS, UiChamferButton, UiHorizontalDeck, UiInput, UiModalFooter, UiModalShell,
 		type CornerKind, type CssCursorState, type CursorPackDefinition
 	} from '@chronos-ui/svelte';
-	import { readPngFileAsDataUrl } from '../../state';
+	import { readPngFileAsDataUrl } from '@studio/client/state';
 	import CursorHotspotPad from './CursorHotspotPad.svelte';
 
 	interface Props {

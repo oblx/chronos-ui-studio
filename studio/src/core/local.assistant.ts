@@ -1,18 +1,14 @@
 import { COMPONENT_CATALOG, CORNER_MODES, HUD_ZONES, pxToRem, THEME_PACKS, UI_FRAME_SHAPES, type CornerKind, type HudZoneId, type UiComponentKind, type UiFrameShape } from '@chronos-ui/svelte';
 import { STUDIO_TOOL_REGISTRY, type StudioToolDescriptor } from './engine';
-
 export interface AssistantPlannedAction { readonly tool: string; readonly args: Record<string, unknown>; }
 export interface AssistantPlan { readonly reply: string; readonly actions: readonly AssistantPlannedAction[]; }
-
 const tokenize = (input: string): Set<string> => new Set(input.toLowerCase().split(/[^a-z0-9_-]+/).filter((t) => t.length > 1));
-
 function detectThemeMatch(lower: string): string | null {
 	for (const pack of THEME_PACKS) if (lower.includes(pack.id) || lower.includes(pack.id.replace(/-/g, ' ')) || lower.includes(pack.name.toLowerCase())) return pack.id;
 	if (/\b(light|alabaster)\b/.test(lower)) return 'alabaster-lab';
 	if (/\b(daylight|blueprint)\b/.test(lower)) return 'daylight-blueprint';
 	if (/\b(dark|obsidian)\b/.test(lower)) return 'obsidian-brass';
-	if (/\b(crt|phosphor|tokyo)\b/.test(lower)) return 'tokyo-phosphor';
-	return null;
+	return /\b(crt|phosphor|tokyo)\b/.test(lower) ? 'tokyo-phosphor' : null;
 }
 
 function detectShapeMatch(lower: string): UiFrameShape | undefined {
@@ -88,6 +84,7 @@ function planSlashCommand(prompt: string): AssistantPlan | null {
 function planStationOrZoneCommand(lower: string, corners: CornerKind | undefined): AssistantPlan | null {
 	const radiusRem = parseRadiusRem(lower);
 	const zoneId = detectZoneMatch(lower);
+	if (/\breset\s+(studio\s+)?defaults\b/.test(lower)) return { reply: 'Reset Studio geometry and ornament defaults to v0.0.8 baseline.', actions: [{ tool: 'ui_reset_studio_defaults', args: {} }] };
 	if (/\bstation\s+builder\b/.test(lower)) return { reply: 'Opened the Station Builder architectural workbench.', actions: [{ tool: 'ui_open_station_builder', args: {} }] };
 	if (/\bopen\b.*\bzone\s+edition\b/.test(lower)) return { reply: `Opened Zone Edition workbench focused on ${zoneId}.`, actions: [{ tool: 'ui_open_zone_edition', args: { zoneId } }] };
 	if (/\b(edit|update|configure)\b.*\bzone\b/.test(lower)) {
@@ -98,10 +95,12 @@ function planStationOrZoneCommand(lower: string, corners: CornerKind | undefined
 		const targetWord = lower.replace(/\b(move|the|to|zone)\b/g, '').trim().split(/\s+/)[0] ?? '';
 		return { reply: `Relocated "${targetWord || 'active entity'}" to ${zoneId}.`, actions: [{ tool: 'ui_move_entity_to_zone', args: { nodeQuery: targetWord, targetZone: zoneId } }] };
 	}
-	if (/\b(chamfer|corner)\s+(radius|cut|depth)\b/.test(lower) && radiusRem !== undefined) {
-		const cornerAnimation = /\bdiagonal\s+drift\b/.test(lower) ? 'DIAGONAL_DRIFT' : undefined;
-		return { reply: `Set global corner radius to ${radiusRem}rem${cornerAnimation ? ' with DIAGONAL_DRIFT animation' : ''}.`, actions: [{ tool: 'ui_set_corner_radius', args: { cornerRadiusRem: radiusRem, ...(corners ? { cornerMode: corners } : {}), ...(cornerAnimation ? { cornerAnimation } : {}) } }] };
+	const emb = /\bcrosshair\b/.test(lower) ? 'CROSSHAIR' : /\bdouble\s*line\b/.test(lower) ? 'DOUBLE_LINE' : /\bdiamond\b/.test(lower) ? 'DIAMOND' : undefined;
+	const anim = /\borbit\s*trace\b/.test(lower) ? 'ORBIT_TRACE' : /\bdiagonal\s*drift\b/.test(lower) ? 'DIAGONAL_DRIFT' : /\bscan\s*glint\b/.test(lower) ? 'SCAN_GLINT' : undefined;
+	if (/\bdefault\b.*\b(chamfer|cut|station|control|stroke|gutter)\b/.test(lower) || /\b(orbit\s*trace|studio\s*defaults)\b/.test(lower)) {
+		return { reply: `Configured Studio defaults${radiusRem ? ` (${radiusRem}rem)` : ''}${emb ? ` · ${emb}` : ''}${anim ? ` · ${anim}` : ''}.`, actions: [{ tool: 'ui_configure_studio_defaults', args: { ...(radiusRem !== undefined ? { baseCornerCutRem: radiusRem } : {}), ...(corners ? { cornerMode: corners } : {}), ...(emb ? { cornerEmbellishment: emb } : {}), ...(anim ? { cornerAnimation: anim } : {}) } }] };
 	}
+	if (/\b(chamfer|corner)\s+(radius|cut|depth)\b/.test(lower) && radiusRem !== undefined) return { reply: `Set global corner radius to ${radiusRem}rem${anim ? ` with ${anim} animation` : ''}.`, actions: [{ tool: 'ui_set_corner_radius', args: { cornerRadiusRem: radiusRem, ...(corners ? { cornerMode: corners } : {}), ...(anim ? { cornerAnimation: anim } : {}) } }] };
 	return null;
 }
 
@@ -116,10 +115,7 @@ function planNaturalLanguage(prompt: string): AssistantPlan {
 	const themeId = detectThemeMatch(lower);
 	const shape = detectShapeMatch(lower);
 	const cornerTuple = corners ? [corners, corners, corners, corners] : undefined;
-	if (themeId && /\b(theme|switch|palette|light|dark)\b/.test(lower)) {
-		actions.push({ tool: 'ui_apply_theme', args: { themeId } });
-		notes.push(`applied ${themeId}`);
-	}
+	if (themeId && /\b(theme|switch|palette|light|dark)\b/.test(lower)) { actions.push({ tool: 'ui_apply_theme', args: { themeId } }); notes.push(`applied ${themeId}`); }
 	if (/\b(dashboard|telemetry)\b/.test(lower)) {
 		actions.push(
 			{ tool: 'ui_spawn_node', args: { type: 'UiHeaderBar', zone: 'TOP_CENTER', label: 'Telemetry Crown', props: { title: 'Telemetry Deck', tabs: 'Overview,Nodes,Events', showThemeToggle: true } } },
@@ -144,6 +140,4 @@ function planNaturalLanguage(prompt: string): AssistantPlan {
 	return { reply: `Local Agent ${notes.join(', ')}. Review wireframe overlay to Commit or Reject.`, actions };
 }
 
-export function planLocalAssistantPrompt(prompt: string): AssistantPlan {
-	return planSlashCommand(prompt) ?? planNaturalLanguage(prompt);
-}
+export const planLocalAssistantPrompt = (prompt: string): AssistantPlan => planSlashCommand(prompt) ?? planNaturalLanguage(prompt);

@@ -10,10 +10,23 @@ export default defineConfig(() => {
 			tailwindcss()
 		],
 		resolve: {
-			alias: {
-				'@chronos-ui/svelte': path.resolve(import.meta.dirname, 'packages/chronos-ui/src/index.ts'),
-				'@studio': path.resolve(import.meta.dirname, 'studio/src'),
-				'@': path.resolve(import.meta.dirname, '.')
+			alias: [
+				{ find: /^@chronos-ui\/svelte\/(.+)$/, replacement: `${path.resolve(import.meta.dirname, 'packages/chronos-ui/src')}/$1` },
+				{ find: '@chronos-ui/svelte', replacement: path.resolve(import.meta.dirname, 'packages/chronos-ui/src/index.ts') },
+				{ find: '@ui', replacement: path.resolve(import.meta.dirname, 'packages/chronos-ui/src') },
+				{ find: '@studio', replacement: path.resolve(import.meta.dirname, 'studio/src') },
+				{ find: '@', replacement: path.resolve(import.meta.dirname, '.') }
+			]
+		},
+		build: {
+			rollupOptions: {
+				output: {
+					manualChunks: (id: string) => {
+						if (id.includes('node_modules/svelte')) return 'vendor-svelte';
+						if (id.includes('/packages/chronos-ui/src/')) return 'chronos-ui';
+						return undefined;
+					}
+				}
 			}
 		},
 		server: {

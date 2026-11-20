@@ -2,11 +2,11 @@ import type {
 	AccessibilityPrefs, AssistantDockState, AssistantMessage, AssistantOcularState,
 	CornerAnimation, CornerEmbellishment, CornerKind, CornerTuple, CursorPackDefinition,
 	EmbellishmentConfig, EnvironmentCapabilityReport, GamepadProfileId, HudZoneId,
-	InputModality, LayoutDensity, MotionConfig, ThemePack, ToastItem,
+	InputModality, LayoutDensity, MotionConfig, StudioDefaultsConfig, ThemePack, ToastItem,
 	UiFrameShape, UiNodeTree, UiProjectDefinition, ViewportTier, VirtualCursorPeer, VoiceCaptureMode
 } from '@chronos-ui/svelte';
-import type { UiBlueprint, ZoneDensityMode, ZoneDispositionMode } from '../../config';
-import type { AiProviderKind, UiComponentPrototype } from '../../core';
+import type { UiBlueprint, ZoneDensityMode, ZoneDispositionMode } from '@studio/config';
+import type { AiProviderKind, UiComponentPrototype } from '@studio/core';
 
 export type StudioViewId = 'WORKBENCH' | 'THEMES' | 'BLUEPRINTS' | 'MCP_TWIN';
 export type LeftTabId = 'zones' | 'blueprints' | 'spotlight';
@@ -81,6 +81,7 @@ export interface StudioState {
 	readonly cursorPacks: readonly CursorPackDefinition[];
 	readonly activeCursorPackId: string | null;
 	readonly globalEmbellishmentConfig: EmbellishmentConfig;
+	readonly studioDefaults: StudioDefaultsConfig;
 	readonly stationLayer: StationLayerConfig;
 	readonly selectedZoneId: HudZoneId;
 	readonly prototypes: readonly UiComponentPrototype[];

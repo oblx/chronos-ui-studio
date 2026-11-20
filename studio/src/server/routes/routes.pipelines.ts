@@ -1,10 +1,10 @@
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { exportJobs, getStudioDb } from '../../lib';
+import { exportJobs, getStudioDb } from '@studio/lib';
 import {
 	compileStaticClientBuild, emitProjectCssTokens, emitProjectJsonBundle, emitProjectSvelteScaffold,
 	emitProjectZipBundle, listInputConnectors, listOutputAdapters, runInputConnector, type ProjectImportResult
-} from '../../plugins';
+} from '@studio/plugins';
 import { pushServerTrace } from '../server.telemetry';
 import { HTTP_STATUS, jsonErr, jsonOk, readJsonBody } from './http.helpers';
 import { createStudioProject, loadProjectWithNodes } from './routes.projects';

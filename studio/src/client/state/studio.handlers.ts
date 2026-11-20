@@ -1,5 +1,5 @@
 import { applyAccessibilityPrefs, applyThemeToRoot, findThemePack, type AccessibilityPrefs, type CornerKind, type UiWireBroker } from '@chronos-ui/svelte';
-import type { UiBlueprint } from '../../config';
+import type { UiBlueprint } from '@studio/config';
 import { registerLifecycleAndCursorHandlers } from './lifecycle';
 import { apiSaveBlueprint } from './studio.api';
 import { registerDrawerAndStageHandlers } from './studio.drawer.handlers';

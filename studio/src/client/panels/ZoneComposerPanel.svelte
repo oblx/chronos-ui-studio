@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { UiBadge, UiChamferButton, type CornerKind, type HudZoneId } from '@chronos-ui/svelte';
-	import type { UiBlueprint } from '../../config';
+	import type { UiBlueprint } from '@studio/config';
 
 	interface Props {
 		blueprint: UiBlueprint;

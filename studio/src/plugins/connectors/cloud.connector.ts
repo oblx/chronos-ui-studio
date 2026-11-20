@@ -1,4 +1,4 @@
-import { assertSafeWebhookUrl } from '../../core';
+import { assertSafeWebhookUrl } from '@studio/core';
 import { registerInputConnector } from '../registry';
 import { parseJsonProjectInput, type ProjectImportResult } from './json.connector';
 import { ingestZipArchive } from './zip.connector';

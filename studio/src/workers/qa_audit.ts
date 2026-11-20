@@ -11,6 +11,7 @@ const HEX_LITERAL_RE = /#[0-9a-fA-F]{3,8}\b/;
 const FN_HEADER_RE = /^\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)|^\s*const\s+(\w+)\s*=\s*(?:async\s+)?\(/;
 const CACHE_REL = 'studio/data/.qa-audit-cache.json';
 const HEX_ALLOW_RE = /(?:theme\.palettes|cursor\.presets|\/tokens\/|\/tests\/|sample\.|starter\.|tome\.ssg)/;
+const DEEP_RELATIVE_RE = /(?:from|import)\s+['"]\.\.\/\.\./;
 
 function walkTree(dir: string, outFiles: string[], outDirs: string[]): void {
 	outDirs.push(dir);
@@ -54,6 +55,7 @@ function checkCodeFile(file: string, raw: string, violations: AuditViolation[]):
 	if (file.includes('/packages/chronos-ui/') && /from ['"].*studio/.test(raw)) violations.push({ rule: 'PACKAGE_FIREWALL', target: file, detail: 'Upward import into studio/' });
 	if (file.endsWith('/machines/tooltip.machine.svelte.ts') && /\bsetInterval\s*\(/.test(raw)) violations.push({ rule: 'ZERO_TIMER_TOOLTIP', target: file, detail: 'Forbidden setInterval in tooltip machine' });
 	if (!HEX_ALLOW_RE.test(file) && HEX_LITERAL_RE.test(raw)) violations.push({ rule: 'NON_PALETTE_HEX', target: file, detail: 'Hardcoded hex color outside token palettes' });
+	if ((file.endsWith('.ts') || file.endsWith('.svelte')) && DEEP_RELATIVE_RE.test(raw)) violations.push({ rule: 'NO_DEEP_RELATIVE_IMPORTS', target: file, detail: 'Multi-level ../.. import forbidden; use @ui/* or @studio/* alias' });
 }
 
 function checkSkillFrontmatter(file: string, lines: readonly string[], violations: AuditViolation[]): void {
@@ -96,11 +98,11 @@ function scanCachedFile(file: string, ext: string, rootDir: string, prevCache: R
 function checkPackageAndDocs(rootDir: string, violations: AuditViolation[]): void {
 	const pkg = JSON.parse(readFileSync(join(rootDir, 'packages/chronos-ui/package.json'), 'utf8'));
 	const hasSubpaths = Boolean(pkg.exports?.['./tokens'] && pkg.exports?.['./forms'] && pkg.exports?.['./cursor']) && Array.isArray(pkg.sideEffects) && pkg.sideEffects.includes('*.css');
-	if (pkg.version !== '0.0.7' || Object.keys(pkg.dependencies ?? {}).length > 0 || !hasSubpaths) {
+	if (pkg.version !== '0.0.9' || Object.keys(pkg.dependencies ?? {}).length > 0 || !hasSubpaths) {
 		violations.push({ rule: 'PACKAGE_LOCK_0_DEPS', target: 'packages/chronos-ui/package.json', detail: 'Invalid version, deps, sideEffects, or subpath exports' });
 	}
 	const sprintFiles = readdirSync(join(rootDir, 'docs/08-sprints')).filter((n) => n.endsWith('.md'));
-	if (sprintFiles.length < 7) violations.push({ rule: 'SPRINT_ARCHIVE_REQUIRED', target: 'docs/08-sprints', detail: `Found ${sprintFiles.length} sprint logs, expected >= 7` });
+	if (sprintFiles.length < 9) violations.push({ rule: 'SPRINT_ARCHIVE_REQUIRED', target: 'docs/08-sprints', detail: `Found ${sprintFiles.length} sprint logs, expected >= 9` });
 }
 
 export function runStaticAudit(rootDir: string = process.cwd(), opts?: { full?: boolean }): AuditViolation[] {

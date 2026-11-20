@@ -1,0 +1,31 @@
+export const STUDIO_UI_COPY = {
+	brandTitle: 'Chronos UI Studio',
+	defaultCanvasName: 'Genesis Canvas',
+	densityTip: 'Cycle layout density (Calm / Balanced / Tactical)',
+	shellCalmLabel: 'Calm View',
+	shellHudLabel: 'Studio HUD',
+	buildActionLabel: '+ Build',
+	saveLabel: 'Save',
+	savingLabel: 'Saving',
+	resetLabel: 'Reset',
+	cleanLabel: 'Clean',
+	stationLabel: 'Station',
+	zonesLabel: 'Zones',
+	newWorkspaceTitle: 'Create Workspace',
+	newWorkspacePlaceholder: 'Canvas name',
+	recoveryTitle: 'Workspace Recovery',
+	defaultViewAction: 'Default View',
+	cleanWorkspaceAction: 'Clean Workspace',
+	tomeTitle: 'Field Tome — Dual-Page SSG Handbook',
+	tomePrevLabel: 'Prev Page',
+	tomeNextLabel: 'Next Page',
+	tomeCloseLabel: 'Close Tome',
+	stationModalTitle: 'Station Builder — Architectural Layer Workbench',
+	stationPreviewHeading: 'Live Architecture Preview',
+	quickActions: [
+		{ id: 'qa-telemetry', label: 'Build Telemetry HUD', prompt: 'build a minimal telemetry dashboard' },
+		{ id: 'qa-station', label: 'Station Builder', prompt: 'open station builder' },
+		{ id: 'qa-zone', label: 'Zone Edition', prompt: 'open zone edition' },
+		{ id: 'qa-commit', label: 'Commit Staged', prompt: '/commit' }
+	]
+} as const;

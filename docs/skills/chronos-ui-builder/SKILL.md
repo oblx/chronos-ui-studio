@@ -1,25 +1,25 @@
 ---
 name: chronos-ui-builder
-description: Compose, theme, animate, and drive @chronos-ui/svelte v0.0.7 11-zone perimeter interfaces, true-stroke chamfer/round vector borders, configurable cornerRadiusRem, concentric ROUND arcs, Pure-Flex modals, Station Builder, Zone Edition, and 33-tool Dual-Spine MCP canvases. Use when building UI layouts, samples, shapes, or motion flows in packages/chronos-ui or studio/src/client.
+description: Compose, theme, animate, and drive @chronos-ui/svelte v0.0.9 11-zone perimeter interfaces, 3-tier parametric corner cuts (0.5/0.75/0.3125rem with <=28% anti-pinch cap), 5x3 shape-locked embellishments + pathLength=100 traces, Pure-Flex modals, Station Builder, Zone Edition, and 35-tool Dual-Spine MCP canvases. Use when building UI layouts, samples, shapes, or motion flows in packages/chronos-ui or studio/src/client.
 license: MIT
 compatibility: Svelte 5 Runes, Tailwind CSS v4, Zero Runtime Dependencies
 metadata:
   author: Oblx <code@oblx.dev>
-  version: "0.0.7"
+  version: "0.0.9"
 allowed-tools: view_file replace_file_content write_to_file run_command
 ---
 
-# Chronos UI Builder (`@chronos-ui/svelte` v0.0.7)
+# Chronos UI Builder (`@chronos-ui/svelte` v0.0.9)
 
 Compose sovereign Svelte 5 Runes interfaces inside `studio/src/client/` using primitives imported strictly from `@chronos-ui/svelte`.
 
 ## Architectural Rules
 
-1. **Strict Package Firewall**: Never import `studio/` modules inside `packages/chronos-ui/`.
+1. **Strict Package Firewall & Canonical Aliases**: Never import `studio/` modules inside `packages/chronos-ui/`; use `@ui/*` / `@studio/*` / `@chronos-ui/svelte/*` instead of `../..`.
 2. **Humble Svelte Views**: `.svelte` views perform zero `fetch()`, storage I/O, or domain math; dispatch typed `DagEnvelope` intents through `createUiWireBroker`.
-3. **Bilateral & Safe-Corridor Symmetry**: Mirror perimeter tuples via `mirrorCornerTuple` across $X = 50\text{vw}$ and bind `DEFAULT_VIEWPORT`, `Z_LAYERS`, and `SAFE_CORRIDOR_REM` tokens rather than magic numerals.
-4. **14 Contour-Locked Shapes**: Plot `CORNER_EMBELLISHMENTS` strictly on `anchorVertices` from `buildShapeGeometry` and render nested `node.children` inside parent `UiChamferFrame` containers (`items-start` grids).
-5. **Phase-Locked Motion & Swipe**: Pair `IRIS_EXPAND` / `SCAN_WIPE` parent clipping with single-timeline Grid `0fr <-> 1fr` accordions, `Z_LAYERS.overlays` (`90`) clamped `UiCyberTooltip`, and `use:uiSwipeDeck` across multi-tab modals.
+3. **3-Tier Parametric Geometry**: Assign `cutTier="station"` (`0.75rem`) to perimeter pods & modals, default `0.5rem` to base frames, and `0.3125rem` (`CONTROL_MAX_CUT_RATIO = 0.28`) to compact buttons, icon triggers, badges, inputs, and selects.
+4. **14 Contour-Locked Shapes & 5x3 Embellishments**: Plot all `9` `CORNER_EMBELLISHMENTS` (`+DIAMOND`, `DOUBLE_LINE`, `CROSSHAIR`) on `anchorVertices` or concentric `ROUND` `A` arcs, and pair `6` `CORNER_ANIMATIONS` (`+ORBIT_TRACE`, `SCAN_GLINT` on `pathLength="100"` perimeter trace).
+5. **Phase-Locked Motion & Self-Filtered Collab**: Pair `IRIS_EXPAND` / `SCAN_WIPE` with `use:uiSwipeDeck`, `Z_LAYERS.overlays` (`90`) clamped `UiCyberTooltip`, and `localSessionId`-filtered `UiVirtualCursors`.
 
 ## Workspace Workflow
 

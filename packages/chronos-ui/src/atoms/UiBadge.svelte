@@ -1,7 +1,10 @@
 <script lang="ts">
+	import { getActiveStudioDefaults, subscribeMotionState } from '../motion';
 	import {
 		buildClipPathPolygon,
+		CONTROL_MAX_CUT_RATIO,
 		DEFAULT_CHAMFER_TUPLE,
+		remToPx,
 		resolveCornerTuple,
 		type CornerKind,
 		type CornerTuple
@@ -36,13 +39,18 @@
 		neutral: { fg: 'var(--ui-base-content)', stroke: 'var(--ui-border-subtle)' }
 	};
 
+	let controlCutRem = $state(getActiveStudioDefaults().controlCornerCutRem);
+	$effect(() => subscribeMotionState(() => { controlCutRem = getActiveStudioDefaults().controlCornerCutRem; }));
+
 	let palette = $derived(TONE_VARS[tone]);
 	let resolvedCorners = $derived(resolveCornerTuple(corners, cornerMode));
+	let cutRem = $derived(cornerMode === 'STRAIGHT' ? 0 : Math.min(0.25, controlCutRem));
+	let cutPx = $derived(remToPx(cutRem));
 	let clipStyle = $derived(
 		cornerMode === 'CHAMFER'
-			? `clip-path: ${buildClipPathPolygon(0.25, resolvedCorners)};`
+			? `clip-path: ${buildClipPathPolygon(cutRem, resolvedCorners)};`
 			: cornerMode === 'ROUND'
-				? 'border-radius: 0.25rem;'
+				? `border-radius: ${cutRem}rem;`
 				: ''
 	);
 </script>
@@ -58,6 +66,6 @@
 		class="pointer-events-none absolute inset-0"
 		style="background-color: var(--ui-base-300); {clipStyle}"
 	></span>
-	<UiVectorBorder {corners} {cornerMode} cutPx={4} strokeVar={palette.stroke} strokeWidth={1.15} />
+	<UiVectorBorder {corners} {cornerMode} {cutPx} maxCutRatio={CONTROL_MAX_CUT_RATIO} strokeVar={palette.stroke} strokeWidth={1.15} />
 	<span class="relative z-10">{text}</span>
 </span>

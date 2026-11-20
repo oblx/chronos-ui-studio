@@ -2,8 +2,8 @@ import {
 	CSS_CURSOR_STATES, CURSOR_LIMITS, generateUuidV7, type CssCursorState, type CursorPackDefinition
 } from '@chronos-ui/svelte';
 import { and, desc, eq } from 'drizzle-orm';
-import { deriveAllCursorStates, validatePngDataUrl } from '../../core';
-import { cursorPacks, cursorStateAssets, getStudioDb, mapCursorPackRow } from '../../lib';
+import { deriveAllCursorStates, validatePngDataUrl } from '@studio/core';
+import { cursorPacks, cursorStateAssets, getStudioDb, mapCursorPackRow } from '@studio/lib';
 import { pushServerTrace } from '../server.telemetry';
 import { clampNumber, HTTP_STATUS, jsonErr, jsonOk, readJsonBody, toSlug } from './http.helpers';
 

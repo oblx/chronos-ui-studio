@@ -1,7 +1,7 @@
 {
 	"name": "chronos-ui-workspace",
 	"private": true,
-	"version": "0.0.7",
+	"version": "0.0.9",
 	"type": "module",
 	"workspaces": [
 		"packages/*"
@@ -20,6 +20,7 @@
 		"qa:fast": "bun run studio/src/workers/qa_verify.ts --fast",
 		"qa:delta": "bun run studio/src/workers/qa_verify.ts --delta",
 		"qa:release": "bun run studio/src/workers/qa_verify.ts --release",
+		"qa:harness": "bun run studio/src/workers/qa_harness.ts",
 		"qa:report": "bun run studio/src/workers/qa_report.ts",
 		"qa:timer": "bun run studio/src/workers/qa_timer.ts"
 	},

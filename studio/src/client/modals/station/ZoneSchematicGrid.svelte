@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { HudZoneId, UiNode } from '@chronos-ui/svelte';
-	import type { ZoneBlueprintConfig } from '../../../config';
+	import type { ZoneBlueprintConfig } from '@studio/config';
 
 	interface Props {
 		zones: readonly ZoneBlueprintConfig[];

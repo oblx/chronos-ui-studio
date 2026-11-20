@@ -1,9 +1,9 @@
 import {
 	BUILTIN_CURSOR_PACKS, CORNER_RADIUS_LIMITS, DEFAULT_ACCESSIBILITY_PREFS, DEFAULT_EMBELLISHMENT_CONFIG,
-	DEFAULT_MOTION_CONFIG, THEME_PACKS, type UiProjectDefinition
+	DEFAULT_MOTION_CONFIG, DEFAULT_STUDIO_DEFAULTS, THEME_PACKS, type UiProjectDefinition
 } from '@chronos-ui/svelte';
-import { STARTER_BLUEPRINTS } from '../../../config';
-import { DEFAULT_BUILD_CONFIG } from '../../../core/project.schema';
+import { STARTER_BLUEPRINTS } from '@studio/config';
+import { DEFAULT_BUILD_CONFIG } from '@studio/core/project.schema';
 import type { StationLayerConfig, StudioState } from '../studio.types';
 
 export const STUDIO_INITIAL_LAYOUT = { leftFloatX: 84, rightFloatX: 720, floatY: 132, peerOriginX: 360, peerOriginY: 260 } as const;
@@ -23,6 +23,7 @@ export const GENESIS_FALLBACK: UiProjectDefinition = {
 	description: 'Calm empty-stage canvas ready for live AI composition.',
 	themeId: THEME_PACKS[0].id, cornerMode: 'CHAMFER',
 	cornerRadiusRem: CORNER_RADIUS_LIMITS.defaultRem,
+	studioDefaults: DEFAULT_STUDIO_DEFAULTS,
 	activeCursorPackId: BUILTIN_CURSOR_PACKS[0].uuid,
 	activeRevisionId: 'rev-genesis-0',
 	nodes: [], buildConfig: DEFAULT_BUILD_CONFIG, updatedAt: Date.now()
@@ -38,6 +39,7 @@ export function createInitialStudioState(): StudioState {
 		projectPersistence: { isDirty: false, lastSavedAt: null, autoSave: false, status: 'SAVED' },
 		cursorPacks: BUILTIN_CURSOR_PACKS, activeCursorPackId: BUILTIN_CURSOR_PACKS[0].uuid,
 		globalEmbellishmentConfig: DEFAULT_EMBELLISHMENT_CONFIG,
+		studioDefaults: DEFAULT_STUDIO_DEFAULTS,
 		stationLayer: DEFAULT_STATION_LAYER,
 		selectedZoneId: 'TOP_RIGHT',
 		prototypes: [], selectedNodeId: null, undoStack: [], redoStack: [], chatMessages: [],

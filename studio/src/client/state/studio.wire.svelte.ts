@@ -1,19 +1,26 @@
 import {
-	applyAccessibilityPrefs, applyCursorPackToDocument, applySafeCorridorCssVars, applyThemeToRoot,
-	BUILTIN_CURSOR_PACKS, clampCornerRadiusRem, computeSafeCorridor, createModalMachine,
-	createMultimodalInputManager, createOverlayDismissMiddleware, createSpotlightMachine,
-	createTooltipController, createUiEntityRegistry, createUiWireBroker, DEFAULT_ACCESSIBILITY_PREFS,
-	DEFAULT_VIEWPORT, probeEnvironmentCapabilities, setActiveCornerRadiusRem, THEME_PACKS,
+	applyAccessibilityPrefs, applyCursorPackToDocument, applySafeCorridorCssVars, applyStudioDefaults, applyThemeToRoot,
+	BUILTIN_CURSOR_PACKS, clampCornerRadiusRem, clampStudioDefaults, computeSafeCorridor, createModalMachine,
+	createMultimodalInputManager, createOverlayDismissMiddleware, createSpotlightMachine, createTooltipController,
+	createUiEntityRegistry, createUiWireBroker, DEFAULT_ACCESSIBILITY_PREFS, DEFAULT_STUDIO_DEFAULTS, DEFAULT_VIEWPORT,
+	probeEnvironmentCapabilities, setActiveStudioDefaults, THEME_PACKS,
 	type GamepadProfileId, type HudZoneId, type IntentKind, type ThemePack, type ViewportTier, type VoiceCaptureMode
 } from '@chronos-ui/svelte';
-import { STARTER_BLUEPRINTS, STUDIO_SPOTLIGHT_STEPS, type UiBlueprint } from '../../config';
-import { apiFetchCursorPacks, createInitialStudioState, createLifecycleActions, GENESIS_FALLBACK, STUDIO_INITIAL_LAYOUT } from './lifecycle';
-import { apiCloneBlueprint, apiCreateTheme, apiDeleteBlueprint, apiFetchAuthMe, apiFetchBlueprints, apiFetchServerTraces, apiFetchThemes, apiPollCollab, apiSaveBlueprint, apiToggleThemeStar } from './studio.api';
+import { STARTER_BLUEPRINTS, STUDIO_SPOTLIGHT_STEPS, type UiBlueprint } from '@studio/config';
+import { apiFetchCursorPacks, createInitialStudioState, createLifecycleActions, GENESIS_FALLBACK, readSessionSnapshot, STUDIO_INITIAL_LAYOUT, writeSessionSnapshot } from './lifecycle';
+import { apiBroadcastCollabEvent, apiCloneBlueprint, apiCreateTheme, apiDeleteBlueprint, apiFetchAuthMe, apiFetchBlueprints, apiFetchServerTraces, apiFetchThemes, apiPollCollab, apiSaveBlueprint, apiToggleThemeStar } from './studio.api';
 import { executeStudioCommand } from './studio.commands';
 import { registerStudioIntentHandlers } from './studio.handlers';
 import { apiCreateProject, apiFetchAiProfiles, apiFetchChat, apiFetchEnvCapabilities, apiFetchProjects, apiSaveAiProfile, apiSendAssistantPrompt } from './studio.project.api';
 import type { StudioModalId, StudioState, StudioUser } from './studio.types';
 import { createV003Actions } from './studio.v003.handlers';
+
+const REALTIME_SYNC_KINDS = new Set<IntentKind>(['UI_SET_LAYOUT_DENSITY', 'UI_ASSISTANT_TOGGLE_FLOAT', 'UI_ASSISTANT_SUBMIT', 'UI_STATION_PREVIEW_UPDATE', 'UI_PROJECT_SAVE']);
+const SESSION_PERSIST_KINDS = new Set<IntentKind>(['UI_SET_LAYOUT_DENSITY', 'UI_TOGGLE_STUDIO_CHROME', 'UI_SWITCH_PROJECT', 'UI_ASSISTANT_TOGGLE_FLOAT', 'UI_ASSISTANT_MOVE', 'UI_ASSISTANT_DROP', 'UI_ASSISTANT_DOCK', 'UI_SET_STUDIO_DEFAULT', 'UI_SET_CORNER_RADIUS', 'UI_SET_CORNER_STYLE', 'UI_APPLY_CURSOR_PACK', 'UI_SET_DRAWER_OPEN']);
+
+function persistSessionFromState(s: StudioState): void {
+	writeSessionSnapshot({ activeProjectId: s.activeProjectId, layoutDensity: s.layoutDensity, studioChromeVisible: s.studioChromeVisible, toolPaletteOpen: s.toolPaletteOpen, leftDrawerOpen: s.leftDrawer.open, rightDrawerOpen: s.rightDrawer.open, assistantDock: s.assistantDock, studioDefaults: s.studioDefaults, activeCursorPackId: s.activeCursorPackId, updatedAt: Date.now() });
+}
 
 function createStudioOps(broker: ReturnType<typeof createUiWireBroker<StudioState>>, sessionId: string) {
 	const pushToast = (title: string, tone: 'info' | 'success' | 'warning' | 'error' = 'info'): void => { broker.dispatch('UI_PUSH_TOAST', { title, tone }); };
@@ -29,23 +36,20 @@ function createStudioOps(broker: ReturnType<typeof createUiWireBroker<StudioStat
 		for (const cmd of data.commands) { broker.dispatch(cmd.kind as IntentKind, cmd.payload, 'MCP_TWIN'); broker.patchState((s) => ({ ...s, lastMcpActivity: `MCP executed ${cmd.kind}` })); }
 	};
 	const hydrate = async (): Promise<void> => {
-		applyThemeToRoot(THEME_PACKS[0]);
-		applyAccessibilityPrefs(DEFAULT_ACCESSIBILITY_PREFS);
-		applyCursorPackToDocument(BUILTIN_CURSOR_PACKS[0]);
-		applySafeCorridorCssVars(computeSafeCorridor(false, typeof window !== 'undefined' ? window.innerWidth : DEFAULT_VIEWPORT.width, typeof window !== 'undefined' ? window.innerHeight : DEFAULT_VIEWPORT.height));
-		const [themes, blueprints, user, projects, aiProfiles, serverEnv, cursorPacks] = await Promise.all([apiFetchThemes(), apiFetchBlueprints(), apiFetchAuthMe(), apiFetchProjects(), apiFetchAiProfiles(), apiFetchEnvCapabilities(), apiFetchCursorPacks()]);
-		const activeProj = projects.find((p) => p.id === GENESIS_FALLBACK.id) ?? projects[0] ?? GENESIS_FALLBACK;
+		applyThemeToRoot(THEME_PACKS[0]); applyAccessibilityPrefs(DEFAULT_ACCESSIBILITY_PREFS); applyCursorPackToDocument(BUILTIN_CURSOR_PACKS[0]);
+		const [themes, blueprints, user, projects, aiProfiles, serverEnv, cursorPacks, saved] = await Promise.all([apiFetchThemes(), apiFetchBlueprints(), apiFetchAuthMe(), apiFetchProjects(), apiFetchAiProfiles(), apiFetchEnvCapabilities(), apiFetchCursorPacks(), readSessionSnapshot()]);
+		const activeProj = (saved ? projects.find((p) => p.id === saved.activeProjectId) : null) ?? projects.find((p) => p.id === GENESIS_FALLBACK.id) ?? projects[0] ?? GENESIS_FALLBACK;
 		const customDef = aiProfiles.find((p) => p.isDefault && p.providerKind !== 'local');
 		const [chatMessages, envCapabilities] = await Promise.all([apiFetchChat(activeProj.id), probeEnvironmentCapabilities(serverEnv, Boolean(customDef))]);
 		const nextPacks = cursorPacks.length ? cursorPacks : broker.state.cursorPacks;
-		const activeCursorPackId = activeProj.activeCursorPackId ?? nextPacks[0]?.uuid ?? BUILTIN_CURSOR_PACKS[0].uuid;
+		const activeCursorPackId = saved?.activeCursorPackId ?? activeProj.activeCursorPackId ?? nextPacks[0]?.uuid ?? BUILTIN_CURSOR_PACKS[0].uuid;
 		const matchedPack = nextPacks.find((c) => c.uuid === activeCursorPackId || c.slug === activeCursorPackId) ?? BUILTIN_CURSOR_PACKS[0];
-		applyCursorPackToDocument(matchedPack);
-		const radius = clampCornerRadiusRem(activeProj.cornerRadiusRem);
-		setActiveCornerRadiusRem(radius);
-		const nextAccess = { ...broker.state.accessibility, cornerMode: activeProj.cornerMode, cornerRadiusRem: radius };
-		applyAccessibilityPrefs(nextAccess);
-		broker.patchState((s) => ({ ...s, themes: themes.length ? themes : THEME_PACKS, blueprints: blueprints.length ? blueprints : STARTER_BLUEPRINTS, activeBlueprintId: blueprints[0]?.id ?? STARTER_BLUEPRINTS[0].id, projects: projects.length ? projects : [GENESIS_FALLBACK], activeProjectId: activeProj.id, accessibility: nextAccess, cursorPacks: nextPacks, activeCursorPackId: matchedPack.uuid, aiProfiles: aiProfiles.length ? aiProfiles : s.aiProfiles, chatMessages, user, envCapabilities, activeAdapterBadge: customDef ? customDef.modelId : envCapabilities.badgeLabel }));
+		const studioDefaults = clampStudioDefaults(activeProj.studioDefaults ?? saved?.studioDefaults, { ...DEFAULT_STUDIO_DEFAULTS, baseCornerCutRem: clampCornerRadiusRem(activeProj.cornerRadiusRem) });
+		const nextAccess = { ...broker.state.accessibility, cornerMode: activeProj.cornerMode, cornerRadiusRem: studioDefaults.baseCornerCutRem };
+		const chromeVisible = saved?.studioChromeVisible ?? false;
+		applyCursorPackToDocument(matchedPack); setActiveStudioDefaults(studioDefaults); applyStudioDefaults(studioDefaults); applyAccessibilityPrefs(nextAccess);
+		applySafeCorridorCssVars(computeSafeCorridor(chromeVisible, typeof window !== 'undefined' ? window.innerWidth : DEFAULT_VIEWPORT.width, typeof window !== 'undefined' ? window.innerHeight : DEFAULT_VIEWPORT.height));
+		broker.patchState((s) => ({ ...s, themes: themes.length ? themes : THEME_PACKS, blueprints: blueprints.length ? blueprints : STARTER_BLUEPRINTS, activeBlueprintId: blueprints[0]?.id ?? STARTER_BLUEPRINTS[0].id, projects: projects.length ? projects : [GENESIS_FALLBACK], activeProjectId: activeProj.id, layoutDensity: saved?.layoutDensity ?? s.layoutDensity, studioChromeVisible: chromeVisible, toolPaletteOpen: saved?.toolPaletteOpen ?? s.toolPaletteOpen, leftDrawer: { ...s.leftDrawer, open: saved?.leftDrawerOpen ?? s.leftDrawer.open }, rightDrawer: { ...s.rightDrawer, open: saved?.rightDrawerOpen ?? s.rightDrawer.open }, assistantDock: saved?.assistantDock ?? s.assistantDock, accessibility: nextAccess, studioDefaults, cursorPacks: nextPacks, activeCursorPackId: matchedPack.uuid, aiProfiles: aiProfiles.length ? aiProfiles : s.aiProfiles, chatMessages, user, envCapabilities, activeAdapterBadge: customDef ? customDef.modelId : envCapabilities.badgeLabel }));
 	};
 	return { pushToast, syncCatalog, pollCollab, hydrate };
 }
@@ -54,6 +58,7 @@ function createProjectAndAiActions(broker: ReturnType<typeof createUiWireBroker<
 	const sendAssistantPrompt = async (prompt: string): Promise<void> => {
 		if (prompt.trim().toLowerCase() === '/dock') { broker.dispatch('UI_ASSISTANT_DOCK', {}); ops.pushToast('Assistant docked to bottom center', 'info'); return; }
 		const userMsg = { id: `u-${Date.now()}`, role: 'user' as const, content: prompt, createdAt: Date.now() };
+		broker.dispatch('UI_ASSISTANT_SUBMIT', { projectId: broker.state.activeProjectId });
 		broker.patchState((s) => ({ ...s, assistantBusy: true, assistantOcular: 'BUILDING_UI', chatMessages: [...s.chatMessages, userMsg] }));
 		try {
 			const res = await apiSendAssistantPrompt(broker.state.activeProjectId, prompt);
@@ -74,9 +79,7 @@ function createProjectAndAiActions(broker: ReturnType<typeof createUiWireBroker<
 	const createProject = async (name: string): Promise<void> => {
 		const proj = await apiCreateProject(name);
 		if (!proj) return;
-		await ops.syncCatalog();
-		broker.dispatch('UI_SWITCH_PROJECT', { projectId: proj.id });
-		broker.patchState((s) => ({ ...s, chatMessages: [] }));
+		await ops.syncCatalog(); broker.dispatch('UI_SWITCH_PROJECT', { projectId: proj.id }); broker.patchState((s) => ({ ...s, chatMessages: [] }));
 		ops.pushToast(`Created empty canvas: ${proj.name}`, 'success');
 	};
 	const switchProject = async (projectId: string): Promise<void> => { broker.dispatch('UI_SWITCH_PROJECT', { projectId }); const msgs = await apiFetchChat(projectId); broker.patchState((s) => ({ ...s, chatMessages: msgs })); };
@@ -101,34 +104,32 @@ function createCatalogActions(broker: ReturnType<typeof createUiWireBroker<Studi
 	};
 }
 
-function attachEntityMiddleware(broker: ReturnType<typeof createUiWireBroker<StudioState>>, entityRegistry: ReturnType<typeof createUiEntityRegistry>, clearSampleTimers: () => void): void {
+function attachEntityMiddleware(broker: ReturnType<typeof createUiWireBroker<StudioState>>, entityRegistry: ReturnType<typeof createUiEntityRegistry>, sessionId: string, clearSampleTimers: () => void): void {
 	broker.use((env, _s, next) => {
 		if (env.kind === 'UI_UNDO_REVISION' || env.kind === 'UI_REDO_REVISION' || env.kind === 'UI_SWITCH_PROJECT') clearSampleTimers();
 		next();
 		const proj = broker.state.projects.find((p) => p.id === broker.state.activeProjectId) ?? broker.state.projects[0];
 		if (proj) entityRegistry.syncProjectNodes(proj.id, proj.nodes, String(env.timestamp));
-		const p = env.payload as Record<string, unknown>;
+		const p = (env.payload ?? {}) as Record<string, unknown>;
 		const nid = typeof p.nodeId === 'string' ? p.nodeId : (typeof (p.node as { id?: string } | undefined)?.id === 'string' ? (p.node as { id: string }).id : null);
 		if (nid) entityRegistry.pulseEntity(nid, String(env.timestamp));
+		if (SESSION_PERSIST_KINDS.has(env.kind)) persistSessionFromState(broker.state);
+		if (env.origin !== 'MCP_TWIN' && REALTIME_SYNC_KINDS.has(env.kind)) void apiBroadcastCollabEvent(sessionId, env.kind, p);
 	});
 }
 
 export function createStudioController() {
 	const broker = createUiWireBroker<StudioState>(createInitialStudioState());
-	const modal = createModalMachine();
-	const spotlight = createSpotlightMachine();
-	const tooltip = createTooltipController();
-	const entityRegistry = createUiEntityRegistry();
+	const modal = createModalMachine(); const spotlight = createSpotlightMachine(); const tooltip = createTooltipController(); const entityRegistry = createUiEntityRegistry();
 	const sessionId = `studio-${Math.random().toString(36).slice(2, 8)}`;
 	registerStudioIntentHandlers(broker);
 	broker.use(createOverlayDismissMiddleware(() => tooltip.hide()));
-	const ops = createStudioOps(broker, sessionId);
-	const catalog = createCatalogActions(broker, ops);
+	const ops = createStudioOps(broker, sessionId); const catalog = createCatalogActions(broker, ops);
 	const openModal = (id: StudioModalId, lockSeconds = 0): void => { tooltip.hide(); modal.open({ id, lockSeconds }); if (id === 'wire') void catalog.refreshServerTraces(); };
 	const projectAi = createProjectAndAiActions(broker, ops, openModal);
 	const lifecycle = createLifecycleActions(broker, { pushToast: ops.pushToast });
 	const v003 = createV003Actions(broker, { pushToast: ops.pushToast, sendPrompt: projectAi.sendAssistantPrompt, openModal });
-	attachEntityMiddleware(broker, entityRegistry, v003.clearSampleTimers);
+	attachEntityMiddleware(broker, entityRegistry, sessionId, v003.clearSampleTimers);
 	const input = createMultimodalInputManager({ onAction: v003.handleSemanticInput, onModalityChange: (inputModality) => broker.patchState((s) => ({ ...s, inputModality })) });
 	const startSpotlight = () => { tooltip.hide(); spotlight.start(STUDIO_SPOTLIGHT_STEPS); };
 	const runCommand = (raw: string) => { broker.patchState((s) => ({ ...s, lastCommandOutput: executeStudioCommand(raw, { getState: () => broker.state, dispatch: broker.dispatch, openModal, startSpotlight, pushToast: ops.pushToast }) })); };
@@ -140,10 +141,7 @@ export function createStudioController() {
 		toggleToolPalette: (open?: boolean) => { tooltip.hide(); broker.patchState((s) => { const next = open ?? !s.toolPaletteOpen; return { ...s, toolPaletteOpen: next, selectedNodeId: s.layoutDensity === 'CALM' && next ? null : s.selectedNodeId }; }); },
 		setVoiceMode: (voiceMode: VoiceCaptureMode) => { input.setVoiceMode(voiceMode); broker.patchState((s) => ({ ...s, voiceMode })); },
 		setGamepadOverride: (gamepadOverride: GamepadProfileId | null) => { input.setGamepadOverride(gamepadOverride); broker.patchState((s) => ({ ...s, gamepadOverride })); },
-		setPreviewTier: (previewTier: ViewportTier) => broker.patchState((s) => ({ ...s, previewTier })),
-		setLowMemoryMode: (lowMemoryMode: boolean) => broker.patchState((s) => ({ ...s, lowMemoryMode })),
-		setUser: (user: StudioUser | null) => broker.patchState((s) => ({ ...s, user })),
-		pushToast: ops.pushToast, pollCollab: ops.pollCollab, hydrate: ops.hydrate, ...catalog, ...projectAi, ...v003, ...lifecycle,
-		destroy: () => { v003.clearSampleTimers(); broker.destroy(); modal.destroy(); }
+		setPreviewTier: (previewTier: ViewportTier) => broker.patchState((s) => ({ ...s, previewTier })), setLowMemoryMode: (lowMemoryMode: boolean) => broker.patchState((s) => ({ ...s, lowMemoryMode })), setUser: (user: StudioUser | null) => broker.patchState((s) => ({ ...s, user })),
+		pushToast: ops.pushToast, pollCollab: ops.pollCollab, hydrate: ops.hydrate, ...catalog, ...projectAi, ...v003, ...lifecycle, destroy: () => { v003.clearSampleTimers(); broker.destroy(); modal.destroy(); }
 	};
 }

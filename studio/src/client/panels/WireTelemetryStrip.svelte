@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { UiBadge, UiChamferButton, UiChamferFrame, ZONE_CORNER_PRESETS, type CornerKind, type WireTraceRecord } from '@chronos-ui/svelte';
-	import type { ZoneBlueprintConfig } from '../../config';
+	import type { ZoneBlueprintConfig } from '@studio/config';
 
 	interface Props {
 		mode: 'LEFT_STREAM' | 'CENTER_CONSOLE';
@@ -56,6 +56,7 @@
 		corners={zoneConfig?.corners ?? ZONE_CORNER_PRESETS.BOTTOM_LEFT}
 		{cornerMode}
 		cornerRadiusRem={zoneConfig?.cornerRadiusRem}
+		cutTier="station"
 		shape={zoneConfig?.shape ?? 'BOX'}
 		cornerEmbellishment={zoneConfig?.cornerEmbellishment}
 		cornerAnimation={zoneConfig?.cornerAnimation ?? 'NONE'}

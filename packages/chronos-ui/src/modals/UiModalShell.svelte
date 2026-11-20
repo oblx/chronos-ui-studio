@@ -2,7 +2,10 @@
 	import type { Snippet } from 'svelte';
 	import { UiChamferFrame } from '../atoms';
 	import { uiTransition } from '../motion';
-	import { DEFAULT_CHAMFER_TUPLE, type CornerKind, type CornerTuple, type UiIconName } from '../tokens';
+	import {
+		DEFAULT_CHAMFER_TUPLE, type CornerAnimation, type CornerEmbellishment, type CornerKind,
+		type CornerTuple, type EmbellishmentConfig, type UiIconName
+	} from '../tokens';
 	import type { UiModalSizeTier } from './index';
 	import UiModalHeader from './UiModalHeader.svelte';
 
@@ -21,6 +24,9 @@
 		corners?: CornerTuple;
 		cornerMode?: CornerKind;
 		cornerRadiusRem?: number;
+		cornerEmbellishment?: CornerEmbellishment;
+		cornerAnimation?: CornerAnimation;
+		embellishmentConfig?: EmbellishmentConfig;
 		sizeTier?: UiModalSizeTier;
 		maxWidthRem?: number;
 		isLocked?: boolean;
@@ -32,29 +38,16 @@
 	}
 
 	let {
-		open,
-		title,
-		subtitle,
-		icon = 'layers',
-		corners = DEFAULT_CHAMFER_TUPLE,
-		cornerMode = 'CHAMFER',
-		cornerRadiusRem,
-		sizeTier,
-		maxWidthRem = 56,
-		isLocked = false,
-		remainingSeconds = 0,
-		progressRatio = 0,
-		onClose,
-		footer,
-		children
+		open, title, subtitle, icon = 'layers', corners = DEFAULT_CHAMFER_TUPLE, cornerMode = 'CHAMFER',
+		cornerRadiusRem, cornerEmbellishment, cornerAnimation, embellishmentConfig,
+		sizeTier, maxWidthRem = 56, isLocked = false, remainingSeconds = 0, progressRatio = 0,
+		onClose, footer, children
 	}: Props = $props();
 
 	let resolvedWidth = $derived(sizeTier ? SIZE_TIER_WIDTH[sizeTier] : `min(94vw, ${maxWidthRem}rem)`);
 
 	function handleKey(e: KeyboardEvent): void {
-		if (open && e.key === 'Escape' && !isLocked) {
-			onClose();
-		}
+		if (open && e.key === 'Escape' && !isLocked) onClose();
 	}
 </script>
 
@@ -85,7 +78,7 @@
 			class="relative z-10 w-full"
 			style="width: {resolvedWidth}; max-width: {resolvedWidth};"
 		>
-			<UiChamferFrame {corners} {cornerMode} {cornerRadiusRem} bezel={true} carets={true} outerClass="w-full">
+			<UiChamferFrame {corners} {cornerMode} {cornerRadiusRem} {cornerEmbellishment} {cornerAnimation} {embellishmentConfig} cutTier="station" bezel={true} carets={true} outerClass="w-full">
 				<div class="flex max-h-[min(86vh,48rem)] flex-col">
 					<UiModalHeader
 						{title}

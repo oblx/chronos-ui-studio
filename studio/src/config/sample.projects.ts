@@ -45,7 +45,7 @@ export const STARTER_SAMPLE_PROJECTS: readonly StarterSampleProject[] = [
 			{ id: uid('bio-kpi-1'), type: 'UiMetricCard', zone: 'WORLD_CANVAS', label: 'Culture Temp', lifecycle: 'COMMITTED', props: { title: 'Incubator Temp', value: '37.0 C', delta: 'STABLE' } },
 			{ id: uid('bio-kpi-2'), type: 'UiMetricCard', zone: 'WORLD_CANVAS', label: 'O2 Saturation', lifecycle: 'COMMITTED', props: { title: 'Dissolved O2', value: '98.4%', delta: '+0.6%' } },
 			{ id: uid('bio-gauge'), type: 'UiProgressGauge', zone: 'WORLD_CANVAS', label: 'Optical Density', lifecycle: 'COMMITTED', props: { label: 'Assay Saturation', value: 84, max: 100 } },
-			{ id: uid('bio-math'), type: 'UiMathFormula', zone: 'WORLD_CANVAS', label: 'Growth Equation', lifecycle: 'COMMITTED', props: { lhs: 'N(t)', rhs: 'N_0 * e^(r*t)' } },
+			{ id: uid('bio-math'), type: 'UiMathFormula', zone: 'WORLD_CANVAS', label: 'Growth Equation', lifecycle: 'COMMITTED', props: { lhs: 'N(t)', rhs: 'N_0 e^{rt}' } },
 			{ id: uid('bio-actions'), type: 'UiActionBar', zone: 'WORLD_CANVAS', label: 'Lab Controls', lifecycle: 'COMMITTED', props: { actions: 'Log Sample,Calibrate,Export CSV' } }
 		]
 	},

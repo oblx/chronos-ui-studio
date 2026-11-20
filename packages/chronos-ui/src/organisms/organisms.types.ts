@@ -20,6 +20,7 @@ export interface VirtualCursorPeer {
 	readonly x: number;
 	readonly y: number;
 	readonly scope: 'WORKSPACE' | 'FULL_APP';
+	readonly lastSeenAt?: number;
 }
 
 export interface ToastItem {

@@ -71,7 +71,9 @@ export const uiProjects = sqliteTable('ui_projects', {
 	themeId: text('theme_id').notNull(),
 	cornerStyle: text('corner_style').notNull(),
 	cornerRadiusRem: real('corner_radius_rem').notNull().default(CORNER_RADIUS_LIMITS.defaultRem),
+	studioDefaultsJson: text('studio_defaults_json'),
 	cursorPackUuid: text('cursor_pack_uuid'),
+	hasBuiltOnce: integer('has_built_once').notNull().default(0),
 	buildConfigJson: text('build_config_json').notNull(),
 	createdAt: integer('created_at').notNull(),
 	updatedAt: integer('updated_at').notNull()

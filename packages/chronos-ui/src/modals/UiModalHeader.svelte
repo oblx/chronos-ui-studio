@@ -1,5 +1,9 @@
 <script lang="ts">
-	import { buildClipPathPolygon, DEFAULT_CHAMFER_TUPLE, resolveCornerTuple, type CornerKind, type UiIconName } from '../tokens';
+	import { getActiveStudioDefaults, subscribeMotionState } from '../motion';
+	import {
+		buildClipPathPolygon, clampControlCutRem, CONTROL_MAX_CUT_RATIO, DEFAULT_CHAMFER_TUPLE, remToPx,
+		resolveCornerTuple, type CornerKind, type UiIconName
+	} from '../tokens';
 	import { UiIcon, UiVectorBorder } from '../atoms';
 
 	interface Props {
@@ -24,12 +28,16 @@
 		onClose
 	}: Props = $props();
 
+	let controlCutRem = $state(getActiveStudioDefaults().controlCornerCutRem);
+	$effect(() => subscribeMotionState(() => { controlCutRem = getActiveStudioDefaults().controlCornerCutRem; }));
 	let resolvedCorners = $derived(resolveCornerTuple(DEFAULT_CHAMFER_TUPLE, cornerMode));
+	let cutRem = $derived(cornerMode === 'STRAIGHT' ? 0 : clampControlCutRem(controlCutRem));
+	let cutPx = $derived(remToPx(cutRem));
 	let clipStyle = $derived(
 		cornerMode === 'CHAMFER'
-			? `clip-path: ${buildClipPathPolygon(0.375, resolvedCorners)};`
+			? `clip-path: ${buildClipPathPolygon(cutRem, resolvedCorners)};`
 			: cornerMode === 'ROUND'
-				? 'border-radius: 0.375rem;'
+				? `border-radius: ${cutRem}rem;`
 				: ''
 	);
 </script>
@@ -56,6 +64,7 @@
 		disabled={isLocked}
 		onclick={onClose}
 		data-testid="modal-close-btn"
+		data-corner-mode={cornerMode}
 		data-ui-cursor={isLocked ? 'not-allowed' : 'pointer'}
 		class="relative inline-flex shrink-0 items-center justify-center transition-colors"
 		style="
@@ -73,7 +82,8 @@
 		<UiVectorBorder
 			corners={DEFAULT_CHAMFER_TUPLE}
 			{cornerMode}
-			cutPx={6}
+			{cutPx}
+			maxCutRatio={CONTROL_MAX_CUT_RATIO}
 			strokeVar="var(--ui-border-subtle)"
 			strokeWidth={1.35}
 			progressRatio={isLocked ? progressRatio : 0}

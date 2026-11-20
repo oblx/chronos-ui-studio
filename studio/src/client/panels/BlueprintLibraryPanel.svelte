@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { UiBadge, UiChamferButton, UiHorizontalDeck, type CornerKind } from '@chronos-ui/svelte';
-	import type { UiBlueprint } from '../../config';
-	import { computeBlueprintGrade } from '../../core';
+	import type { UiBlueprint } from '@studio/config';
+	import { computeBlueprintGrade } from '@studio/core';
 
 	interface Props {
 		blueprints: readonly UiBlueprint[];

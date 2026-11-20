@@ -3,9 +3,9 @@ import { asc, desc, eq } from 'drizzle-orm';
 import {
 	probeServerEnvironmentCapabilities, resolveAiStudioServerConfig, runAiProviderPlan,
 	type AiProviderConfig, type AiProviderKind
-} from '../../core';
-import { aiChatMessages, aiProviderProfiles, decryptSecret, encryptSecret, getStudioDb, mapAiProfileRow, mapChatMessageRow } from '../../lib';
-import { handleBuilderMcpRpc } from '../../mcp/mcp.builder';
+} from '@studio/core';
+import { aiChatMessages, aiProviderProfiles, decryptSecret, encryptSecret, getStudioDb, mapAiProfileRow, mapChatMessageRow, uiProjects } from '@studio/lib';
+import { handleBuilderMcpRpc } from '@studio/mcp/mcp.builder';
 import { pushServerTrace } from '../server.telemetry';
 import { HTTP_STATUS, jsonErr, jsonOk, readJsonBody } from './http.helpers';
 import { listAllProjects, loadProjectWithNodes } from './routes.projects';
@@ -63,6 +63,7 @@ async function handleAssistantChat(req: Request): Promise<Response> {
 		if (Array.isArray(structured?.clientIntents)) for (const ci of structured.clientIntents) clientIntents.push(ci as { kind: string; payload: Record<string, unknown> });
 		toolCalls.push({ tool: act.tool, summary: rpc.error ? rpc.error.message : String(structured?.summary ?? 'applied'), ok: !rpc.error });
 	}
+	await db.update(uiProjects).set({ hasBuiltOnce: 1, updatedAt: Date.now() }).where(eq(uiProjects.id, activeProjectId));
 	const replyId = `msg-a-${(Date.now() + 1).toString(36)}`;
 	await db.insert(aiChatMessages).values({ id: replyId, projectId: activeProjectId, role: 'assistant', content: plan.reply, toolCallsJson: JSON.stringify(toolCalls), revisionId: latestRev, createdAt: Date.now() });
 	pushServerTrace('STUDIO_COMMAND_EXEC', `Assistant executed ${toolCalls.length} MCP action(s)`, 1.2, true, 'ASSISTANT_CHAT');

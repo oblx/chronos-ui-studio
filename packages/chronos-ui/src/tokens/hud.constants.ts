@@ -1,38 +1,16 @@
-export const VERSION = '0.0.7' as const;
+export const VERSION = '0.0.9' as const;
+export const STUDIO_DEFAULTS_VERSION = 2 as const;
 
 export type HudZoneId =
-	| 'WORLD_CANVAS'
-	| 'TOP_LEFT'
-	| 'TOP_CENTER'
-	| 'PROJECT_TAB_DECK'
-	| 'TOP_RIGHT'
-	| 'RIGHT_EDGE'
-	| 'BOTTOM_RIGHT'
-	| 'MODAL_OVERLAY_STACK'
-	| 'BOTTOM_CENTER'
-	| 'BOTTOM_LEFT'
-	| 'LEFT_EDGE';
+	| 'WORLD_CANVAS' | 'TOP_LEFT' | 'TOP_CENTER' | 'PROJECT_TAB_DECK' | 'TOP_RIGHT'
+	| 'RIGHT_EDGE' | 'BOTTOM_RIGHT' | 'MODAL_OVERLAY_STACK' | 'BOTTOM_CENTER' | 'BOTTOM_LEFT' | 'LEFT_EDGE';
 
 export const HUD_ZONES: readonly HudZoneId[] = [
-	'WORLD_CANVAS',
-	'TOP_LEFT',
-	'TOP_CENTER',
-	'PROJECT_TAB_DECK',
-	'TOP_RIGHT',
-	'RIGHT_EDGE',
-	'BOTTOM_RIGHT',
-	'MODAL_OVERLAY_STACK',
-	'BOTTOM_CENTER',
-	'BOTTOM_LEFT',
-	'LEFT_EDGE'
+	'WORLD_CANVAS', 'TOP_LEFT', 'TOP_CENTER', 'PROJECT_TAB_DECK', 'TOP_RIGHT',
+	'RIGHT_EDGE', 'BOTTOM_RIGHT', 'MODAL_OVERLAY_STACK', 'BOTTOM_CENTER', 'BOTTOM_LEFT', 'LEFT_EDGE'
 ] as const;
 
-export type ViewportTier =
-	| 'PHONE'
-	| 'TABLET_PORTRAIT'
-	| 'TABLET_LANDSCAPE'
-	| 'DESKTOP'
-	| 'WQHD_UWQHD';
+export type ViewportTier = 'PHONE' | 'TABLET_PORTRAIT' | 'TABLET_LANDSCAPE' | 'DESKTOP' | 'WQHD_UWQHD';
 
 export const BREAKPOINT_REM = {
 	phoneMax: 48,
@@ -75,26 +53,44 @@ export const HUD_METRICS = {
 } as const;
 
 export const SAFE_CORRIDOR_REM = {
-	calmTop: 4.25,
-	calmBottom: 4.5,
-	calmSide: 1,
-	hudTop: 7,
-	hudBottom: 9,
-	hudSide: 3.75
+	calmTop: 4.25, calmBottom: 4.5, calmSide: 1,
+	hudTop: 7, hudBottom: 9, hudSide: 3.75
 } as const;
 
-export const DEFAULT_VIEWPORT = {
-	width: 1440,
-	height: 900,
-	minSafeW: 390,
-	minSafeH: 300
-} as const;
+export const DEFAULT_VIEWPORT = { width: 1440, height: 900, minSafeW: 390, minSafeH: 300 } as const;
+
+export const DEFAULT_CORNER_CUT_REM = 0.5;
+export const DEFAULT_STATION_CORNER_CUT_REM = 0.75;
+export const DEFAULT_CONTROL_CORNER_CUT_REM = 0.3125;
+export const CONTROL_MAX_CUT_RATIO = 0.28;
+export const PEER_STALE_MS = 30000;
 
 export const CORNER_RADIUS_LIMITS = {
 	minRem: 0.25,
 	maxRem: 1.5,
 	stepRem: 0.0625,
-	defaultRem: 0.75
+	defaultRem: DEFAULT_CORNER_CUT_REM
+} as const;
+
+export const CONTROL_CUT_LIMITS = {
+	minRem: 0.125,
+	maxRem: 0.5,
+	stepRem: 0.0625,
+	defaultRem: DEFAULT_CONTROL_CORNER_CUT_REM
+} as const;
+
+export const ORNAMENT_LIMITS = {
+	minOffsetRem: 0,
+	maxOffsetRem: 0.5,
+	stepOffsetRem: 0.0625,
+	defaultOffsetRem: 0.1875,
+	minAmpRem: 0.0625,
+	maxAmpRem: 0.5,
+	defaultAmpRem: 0.25,
+	minPeriodMs: 1200,
+	maxPeriodMs: 5000,
+	stepPeriodMs: 200,
+	defaultPeriodMs: 2800
 } as const;
 
 export const ROOT_FONT_PX = 16;
@@ -107,13 +103,15 @@ export function pxToRem(px: number, digits = 3): number {
 	return Number((px / ROOT_FONT_PX).toFixed(digits));
 }
 
+export function clampControlCutPx(cutPx: number, heightPx: number, maxRatio = CONTROL_MAX_CUT_RATIO): number {
+	if (cutPx <= 0 || heightPx <= 0) return 0;
+	return Math.max(0, Math.min(cutPx, Math.floor(heightPx * maxRatio)));
+}
+
 export const BILATERAL_ZONE_TWINS: Readonly<Partial<Record<HudZoneId, HudZoneId>>> = {
-	TOP_LEFT: 'TOP_RIGHT',
-	TOP_RIGHT: 'TOP_LEFT',
-	LEFT_EDGE: 'RIGHT_EDGE',
-	RIGHT_EDGE: 'LEFT_EDGE',
-	BOTTOM_LEFT: 'BOTTOM_RIGHT',
-	BOTTOM_RIGHT: 'BOTTOM_LEFT'
+	TOP_LEFT: 'TOP_RIGHT', TOP_RIGHT: 'TOP_LEFT',
+	LEFT_EDGE: 'RIGHT_EDGE', RIGHT_EDGE: 'LEFT_EDGE',
+	BOTTOM_LEFT: 'BOTTOM_RIGHT', BOTTOM_RIGHT: 'BOTTOM_LEFT'
 };
 
 export function findOppositeZone(zoneId: HudZoneId): HudZoneId | null {
@@ -121,28 +119,13 @@ export function findOppositeZone(zoneId: HudZoneId): HudZoneId | null {
 }
 
 export const CURSOR_LIMITS = {
-	maxBytes: 131072,
-	maxKb: 128,
-	minDim: 4,
-	maxDim: 256,
-	normalizedPx: 32,
-	centerHotspot: 16,
-	autoScaleAbovePx: 48,
-	defaultHotspotX: 3,
-	defaultHotspotY: 2,
-	maxHotspot: 31
+	maxBytes: 131072, maxKb: 128, minDim: 4, maxDim: 256,
+	normalizedPx: 32, centerHotspot: 16, autoScaleAbovePx: 48,
+	defaultHotspotX: 3, defaultHotspotY: 2, maxHotspot: 31
 } as const;
 
 export const STAGE_LIMITS = {
-	railOffsetPx: 140,
-	floatMarginLeftPx: 24,
-	floatMarginTopPx: 112,
-	floatPadRightPx: 360,
-	floatPadBottomPx: 280,
-	defaultMaxWidthPx: 1080,
-	defaultMaxHeightPx: 620,
-	panMaxX: 600,
-	panMaxY: 400,
-	zoomMin: 0.45,
-	zoomMax: 2.2
+	railOffsetPx: 140, floatMarginLeftPx: 24, floatMarginTopPx: 112,
+	floatPadRightPx: 360, floatPadBottomPx: 280, defaultMaxWidthPx: 1080,
+	defaultMaxHeightPx: 620, panMaxX: 600, panMaxY: 400, zoomMin: 0.45, zoomMax: 2.2
 } as const;

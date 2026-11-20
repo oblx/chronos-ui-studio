@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { UiVectorBorder } from '../atoms';
-	import { buildClipPathPolygon, DEFAULT_CHAMFER_TUPLE, resolveCornerTuple, type CornerKind, type CornerTuple } from '../tokens';
+	import { getActiveStudioDefaults, subscribeMotionState } from '../motion';
+	import {
+		buildClipPathPolygon, clampControlCutRem, CONTROL_MAX_CUT_RATIO, DEFAULT_CHAMFER_TUPLE, remToPx,
+		resolveCornerTuple, type CornerKind, type CornerTuple
+	} from '../tokens';
 
 	interface Props {
 		value?: string;
@@ -28,12 +32,16 @@
 		onkeydown
 	}: Props = $props();
 
+	let controlCutRem = $state(getActiveStudioDefaults().controlCornerCutRem);
+	$effect(() => subscribeMotionState(() => { controlCutRem = getActiveStudioDefaults().controlCornerCutRem; }));
 	let resolvedCorners = $derived(resolveCornerTuple(corners, cornerMode));
+	let cutRem = $derived(cornerMode === 'STRAIGHT' ? 0 : clampControlCutRem(controlCutRem));
+	let cutPx = $derived(remToPx(cutRem));
 	let clipStyle = $derived(
 		cornerMode === 'CHAMFER'
-			? `clip-path: ${buildClipPathPolygon(0.35, resolvedCorners)};`
+			? `clip-path: ${buildClipPathPolygon(cutRem, resolvedCorners)};`
 			: cornerMode === 'ROUND'
-				? 'border-radius: 0.35rem;'
+				? `border-radius: ${cutRem}rem;`
 				: ''
 	);
 </script>
@@ -44,7 +52,7 @@
 		class="pointer-events-none absolute inset-0"
 		style="background-color: var(--ui-base-100); {clipStyle}"
 	></span>
-	<UiVectorBorder {corners} {cornerMode} cutPx={5.6} strokeVar="var(--ui-border-subtle)" strokeWidth={1.15} />
+	<UiVectorBorder {corners} {cornerMode} {cutPx} maxCutRatio={CONTROL_MAX_CUT_RATIO} strokeVar="var(--ui-border-subtle)" strokeWidth={1.15} />
 	<input
 		{type}
 		{value}

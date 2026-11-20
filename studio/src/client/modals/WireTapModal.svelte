@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { UiBadge, UiChamferButton, UiModalFooter, UiModalShell, UiWireInspector, type CornerKind, type WireTraceRecord } from '@chronos-ui/svelte';
-	import { CAPABILITY_BITS } from '../../config';
-	import { hasCapability } from '../../core';
+	import { CAPABILITY_BITS } from '@studio/config';
+	import { hasCapability } from '@studio/core';
 	import type { StudioUser } from '../state';
 
 	interface Props {
