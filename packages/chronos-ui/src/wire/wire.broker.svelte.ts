@@ -1,7 +1,7 @@
 import { createMultiTabChannel } from './wire.channel';
-import { executeMiddlewareChain, makeEnvelope, recordTrace, scheduleEffect, type TimerMap } from './wire.pipeline';
+import { createMicrotaskCoalescer, executeMiddlewareChain, makeEnvelope, recordTrace, runBatchReduction, scheduleEffect, type TimerMap } from './wire.pipeline';
 import { WireTelemetryRing } from './wire.ring';
-import type { DagEnvelope, IntentHandler, IntentKind, WireMiddleware, WireTraceRecord } from './wire.types';
+import type { BatchIntentInput, DagEnvelope, IntentHandler, IntentKind, WireMiddleware, WireTraceRecord } from './wire.types';
 
 export interface UiWireBroker<S> {
 	readonly state: S;
@@ -9,8 +9,11 @@ export interface UiWireBroker<S> {
 	register: <P = Record<string, unknown>>(kind: IntentKind, handler: IntentHandler<S, P>) => void;
 	use: (mw: WireMiddleware<S>) => void;
 	dispatch: <P = Record<string, unknown>>(kind: IntentKind, payload: P, origin?: DagEnvelope['origin']) => boolean;
+	dispatchBatch: (envelopes: readonly BatchIntentInput[]) => number;
+	enqueueCoalescedIntent: <P = Record<string, unknown>>(kind: IntentKind, payload: P, key?: string, origin?: DagEnvelope['origin']) => void;
 	patchState: (updater: (prev: S) => S) => void;
 	ingestServerTraces: (records: readonly WireTraceRecord[]) => void;
+	clearTraces: () => void;
 	notifyTokenRotated: () => void;
 	isWithinRefreshGrace: () => boolean;
 	destroy: () => void;
@@ -40,21 +43,24 @@ function runHandlerStage<S>(
 }
 
 export function createUiWireBroker<S>(initialState: S, channelName = 'chronos-ui-wire'): UiWireBroker<S> {
-	let current = $state<S>(initialState);
-	let traceList = $state.raw<readonly WireTraceRecord[]>([]);
-	let dispatching = false;
-	const handlers = new Map<IntentKind, IntentHandler<S, unknown>>();
-	const middlewares: WireMiddleware<S>[] = [];
-	const ring = new WireTelemetryRing();
-	const pending: TimerMap = new Map();
-
-	const execute = (env: DagEnvelope): boolean =>
-		runHandlerStage(handlers, ring, pending, env, () => current, (s, t) => { current = s; traceList = t; });
+	let current = $state.raw<S>(initialState); let traceList = $state.raw<readonly WireTraceRecord[]>([]); let dispatching = false;
+	const handlers = new Map<IntentKind, IntentHandler<S, unknown>>(); const middlewares: WireMiddleware<S>[] = [];
+	const ring = new WireTelemetryRing(); const pending: TimerMap = new Map();
+	const execute = (env: DagEnvelope): boolean => runHandlerStage(handlers, ring, pending, env, () => current, (s, t) => { current = s; traceList = t; });
 	const channel = createMultiTabChannel(channelName, execute);
-
+	const dispatchBatch = (envelopes: readonly BatchIntentInput[]): number => {
+		if (dispatching || envelopes.length === 0) return 0;
+		dispatching = true;
+		try {
+			const res = runBatchReduction(handlers, ring, pending, envelopes, current);
+			current = res.nextState; traceList = res.traces;
+			for (const env of res.envelopes) if (env.tier !== 'TIER_0_LOCAL_UI') channel.postIntent(env);
+			return res.applied;
+		} finally { dispatching = false; }
+	};
+	const coalescer = createMicrotaskCoalescer((batch) => { dispatchBatch(batch); });
 	return {
-		get state(): S { return current; },
-		get traces(): readonly WireTraceRecord[] { return traceList; },
+		get state(): S { return current; }, get traces(): readonly WireTraceRecord[] { return traceList; },
 		register<P>(kind: IntentKind, h: IntentHandler<S, P>): void { handlers.set(kind, h as IntentHandler<S, unknown>); },
 		use(mw: WireMiddleware<S>): void { middlewares.push(mw); },
 		patchState(updater: (prev: S) => S): void { current = updater(current); },
@@ -63,19 +69,17 @@ export function createUiWireBroker<S>(initialState: S, channelName = 'chronos-ui
 			const env = makeEnvelope(kind, handlers.get(kind)?.tier ?? 'TIER_0_LOCAL_UI', payload, origin) as DagEnvelope;
 			dispatching = true;
 			try {
-				let ok = false;
-				executeMiddlewareChain(middlewares, env, current, () => { ok = execute(env); });
+				let ok = false; executeMiddlewareChain(middlewares, env, current, () => { ok = execute(env); });
 				if (ok && env.tier !== 'TIER_0_LOCAL_UI') channel.postIntent(env);
 				return ok;
 			} finally { dispatching = false; }
 		},
+		dispatchBatch, enqueueCoalescedIntent: coalescer.enqueue,
 		ingestServerTraces(records: readonly WireTraceRecord[]): void { ring.mergeExternal(records); traceList = ring.snapshot(); },
+		clearTraces(): void { ring.clear(); traceList = []; },
 		notifyTokenRotated(): void { channel.notifyTokenRotated(Date.now()); },
 		isWithinRefreshGrace(): boolean { return channel.isWithinRefreshGrace(); },
-		destroy(): void {
-			for (const timer of pending.values()) clearTimeout(timer);
-			pending.clear();
-			channel.destroy();
-		}
+		destroy(): void { coalescer.clear(); for (const timer of pending.values()) clearTimeout(timer); pending.clear(); channel.destroy(); }
 	};
 }
+

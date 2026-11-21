@@ -86,15 +86,15 @@
 
 		<button
 			type="button"
-			data-testid="bento-radar-viewport"
+			data-testid={onOpenSkeleton ? 'radar-open-skeleton' : undefined}
 			data-ui-interactive="true"
-			data-ui-tip="Open interactive wireframe skeleton"
-			aria-label="Open interactive wireframe skeleton modal"
+			data-ui-tip="Open Wireframe Skeleton Workbench"
+			aria-label="Open Wireframe Skeleton Workbench"
 			onclick={() => onOpenSkeleton?.()}
-			class="relative flex flex-col items-center justify-center overflow-hidden text-left transition-opacity hover:opacity-95"
+			class="pointer-events-auto relative flex flex-col items-center justify-center overflow-hidden text-left transition-opacity hover:opacity-95"
 			style="background-color: var(--ui-base-100); border: var(--ui-hairline) solid var(--ui-border-subtle);"
 		>
-			<svg viewBox="0 0 100 100" class="h-full max-h-[5.5rem] w-full" aria-hidden="true">
+			<svg viewBox="0 0 100 100" class="pointer-events-none h-full max-h-[5.5rem] w-full" aria-hidden="true">
 				<circle cx="50" cy="50" r="40" fill="none" stroke="var(--ui-border-subtle)" stroke-width="1" />
 				<circle cx="50" cy="50" r="22" fill="none" stroke="var(--ui-border-subtle)" stroke-width="1" stroke-dasharray="3 3" />
 				<line x1="50" y1="6" x2="50" y2="94" stroke="var(--ui-border-subtle)" stroke-width="1" />

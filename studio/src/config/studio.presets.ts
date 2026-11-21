@@ -19,36 +19,58 @@ export const STUDIO_SPOTLIGHT_STEPS: readonly SpotlightStep[] = [
 	{
 		id: 'step-top-left',
 		targetIds: ['spot-top-left'],
-		title: 'System Crest & Progression',
-		body: 'TOP_LEFT anchors the active blueprint grade, level gauge, and corner posture at a unified 6.25rem band height.'
+		title: 'System Crest & Save Actions',
+		body: 'TOP_LEFT anchors the active blueprint grade, perimeter coverage gauge, Save trigger, and Clean recovery control.'
 	},
 	{
-		id: 'step-rails',
-		targetIds: ['edge-rail-left', 'edge-rail-right'],
-		title: 'Dual Edge Rails & Dotted Grip',
-		body: 'Click either dotted grip to detach a floating drawer or drag 5px+ to slide along the edge with 0px canvas shift.'
+		id: 'step-top-center',
+		targetIds: ['spot-top-center'],
+		title: 'View Switcher & Calm View Toggle',
+		body: 'TOP_CENTER switches Workbench, Tokens, Decks, and Twin MCP cleanly and returns to Calm View from the exact same desktop coordinate.'
 	},
 	{
-		id: 'step-utilities',
-		targetIds: ['spot-top-right'],
-		title: 'Off-When-Idle Utility Cluster',
-		body: 'Bilateral mirror of TOP_LEFT hosting User, Wire Tap, Polarity, Contextual Help (F1), and Settings triggers.'
+		id: 'step-edge-rails',
+		targetIds: ['spot-edge-rails', 'spot-edge-rail-right'],
+		title: 'Unified Left Build & Right Inspector Rails',
+		body: 'LEFT_EDGE unifies Build, Zones, Blueprints, and Tour; RIGHT_EDGE unifies Inspector, Themes, and Export with persistent folded icon tabs.'
 	},
 	{
-		id: 'step-radar',
-		targetIds: ['spot-bottom-right'],
-		title: '3-Column Bento Radar',
-		body: 'Tracks live stage pan/zoom coordinates flanked by symmetrical quick-action buttons inside the 8.25rem bottom dock.'
+		id: 'step-assistant-dock',
+		targetIds: ['hud-assistant-dock'],
+		title: 'Discover the AI Build Assistant',
+		body: 'Generate live UI components with natural language, voice capture, or /build and /reject slash commands directly from the docked BOTTOM_CENTER console.',
+		drillLabel: 'Try Prompt: "Add Metric Card"',
+		drillPrompt: 'Add Metric Card'
+	},
+	{
+		id: 'step-station-zone',
+		targetIds: ['spot-station-zone'],
+		title: 'Station Builder & Zone Edition',
+		body: 'Open live-preview Station tuning and 11-zone bilateral disposition controls directly from the top deck.'
+	},
+	{
+		id: 'step-bento-radar',
+		targetIds: ['spot-bento-radar'],
+		title: 'Bento Radar & CS6 Wireframe Workbench',
+		body: 'Click the live radar viewport or wireframe trigger to launch the 5-panel CS6 Wireframe Skeleton Workbench with Eye/Lock layers.'
+	},
+	{
+		id: 'step-export-pipeline',
+		targetIds: ['spot-export-pipeline'],
+		title: 'Export, Static WebMCP & Full-Stack Bundle',
+		body: 'Export W3C/Lighthouse static builds with WebMCP manifests or a standalone vendored SQLite + Drizzle backend bundle.'
 	}
 ] as const;
 
 export const STUDIO_LEFT_TABS = [
+	{ id: 'build', label: 'Build', icon: 'wrench' as const },
 	{ id: 'zones', label: 'Zones', icon: 'layers' as const },
 	{ id: 'blueprints', label: 'Blueprints', icon: 'book' as const },
-	{ id: 'spotlight', label: 'Tour', icon: 'spotlight' as const }
+	{ id: 'tour', label: 'Tour', icon: 'spotlight' as const }
 ] as const;
 
 export const STUDIO_RIGHT_TABS = [
+	{ id: 'inspector', label: 'Inspector', icon: 'sliders' as const },
 	{ id: 'themes', label: 'Themes', icon: 'palette' as const },
 	{ id: 'export', label: 'Export', icon: 'export' as const }
 ] as const;

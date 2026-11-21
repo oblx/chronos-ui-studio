@@ -25,7 +25,7 @@
 		{#each remotePeers as peer (peer.sessionId)}
 			<div
 				data-ui-peer-cursor={peer.sessionId}
-				class="absolute flex items-start gap-1 transition-transform duration-75 ease-linear"
+				class="ui-dur-micro absolute flex items-start gap-1 transition-transform"
 				style="transform: translate3d({peer.x}px, {peer.y}px, 0);"
 			>
 				<svg viewBox="0 0 18 18" class="h-4 w-4 shrink-0" style="color: var(--ui-accent);">

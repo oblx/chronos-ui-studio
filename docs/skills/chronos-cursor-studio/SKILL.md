@@ -5,7 +5,7 @@ license: MIT
 compatibility: Svelte 5 Runes, Drizzle Bun SQLite WAL, Zero Runtime Dependencies
 metadata:
   author: Oblx <code@oblx.dev>
-  version: "0.0.7"
+  version: "0.0.12"
 allowed-tools: view_file replace_file_content run_command
 ---
 
@@ -15,7 +15,7 @@ Orchestrate all 21 `CSS_CURSOR_STATES` across live DOM selectors (`--ui-cursor-d
 
 ## Runtime & Schema Architecture
 
-1. **Zero-Dep Package Runtime (`packages/chronos-ui/src/cursor/`)**: Manage a single `<style data-ui-cursor-sheet="true">` stylesheet via `applyCursorPackToDocument` / `resetCursorPackOnDocument` using canonical `encodeSvgCursorDataUrl()` (`32x32` viewBox, percent-encoded `#`), auto-hydrating `Cyber Reticle` on boot and driven strictly by `UI_APPLY_CURSOR_PACK`, `UI_UPDATE_CURSOR_STATE`, and `UI_RESET_CURSOR_PACK` intents.
+1. **Zero-Dep Package Runtime (`packages/chronos-ui/src/cursor/`)**: Manage a single `<style data-ui-cursor-sheet="true">` stylesheet via `resolveThemeCursorPalette()` + `buildCursorPackCss()` + `applyCursorPackToDocument()`, emitting concrete `%23rrggbb` hex colors (zero `var(--)` tokens inside SVG data URIs), explicit `xmlns` & `32x32` dimensions, full `html, body, #app, [data-ui-root]` coverage, all 21 `.cursor-*` overrides, and live re-emit on theme/polarity switch.
 2. **Curated Builtins**: Ship 4 crisp vector packs (`Cyber Reticle`, `Archival Nib`, `Tactical Brass`, `Minimal Precision`) plus one-click fork/re-derivation into custom packs.
 3. **Drizzle Persistence (`db.cursor.schema.ts`)**: Store `cursor_packs` (RFC 9562 UUID v7 PK, `derivedFromUuid` chain, base hotspot) and 21 linked `cursor_state_assets` rows via atomic `db.transaction` mirrored to IndexedDB and bundled into `static-site-build` exports.
 

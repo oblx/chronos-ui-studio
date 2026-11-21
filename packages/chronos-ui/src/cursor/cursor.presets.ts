@@ -1,9 +1,10 @@
-import { CURSOR_LIMITS } from '../tokens';
+import { CURSOR_LIMITS, THEME_PACKS, type ThemePack } from '../tokens';
 import {
 	CSS_CURSOR_STATES,
 	type CssCursorState,
 	type CursorPackDefinition,
-	type CursorStateAsset
+	type CursorStateAsset,
+	type ResolvedCursorPalette
 } from './cursor.types';
 
 const BASE_POINTER_PATH = 'M3 2l16.5 10.2-6.6 2.2 3.7 6.8-2.8 1.4-3.7-6.8L5.5 21.5V2z';
@@ -34,22 +35,32 @@ const CURSOR_OVERLAY_MAP = new Map<CssCursorState, OverlayBuilder>([
 	['context-menu', (a) => `<rect x="17" y="17" width="10" height="10" fill="none" stroke="${a}" stroke-width="1.8"/><path d="M19.5 20h5M19.5 22.5h5M19.5 25h3.5" stroke="${a}" stroke-width="1.6"/>`]
 ]);
 
-export function encodeSvgCursorDataUrl(svg: string): string {
+export function resolveThemeCursorPalette(theme: ThemePack = THEME_PACKS[0]): ResolvedCursorPalette {
+	const t = theme.tokens;
+	return {
+		primaryHex: t['--ui-primary'],
+		accentHex: t['--ui-accent-vivid'] || t['--ui-accent'],
+		strokeHex: t['--ui-base-content'],
+		fillHex: t['--ui-base-100']
+	};
+}
+
+export function sanitizeSvgCursorColors(svg: string, palette: ResolvedCursorPalette = resolveThemeCursorPalette()): string {
+	return svg
+		.replace(/var\(--ui-accent(?:-vivid)?(?:,[^)]+)?\)/gi, palette.accentHex)
+		.replace(/var\(--ui-primary(?:,[^)]+)?\)/gi, palette.primaryHex)
+		.replace(/var\(--ui-base-content(?:,[^)]+)?\)/gi, palette.strokeHex)
+		.replace(/var\(--ui-base-\d+(?:,[^)]+)?\)/gi, palette.fillHex)
+		.replace(/var\(--[^)]+\)/gi, palette.primaryHex);
+}
+
+export function encodeSvgCursorDataUrl(svg: string, palette?: ResolvedCursorPalette): string {
 	const sz = CURSOR_LIMITS.normalizedPx;
-	let normalized = svg.trim().replace(/\s+/g, ' ');
-	if (!/width="/i.test(normalized)) {
-		normalized = normalized.replace('<svg', `<svg width="${sz}" height="${sz}"`);
-	}
-	if (!/viewBox="/i.test(normalized)) {
-		normalized = normalized.replace('<svg', `<svg viewBox="0 0 ${sz} ${sz}"`);
-	}
-	const encoded = normalized
-		.replace(/%/g, '%25')
-		.replace(/#/g, '%23')
-		.replace(/"/g, '%22')
-		.replace(/</g, '%3C')
-		.replace(/>/g, '%3E')
-		.replace(/\s+/g, '%20');
+	let normalized = sanitizeSvgCursorColors(svg.trim().replace(/\s+/g, ' '), palette);
+	if (!/xmlns="/i.test(normalized)) normalized = normalized.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+	if (!/width="/i.test(normalized)) normalized = normalized.replace('<svg', `<svg width="${sz}" height="${sz}"`);
+	if (!/viewBox="/i.test(normalized)) normalized = normalized.replace('<svg', `<svg viewBox="0 0 ${sz} ${sz}"`);
+	const encoded = normalized.replace(/%/g, '%25').replace(/#/g, '%23').replace(/"/g, '%22').replace(/</g, '%3C').replace(/>/g, '%3E').replace(/\s+/g, '%20');
 	return `data:image/svg+xml,${encoded}`;
 }
 

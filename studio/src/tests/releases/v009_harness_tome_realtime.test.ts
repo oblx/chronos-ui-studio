@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { STUDIO_DEFAULTS_VERSION, VERSION, type DagEnvelope, type IntentHandler, type IntentKind, type UiWireBroker } from '@chronos-ui/svelte';
+import { createHeadlessWireBroker, STUDIO_DEFAULTS_VERSION, VERSION } from '@chronos-ui/svelte';
 import { findStarterSample, STUDIO_UI_COPY, TOME_SSG_CHAPTERS } from '@studio/config';
-import { createInitialStudioState, registerStudioIntentHandlers, type StudioState } from '@studio/client/state';
+import { createInitialStudioState, registerStudioIntentHandlers } from '@studio/client/state';
 import { migrateLegacyStudioDefaults } from '@studio/lib';
 import { cleanProjectWorkspace } from '@studio/server/routes/routes.lifecycle';
 import { createStudioProject } from '@studio/server/routes/routes.projects';
@@ -10,33 +10,9 @@ import { parseInlineTokens, parseMarkdownChapter } from '@studio/workers/compile
 import { parseHarnessArgs } from '@studio/workers/qa_harness';
 import { classifySprintTimeBand, formatClockBanner, SPRINT_TIME_BANDS } from '@studio/workers/qa_timer';
 
-function createHeadlessBroker(initial: StudioState): UiWireBroker<StudioState> {
-	let current = initial;
-	const handlers = new Map<IntentKind, IntentHandler<StudioState, unknown>>();
-	return {
-		get state() { return current; },
-		get traces() { return []; },
-		register: (kind, handler) => { handlers.set(kind, handler as IntentHandler<StudioState, unknown>); },
-		use: () => {},
-		patchState: (mutator) => { current = mutator(current); },
-		ingestServerTraces: () => {},
-		dispatch: (kind, payload, origin = 'USER') => {
-			const h = handlers.get(kind);
-			if (!h) return false;
-			const env: DagEnvelope<unknown> = { id: `t-${Date.now()}`, kind, tier: h.tier, origin, timestamp: Date.now(), payload };
-			if (h.validate && !h.validate(current, env)) return false;
-			current = h.reduce(current, env);
-			return true;
-		},
-		notifyTokenRotated: () => {},
-		isWithinRefreshGrace: () => false,
-		destroy: () => {}
-	};
-}
-
 describe('v0.0.9 25m clock guard & zero-screenshot qa:harness CLI', () => {
 	test('enforces 25m soft / 32m freeze / 38m hard stop and parses harness CLI flags cleanly', () => {
-		expect(VERSION).toBe('0.0.9');
+		expect(VERSION).toBe('0.0.12');
 		expect(SPRINT_TIME_BANDS.SOFT_TARGET_MIN).toBe(25);
 		expect(SPRINT_TIME_BANDS.FREEZE_SCOPE_MIN).toBe(32);
 		expect(SPRINT_TIME_BANDS.HARD_STOP_MIN).toBe(38);
@@ -55,13 +31,13 @@ describe('v0.0.9 25m clock guard & zero-screenshot qa:harness CLI', () => {
 
 describe('v0.0.9 reactive density cycling, click-to-dock grip, build->send & realtime collab sync', () => {
 	test('UI_SET_LAYOUT_DENSITY mutates chrome/palette/drawers and UI_ASSISTANT_TOGGLE_FLOAT toggles DOCKED<->FLOATING', () => {
-		const broker = createHeadlessBroker(createInitialStudioState());
+		const broker = createHeadlessWireBroker(createInitialStudioState());
 		registerStudioIntentHandlers(broker);
 		expect(broker.state.layoutDensity).toBe('CALM');
 		expect(broker.state.studioChromeVisible).toBe(false);
 		broker.dispatch('UI_SET_LAYOUT_DENSITY', { density: 'BALANCED' });
 		expect(broker.state.studioChromeVisible).toBe(true);
-		expect(broker.state.toolPaletteOpen).toBe(true);
+		expect(broker.state.toolPaletteOpen).toBe(false);
 		expect(broker.state.leftDrawer.open).toBe(false);
 		broker.dispatch('UI_SET_LAYOUT_DENSITY', { density: 'TACTICAL' });
 		expect(broker.state.studioChromeVisible).toBe(true);

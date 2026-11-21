@@ -33,6 +33,7 @@ export type IntentKind =
 	| 'UI_SPAWN_NODE'
 	| 'UI_COMMIT_NODE'
 	| 'UI_REJECT_NODE'
+	| 'UI_REJECT_ALL_STAGED'
 	| 'UI_PATCH_NODE'
 	| 'UI_REMOVE_NODE'
 	| 'UI_SELECT_NODE'
@@ -65,7 +66,20 @@ export type IntentKind =
 	| 'UI_RESET_STUDIO_DEFAULTS'
 	| 'UI_ASSISTANT_TOGGLE_FLOAT'
 	| 'UI_ASSISTANT_SUBMIT'
-	| 'UI_STATION_PREVIEW_UPDATE';
+	| 'UI_STATION_PREVIEW_UPDATE'
+	| 'UI_WIREFRAME_SET_TOOL'
+	| 'UI_TOGGLE_ENTITY_LOCK'
+	| 'UI_TOGGLE_ENTITY_VISIBILITY'
+	| 'UI_SET_MOTION_PROFILE'
+	| 'UI_MODAL_TOGGLE_EXPAND'
+	| 'UI_ASSISTANT_SET_DOCK_MODE'
+	| 'UI_ASSISTANT_SUBMIT_PROMPT';
+
+export interface BatchIntentInput<P = Record<string, unknown>> {
+	readonly kind: IntentKind;
+	readonly payload: P;
+	readonly origin?: DagEnvelope['origin'];
+}
 
 export interface DagEnvelope<P = Record<string, unknown>> {
 	readonly id: string;

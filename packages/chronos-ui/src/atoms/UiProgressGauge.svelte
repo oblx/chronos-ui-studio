@@ -22,6 +22,6 @@
 		<span class="ui-font-mono shrink-0" style="color: var(--ui-base-content);">{unitText ?? `${pct}%`}</span>
 	</div>
 	<div class="h-1.5 w-full overflow-hidden" style="background-color: var(--ui-base-300); border: var(--ui-hairline) solid var(--ui-border-subtle);">
-		<div class="h-full transition-all duration-200" style="width: {pct}%; background-color: var(--ui-primary);"></div>
+		<div class="ui-dur-micro h-full transition-all" style="width: {pct}%; background-color: var(--ui-primary);"></div>
 	</div>
 </div>

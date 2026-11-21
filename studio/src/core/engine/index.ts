@@ -1,3 +1,4 @@
+export * from './agentic.manifest';
 export * from './document.tree';
 export * from './cursor.synthesizer';
 export * from './entity.tools';

@@ -30,8 +30,11 @@ export default defineConfig(() => {
 			}
 		},
 		server: {
+			ws: false,
 			hmr: false,
-			watch: process.env.DISABLE_HMR === 'true' ? null : {}
+			watch: process.env.DISABLE_HMR === 'true'
+				? null
+				: { ignored: ['**/*.sqlite*', '**/.playwright-cli/**', '**/data/**', '**/dist/**'] }
 		}
 	};
 });

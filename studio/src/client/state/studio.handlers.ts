@@ -1,4 +1,7 @@
-import { applyAccessibilityPrefs, applyThemeToRoot, findThemePack, type AccessibilityPrefs, type CornerKind, type UiWireBroker } from '@chronos-ui/svelte';
+import {
+	applyAccessibilityPrefs, applyCursorPackToDocument, applyThemeToRoot, BUILTIN_CURSOR_PACKS, findThemePack,
+	resolveThemeCursorPalette, type AccessibilityPrefs, type CornerKind, type UiWireBroker
+} from '@chronos-ui/svelte';
 import type { UiBlueprint } from '@studio/config';
 import { registerLifecycleAndCursorHandlers } from './lifecycle';
 import { apiSaveBlueprint } from './studio.api';
@@ -6,6 +9,15 @@ import { registerDrawerAndStageHandlers } from './studio.drawer.handlers';
 import { registerProjectHandlers } from './studio.project.handlers';
 import type { StudioState, StudioViewId, ZoneCornerPayload, ZoneTogglePayload } from './studio.types';
 import { registerV003Handlers } from './studio.v003.handlers';
+
+function syncThemeAndCursor(s: StudioState): void {
+	const theme = s.themes.find((t) => t.id === s.activeThemeId) ?? findThemePack(s.activeThemeId);
+	applyThemeToRoot(theme);
+	if (s.activeCursorPackId !== null) {
+		const pack = s.cursorPacks.find((c) => c.uuid === s.activeCursorPackId || c.slug === s.activeCursorPackId) ?? BUILTIN_CURSOR_PACKS[0];
+		applyCursorPackToDocument(pack, resolveThemeCursorPalette(theme));
+	}
+}
 
 function updateActiveBlueprint(state: StudioState, updater: (bp: UiBlueprint) => UiBlueprint): StudioState {
 	const nextList = state.blueprints.map((bp) => (bp.id === state.activeBlueprintId ? updater(bp) : bp));
@@ -16,7 +28,7 @@ function registerThemeHandlers(broker: UiWireBroker<StudioState>): void {
 	broker.register<{ themeId: string }>('UI_SET_THEME', {
 		tier: 'TIER_1_COALESCED_PERSIST',
 		reduce: (s, env) => updateActiveBlueprint({ ...s, activeThemeId: env.payload.themeId }, (bp) => ({ ...bp, themeId: env.payload.themeId })),
-		effect: (s) => applyThemeToRoot(s.themes.find((t) => t.id === s.activeThemeId) ?? findThemePack(s.activeThemeId)),
+		effect: syncThemeAndCursor,
 		summarize: (env) => `Theme -> ${env.payload.themeId}`
 	});
 	broker.register('UI_TOGGLE_POLARITY', {
@@ -27,7 +39,7 @@ function registerThemeHandlers(broker: UiWireBroker<StudioState>): void {
 			const target = s.themes.find((t) => t.polarity === nextPolar) ?? findThemePack(nextPolar === 'dark' ? 'obsidian-brass' : 'alabaster-lab');
 			return { ...s, activeThemeId: target.id };
 		},
-		effect: (s) => applyThemeToRoot(s.themes.find((t) => t.id === s.activeThemeId) ?? findThemePack(s.activeThemeId)),
+		effect: syncThemeAndCursor,
 		summarize: () => 'Toggled dark/light polarity'
 	});
 	broker.register<Partial<AccessibilityPrefs>>('UI_SET_ACCESSIBILITY', {
@@ -49,7 +61,7 @@ function registerBlueprintHandlers(broker: UiWireBroker<StudioState>): void {
 			const target = s.blueprints.find((b) => b.id === env.payload.blueprintId);
 			return target ? { ...s, activeBlueprintId: target.id, activeThemeId: target.themeId } : s;
 		},
-		effect: (s) => applyThemeToRoot(s.themes.find((t) => t.id === s.activeThemeId) ?? findThemePack(s.activeThemeId))
+		effect: syncThemeAndCursor
 	});
 	broker.register<ZoneTogglePayload>('UI_TOGGLE_ZONE_VISIBILITY', {
 		tier: 'TIER_1_COALESCED_PERSIST',

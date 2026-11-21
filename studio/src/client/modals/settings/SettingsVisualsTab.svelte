@@ -6,6 +6,7 @@
 		type MotionConfig, type StudioDefaultsConfig, type ThemePack
 	} from '@chronos-ui/svelte';
 	import SettingsGeometryKnobs from './SettingsGeometryKnobs.svelte';
+	import SettingsMotionControls from './SettingsMotionControls.svelte';
 
 	interface Props {
 		prefs: AccessibilityPrefs; motionConfig: MotionConfig; studioDefaults: StudioDefaultsConfig;
@@ -13,13 +14,14 @@
 		onUpdate: (patch: Partial<AccessibilityPrefs>) => void; onSetCornerStyle: (cornerMode: CornerKind) => void;
 		onSetCornerRadius: (cornerRadiusRem: number) => void; onSetStudioDefaults: (patch: Partial<StudioDefaultsConfig>) => void;
 		onResetStudioDefaults: () => void; onSetMotionConfig: (patch: Partial<MotionConfig>) => void;
+		onSetMotionProfile?: (patch: Record<string, unknown>) => void;
 		onToggleCornerMorph: (enabled: boolean) => void; onSelectTheme: (themeId: string) => void; onOpenCursors?: () => void;
 	}
 
 	let {
 		prefs, motionConfig, studioDefaults, themes, activeThemeId, cornerMorphEnabled,
 		onUpdate, onSetCornerStyle, onSetCornerRadius, onSetStudioDefaults, onResetStudioDefaults,
-		onSetMotionConfig, onToggleCornerMorph, onSelectTheme, onOpenCursors
+		onSetMotionConfig, onSetMotionProfile, onToggleCornerMorph, onSelectTheme, onOpenCursors
 	}: Props = $props();
 
 	const EMB_ITEMS: readonly { id: CornerEmbellishment; label: string }[] = [
@@ -133,13 +135,12 @@
 		<div class="flex flex-col gap-1.5">
 			<span class="font-semibold" style="color: var(--ui-muted-content);">Svelte 5 Transitions & Kinetics (5x2)</span>
 			<div class="grid grid-cols-2 gap-1.5">
-				{#each MOTION_PRESETS as preset (preset)}
-					<UiChamferButton cornerMode={prefs.cornerMode} label={preset.replace('_', ' ')} active={motionConfig.preset === preset} variant={motionConfig.preset === preset ? 'primary' : 'surface'} onclick={() => { onSetMotionConfig({ preset }); replay(); }} className="w-full py-1 text-[0.64rem]" />
-				{/each}
+				{#each MOTION_PRESETS as preset (preset)}<UiChamferButton cornerMode={prefs.cornerMode} label={preset.replace('_', ' ')} active={motionConfig.preset === preset} variant={motionConfig.preset === preset ? 'primary' : 'surface'} onclick={() => { onSetMotionConfig({ preset }); replay(); }} className="w-full py-1 text-[0.64rem]" />{/each}
 				<UiChamferButton cornerMode={prefs.cornerMode} label={prefs.kineticMotion ? 'Kinetic: On' : 'Kinetic: Off'} active={prefs.kineticMotion} variant={prefs.kineticMotion ? 'secondary' : 'surface'} onclick={() => onUpdate({ kineticMotion: !prefs.kineticMotion })} className="w-full py-1 text-[0.64rem]" />
 				<UiChamferButton cornerMode={prefs.cornerMode} label={cornerMorphEnabled ? 'Corner Morph: On' : 'Corner Morph: Off'} active={cornerMorphEnabled} variant={cornerMorphEnabled ? 'secondary' : 'surface'} onclick={() => onToggleCornerMorph(!cornerMorphEnabled)} className="w-full py-1 text-[0.64rem]" />
 			</div>
 		</div>
+		{#if onSetMotionProfile}<SettingsMotionControls cornerMode={prefs.cornerMode} {onSetMotionProfile} />{/if}
 		<SettingsGeometryKnobs cornerMode={prefs.cornerMode} {studioDefaults} {onSetStudioDefaults} {onResetStudioDefaults} />
 	</div>
 </div>

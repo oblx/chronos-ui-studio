@@ -72,7 +72,7 @@
 	data-ui-interactive="true"
 	data-ui-cursor="pointer"
 	{onclick}
-	class="group relative inline-flex h-8 w-8 shrink-0 items-center justify-center transition-all duration-150 {className}"
+	class="ui-dur-micro ui-detent group relative inline-flex h-8 w-8 shrink-0 items-center justify-center transition-all {className}"
 	style="color: {active ? 'var(--ui-accent)' : 'var(--ui-muted-content)'}; opacity: {active ? '1' : '0.82'}; background: transparent; border: none;"
 >
 	<span
@@ -81,7 +81,7 @@
 		style="{surfaceStyle} background-color: {active ? 'var(--ui-base-300)' : 'transparent'};"
 	></span>
 	<UiVectorBorder {corners} {cornerMode} {cutPx} maxCutRatio={CONTROL_MAX_CUT_RATIO} {strokeVar} />
-	<span class="relative z-10 transition-transform duration-150 group-hover:scale-105 group-hover:opacity-100" style="color: inherit;">
+	<span class="ui-dur-micro relative z-10 transition-transform group-hover:scale-105 group-hover:opacity-100" style="color: inherit;">
 		<UiIcon name={icon} sizeRem={1} />
 	</span>
 	{#if showGlitter}

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { UiChamferFrame } from '../atoms';
-	import { uiDragPan } from '../machines';
+	import { createStagePanZoomCoalescer, uiDragPan, type StageGestureCommit } from '../machines';
 	import type { CornerKind } from '../tokens';
 
 	interface Props {
@@ -11,29 +11,45 @@
 		cornerMode?: CornerKind;
 		showGrid?: boolean;
 		showReticle?: boolean;
-		onPanDelta: (dx: number, dy: number) => void;
-		onZoomDelta: (delta: number) => void;
+		onPanDelta?: (dx: number, dy: number) => void;
+		onZoomDelta?: (delta: number) => void;
+		onGestureCommit?: (commit: StageGestureCommit) => void;
 		children?: Snippet;
 	}
 
 	let {
-		panX,
-		panY,
-		zoom,
-		cornerMode = 'CHAMFER',
-		showGrid = true,
-		showReticle = true,
-		onPanDelta,
-		onZoomDelta,
-		children
+		panX, panY, zoom, cornerMode = 'CHAMFER', showGrid = true, showReticle = true,
+		onPanDelta, onZoomDelta, onGestureCommit, children
 	}: Props = $props();
+
+	let livePanX = $state(0);
+	let livePanY = $state(0);
+	let liveZoom = $state(1);
+
+	const coalescer = createStagePanZoomCoalescer(
+		{ panX: 0, panY: 0, zoom: 1 },
+		(cam) => { livePanX = cam.panX; livePanY = cam.panY; liveZoom = cam.zoom; },
+		(commit) => {
+			if (onGestureCommit) onGestureCommit(commit);
+			else { onPanDelta?.(commit.panX - panX, commit.panY - panY); onZoomDelta?.(commit.zoom - zoom); }
+		}
+	);
+
+	$effect(() => {
+		livePanX = panX; livePanY = panY; liveZoom = zoom;
+		coalescer.sync({ panX, panY, zoom });
+	});
+	$effect(() => () => coalescer.destroy());
+
+	let corridorStyle = $derived(
+		'top: var(--ui-safe-top, 4.5rem); bottom: var(--ui-safe-bottom, 5.25rem); left: var(--ui-safe-left, var(--ui-safe-side, 4.5rem)); right: var(--ui-safe-right, var(--ui-safe-side, 4.5rem));'
+	);
 </script>
 
 <main
 	aria-label="Primary interactive canvas stage"
 	data-testid="world-canvas-stage"
-	data-ui-pan-stage="true"
-	use:uiDragPan={{ onPanDelta, onZoomDelta }}
+	data-ui-cursor="default"
 	class="fixed inset-0 z-0 h-screen w-screen overflow-hidden select-none"
 	style="background-color: var(--ui-base-100);"
 >
@@ -55,14 +71,35 @@
 		</svg>
 	{/if}
 
-	<div class="pointer-events-none fixed inset-x-16 bottom-[9.25rem] top-[7.5rem] z-10 hidden md:block">
-		<UiChamferFrame {cornerMode} carets={true} surfaceVar="transparent" strokeVar="var(--ui-border-subtle)" caretVar="var(--ui-primary)" className="h-full w-full" />
+	<div
+		data-testid="world-canvas-border"
+		class="pointer-events-none fixed z-[9] hidden md:block"
+		style={corridorStyle}
+	>
+		<UiChamferFrame {cornerMode} carets={true} surfaceVar="transparent" strokeVar="var(--ui-border-subtle)" caretVar="var(--ui-primary)" outerClass="h-full w-full" className="h-full w-full" />
 	</div>
 
 	<div
-		class="ui-scroll-deck absolute inset-0 flex items-start justify-center overflow-y-auto px-2 pt-24 pb-24 sm:px-6 sm:pt-16 md:pb-24"
-		style="transform: translate3d({panX}px, {panY}px, 0) scale({zoom}); transform-origin: center center;"
+		data-testid="safe-corridor-stage"
+		data-ui-stage-viewport="true"
+		data-ui-cursor="grab"
+		data-camera-x={Math.round(livePanX)}
+		data-camera-y={Math.round(livePanY)}
+		data-camera-zoom={liveZoom.toFixed(2)}
+		use:uiDragPan={{
+			onPanDelta: (dx, dy) => { coalescer.tickPan(dx, dy); },
+			onZoomDelta: (dz) => { coalescer.tickZoom(dz); },
+			onPanEnd: () => { coalescer.flush(); }
+		}}
+		class="ui-scroll-deck fixed z-[10] flex cursor-grab items-center justify-center overflow-y-auto overflow-x-hidden px-4 py-4"
+		style="{corridorStyle} contain: layout style;"
 	>
-		{@render children?.()}
+		<div
+			data-testid="stage-camera-plane"
+			class="m-auto flex w-full max-w-6xl items-center justify-center"
+			style="transform: translate3d({livePanX}px, {livePanY}px, 0) scale({liveZoom}); transform-origin: center center;"
+		>
+			{@render children?.()}
+		</div>
 	</div>
 </main>

@@ -5,7 +5,7 @@ license: MIT
 compatibility: Bun >= 1.4, TypeScript >= 5.8, Svelte 5
 metadata:
   author: Oblx <code@oblx.dev>
-  version: "0.0.9"
+  version: "0.0.12"
 allowed-tools: view_file replace_file_content multi_replace_file_content run_command
 ---
 

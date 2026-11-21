@@ -75,7 +75,7 @@
 				LEFT PERIMETER (X &lt; 50vw)
 			</div>
 			{#each inboundZones as z (z.id)}
-				<button type="button" onclick={() => onToggleZone?.(z.id)} class="text-left transition-transform duration-150 hover:translate-x-0.5">
+				<button type="button" onclick={() => onToggleZone?.(z.id)} class="text-left ui-dur-micro transition-transform hover:translate-x-0.5">
 					<UiChamferFrame corners={z.corners} {cornerMode} carets={false} strokeVar={z.visible ? 'var(--ui-primary)' : 'var(--ui-border-subtle)'} outerClass="w-full" className="px-4 py-3">
 						<div class="flex items-center justify-between gap-2">
 							<span class="text-xs font-bold" style="color: var(--ui-base-content);">{z.label}</span>
@@ -121,7 +121,7 @@
 				RIGHT MIRROR (X &gt; 50vw)
 			</div>
 			{#each outboundZones as z (z.id)}
-				<button type="button" onclick={() => onToggleZone?.(z.id)} class="text-left transition-transform duration-150 hover:-translate-x-0.5">
+				<button type="button" onclick={() => onToggleZone?.(z.id)} class="text-left ui-dur-micro transition-transform hover:-translate-x-0.5">
 					<UiChamferFrame corners={z.corners} {cornerMode} carets={false} strokeVar={z.visible ? 'var(--ui-secondary)' : 'var(--ui-border-subtle)'} outerClass="w-full" className="px-4 py-3">
 						<div class="flex items-center justify-between gap-2">
 							<span class="text-xs font-bold" style="color: var(--ui-base-content);">{z.label}</span>

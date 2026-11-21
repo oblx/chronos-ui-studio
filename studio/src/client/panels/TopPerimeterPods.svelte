@@ -98,8 +98,8 @@
 					<UiUtilityIconButton cornerMode={props.cornerMode} icon="settings" label="Accessibility Settings" active={props.activeModalId === 'settings'} onclick={props.onOpenSettings} />
 				</div>
 				<div class="flex items-center justify-between gap-1.5">
-					<UiChamferButton cornerMode={props.cornerMode} icon="spotlight" label="Tour" onclick={props.onStartSpotlight} className="flex-1 py-0.5" />
-					<UiChamferButton cornerMode={props.cornerMode} icon="wire" label="DAG" onclick={props.onOpenWire} className="flex-1 py-0.5" />
+					<UiChamferButton cornerMode={props.cornerMode} icon="spotlight" label="Tour" testId="hud-tour-btn" onclick={props.onStartSpotlight} className="flex-1 py-0.5" />
+					<UiChamferButton cornerMode={props.cornerMode} icon="wire" label="DAG" testId="hud-open-wire" onclick={props.onOpenWire} className="flex-1 py-0.5" />
 				</div>
 				<div class="ui-font-mono flex items-center justify-between gap-1 text-[0.62rem]" style="color: var(--ui-muted-content); padding-inline: calc(var(--ui-station-cut, 0.75rem) + 0.375rem);" data-testid="top-right-status-row">
 					<span class="whitespace-nowrap">{identityLabel.toUpperCase()} · {props.polarity.toUpperCase()}</span>

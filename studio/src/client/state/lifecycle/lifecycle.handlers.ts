@@ -1,5 +1,6 @@
 import {
-	applyCursorPackToDocument, CSS_CURSOR_STATES, DEFAULT_EMBELLISHMENT_CONFIG, resetCursorPackOnDocument,
+	applyCursorPackToDocument, CSS_CURSOR_STATES, DEFAULT_EMBELLISHMENT_CONFIG, findThemePack,
+	resetCursorPackOnDocument, resolveThemeCursorPalette,
 	type CssCursorState, type CursorPackDefinition, type EmbellishmentConfig, type UiWireBroker
 } from '@chronos-ui/svelte';
 import type { StudioState } from '../studio.types';
@@ -36,7 +37,8 @@ function registerWorkspaceLifecycleHandlers(broker: UiWireBroker<StudioState>): 
 	broker.register('UI_WORKSPACE_RESET_DEFAULT', {
 		tier: 'TIER_0_LOCAL_UI',
 		reduce: (s) => ({
-			...s, panX: 0, panY: 0, zoom: 1, layoutDensity: 'CALM', selectedNodeId: null, toolPaletteOpen: false,
+			...s, studioChromeVisible: false, panX: 0, panY: 0, zoom: 1, layoutDensity: 'CALM', selectedNodeId: null, toolPaletteOpen: false,
+			leftDrawer: { ...s.leftDrawer, open: false }, rightDrawer: { ...s.rightDrawer, open: false },
 			assistantDock: { mode: 'DOCKED', expanded: false, xRem: 0, yRem: 0 }
 		}),
 		summarize: () => 'Reset workspace viewport & layout to default view'
@@ -51,32 +53,22 @@ function registerWorkspaceLifecycleHandlers(broker: UiWireBroker<StudioState>): 
 function registerCursorPackHandlers(broker: UiWireBroker<StudioState>): void {
 	broker.register<{ packId: string }>('UI_APPLY_CURSOR_PACK', {
 		tier: 'TIER_1_COALESCED_PERSIST',
-		reduce: (s, env) => ({
-			...s, activeCursorPackId: env.payload.packId,
-			projects: s.projects.map((p) => (p.id === s.activeProjectId ? { ...p, activeCursorPackId: env.payload.packId } : p))
-		}),
+		reduce: (s, env) => ({ ...s, activeCursorPackId: env.payload.packId, projects: s.projects.map((p) => (p.id === s.activeProjectId ? { ...p, activeCursorPackId: env.payload.packId } : p)) }),
 		effect: (s, env) => {
 			const pack = s.cursorPacks.find((c) => c.uuid === env.payload.packId || c.slug === env.payload.packId);
-			if (pack) applyCursorPackToDocument(pack);
+			const theme = s.themes.find((t) => t.id === s.activeThemeId) ?? findThemePack(s.activeThemeId);
+			if (pack) applyCursorPackToDocument(pack, resolveThemeCursorPalette(theme));
 			void apiPatchProjectCursor(s.activeProjectId, pack?.uuid ?? env.payload.packId);
 		},
 		summarize: (env) => `Applied cursor pack -> ${env.payload.packId}`
 	});
 	broker.register<{ packUuid: string; cssState: CssCursorState; hotspotX?: number; hotspotY?: number }>('UI_UPDATE_CURSOR_STATE', {
-		tier: 'TIER_0_LOCAL_UI',
-		reduce: (s) => s,
-		summarize: (env) => `Updated cursor hotspot (${env.payload.cssState})`
+		tier: 'TIER_0_LOCAL_UI', reduce: (s) => s, summarize: (env) => `Updated cursor hotspot (${env.payload.cssState})`
 	});
 	broker.register('UI_RESET_CURSOR_PACK', {
 		tier: 'TIER_1_COALESCED_PERSIST',
-		reduce: (s) => ({
-			...s, activeCursorPackId: null,
-			projects: s.projects.map((p) => (p.id === s.activeProjectId ? { ...p, activeCursorPackId: undefined } : p))
-		}),
-		effect: (s) => {
-			resetCursorPackOnDocument();
-			void apiPatchProjectCursor(s.activeProjectId, null);
-		},
+		reduce: (s) => ({ ...s, activeCursorPackId: null, projects: s.projects.map((p) => (p.id === s.activeProjectId ? { ...p, activeCursorPackId: undefined } : p)) }),
+		effect: (s) => { resetCursorPackOnDocument(); void apiPatchProjectCursor(s.activeProjectId, null); },
 		summarize: () => 'Reset cursor theme to OS default'
 	});
 }
@@ -114,6 +106,11 @@ function createProjectSaveCleanOps(broker: UiWireBroker<StudioState>, pushToast:
 	return { saveProject, cleanWorkspace, resetDefaultView };
 }
 
+function applyPackWithActiveTheme(broker: UiWireBroker<StudioState>, pack: CursorPackDefinition): void {
+	const theme = broker.state.themes.find((t) => t.id === broker.state.activeThemeId) ?? findThemePack(broker.state.activeThemeId);
+	applyCursorPackToDocument(pack, resolveThemeCursorPalette(theme));
+}
+
 function createCursorPackOps(broker: UiWireBroker<StudioState>, pushToast: ToastFn) {
 	const applyCursorPack = (packId: string): void => { broker.dispatch('UI_APPLY_CURSOR_PACK', { packId }); pushToast(`Applied ${CSS_CURSOR_STATES.length}-state cursor pack`, 'success'); };
 	const resetCursorPack = (): void => { broker.dispatch('UI_RESET_CURSOR_PACK', {}); pushToast('Restored OS default cursor', 'info'); };
@@ -126,7 +123,7 @@ function createCursorPackOps(broker: UiWireBroker<StudioState>, pushToast: Toast
 	const deriveCursorPack = async (uuid: string, accentColor?: string): Promise<CursorPackDefinition | null> => {
 		const pack = await apiDeriveCursorPackStates(uuid, { accentColor, useAiLabel: true });
 		broker.patchState((s) => ({ ...s, cursorPacks: upsertPack(s.cursorPacks, pack) }));
-		if (broker.state.activeCursorPackId === uuid) applyCursorPackToDocument(pack);
+		if (broker.state.activeCursorPackId === uuid) applyPackWithActiveTheme(broker, pack);
 		pushToast(`Derived ${CSS_CURSOR_STATES.length - 1} cursor states for ${pack.name}`, 'success');
 		return pack;
 	};
@@ -134,7 +131,7 @@ function createCursorPackOps(broker: UiWireBroker<StudioState>, pushToast: Toast
 		const pack = await apiUpdateCursorStateAsset(uuid, cssState, patch);
 		broker.patchState((s) => ({ ...s, cursorPacks: upsertPack(s.cursorPacks, pack) }));
 		broker.dispatch('UI_UPDATE_CURSOR_STATE', { packUuid: uuid, cssState, ...patch });
-		if (broker.state.activeCursorPackId === uuid) applyCursorPackToDocument(pack);
+		if (broker.state.activeCursorPackId === uuid) applyPackWithActiveTheme(broker, pack);
 	};
 	return { applyCursorPack, resetCursorPack, createCursorPack, deriveCursorPack, updateCursorState };
 }

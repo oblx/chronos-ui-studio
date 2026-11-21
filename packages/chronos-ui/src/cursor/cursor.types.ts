@@ -47,3 +47,10 @@ export interface CursorPackDefinition {
 	readonly baseHotspotY: number;
 	readonly states: Readonly<Record<CssCursorState, CursorStateAsset>>;
 }
+
+export interface ResolvedCursorPalette {
+	readonly primaryHex: string;
+	readonly accentHex: string;
+	readonly strokeHex: string;
+	readonly fillHex: string;
+}

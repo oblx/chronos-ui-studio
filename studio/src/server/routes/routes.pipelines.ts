@@ -2,7 +2,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { exportJobs, getStudioDb } from '@studio/lib';
 import {
-	compileStaticClientBuild, emitProjectCssTokens, emitProjectJsonBundle, emitProjectSvelteScaffold,
+	compileFullstackBundle, compileStaticClientBuild, emitProjectCssTokens, emitProjectJsonBundle, emitProjectSvelteScaffold,
 	emitProjectZipBundle, listInputConnectors, listOutputAdapters, runInputConnector, type ProjectImportResult
 } from '@studio/plugins';
 import { pushServerTrace } from '../server.telemetry';
@@ -14,6 +14,19 @@ async function handlePipelineExport(req: Request): Promise<Response> {
 	const project = await loadProjectWithNodes(body.projectId || 'proj-genesis');
 	if (!project) return jsonErr('Project not found', HTTP_STATUS.NOT_FOUND);
 	const db = await getStudioDb();
+	if (body.adapterId === 'fullstack-bundle') {
+		const workDir = join(tmpdir(), `chronos-fullstack-${project.slug}-${Date.now().toString(36)}`);
+		const bundle = await compileFullstackBundle({ project, workDir, emitZip: true });
+		await db.insert(exportJobs).values({
+			id: `exp-${Date.now().toString(36)}`, projectId: project.id, adapterId: bundle.adapterId,
+			checksum: bundle.checksum, artifactMetaJson: JSON.stringify({ files: bundle.files, outDir: bundle.outDir }), createdAt: Date.now()
+		});
+		return jsonOk({
+			bundle: { adapterId: bundle.adapterId, outDir: bundle.outDir, files: bundle.files, checksum: bundle.checksum },
+			filename: `${project.slug}-fullstack.zip`,
+			base64: bundle.zipBytes ? Buffer.from(bundle.zipBytes).toString('base64') : ''
+		});
+	}
 	if (body.adapterId === 'static-site-build') {
 		const workDir = join(tmpdir(), `chronos-static-${project.slug}-${Date.now().toString(36)}`);
 		const build = await compileStaticClientBuild({ project, workDir });

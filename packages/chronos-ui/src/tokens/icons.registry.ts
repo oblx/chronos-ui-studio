@@ -44,7 +44,10 @@ export type UiIconName =
 	| 'cursor'
 	| 'minus'
 	| 'sliders'
-	| 'grid';
+	| 'grid'
+	| 'eye'
+	| 'expand'
+	| 'minimize';
 
 export const UI_ICON_PATHS: Record<UiIconName, string> = {
 	user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0',
@@ -92,5 +95,8 @@ export const UI_ICON_PATHS: Record<UiIconName, string> = {
 	cursor: 'M5 4l13 7-5 2-2 5-6-14Z',
 	minus: 'M5 12h14',
 	sliders: 'M4 7h4m4 0h8M8 5v4M4 12h10m4 0h2M14 10v4M4 17h6m4 0h6M10 15v4',
-	grid: 'M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z'
+	grid: 'M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z',
+	eye: 'M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z',
+	expand: 'M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7',
+	minimize: 'M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7'
 };

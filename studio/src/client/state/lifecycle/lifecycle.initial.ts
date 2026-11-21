@@ -47,8 +47,8 @@ export function createInitialStudioState(): StudioState {
 		assistantBusy: false, assistantOcular: 'IDLE', assistantDock: { mode: 'DOCKED', expanded: false, xRem: 0, yRem: 0 },
 		inputModality: 'KEYBOARD', voiceMode: 'PUSH_TO_TALK', gamepadOverride: null, lastMcpActivity: null,
 		accessibility: DEFAULT_ACCESSIBILITY_PREFS,
-		leftDrawer: { open: false, floating: false, activeTab: 'zones', railOffsetY: 0, floatX: STUDIO_INITIAL_LAYOUT.leftFloatX, floatY: STUDIO_INITIAL_LAYOUT.floatY },
-		rightDrawer: { open: false, floating: false, activeTab: 'themes', railOffsetY: 0, floatX: STUDIO_INITIAL_LAYOUT.rightFloatX, floatY: STUDIO_INITIAL_LAYOUT.floatY },
+		leftDrawer: { open: false, floating: false, activeTab: 'build', railOffsetY: 0, floatX: STUDIO_INITIAL_LAYOUT.leftFloatX, floatY: STUDIO_INITIAL_LAYOUT.floatY },
+		rightDrawer: { open: false, floating: false, activeTab: 'inspector', railOffsetY: 0, floatX: STUDIO_INITIAL_LAYOUT.rightFloatX, floatY: STUDIO_INITIAL_LAYOUT.floatY },
 		panX: 0, panY: 0, zoom: 1, helpTopic: 'composer', helpGlitterCount: 0,
 		user: null, peers: [], toasts: [], lastCommandOutput: 'Calm canvas ready. Describe a UI below or press F1.'
 	};

@@ -69,6 +69,7 @@ function planSlashCommand(prompt: string): AssistantPlan | null {
 	const cmd = parts[0].toLowerCase();
 	if (cmd === '/spawn') return { reply: `Staged ${parts[1] ?? 'UiSection'} inside ${(parts[2] ?? 'WORLD_CANVAS').toUpperCase()}.`, actions: [{ tool: 'ui_spawn_node', args: { type: (parts[1] ?? 'UiSection') as UiComponentKind, zone: (parts[2] ?? 'WORLD_CANVAS').toUpperCase() as HudZoneId, label: parts[1] ?? 'UiSection', lifecycle: 'STAGING' } }] };
 	if (cmd === '/commit') return { reply: 'Committed all staged elements to the live painted canvas.', actions: [{ tool: 'ui_commit_node', args: { all: true } }] };
+	if (cmd === '/reject') return { reply: 'Rejected all un-committed staged nodes.', actions: [{ tool: 'ui_reject_all_staged', args: {} }] };
 	if (cmd === '/save') return { reply: 'Saved workspace snapshot and entity registry.', actions: [{ tool: 'ui_save_project', args: {} }] };
 	if (cmd === '/clean') return { reply: 'Cleaned workspace to Calm Empty Stage.', actions: [{ tool: 'ui_clean_project', args: {} }] };
 	if (cmd === '/reset') return { reply: 'Restored default workspace view.', actions: [{ tool: 'ui_reset_workspace_view', args: {} }] };
@@ -78,13 +79,17 @@ function planSlashCommand(prompt: string): AssistantPlan | null {
 	if (cmd === '/project' && parts[1] === 'create') return { reply: `Created and switched to calm workspace "${parts.slice(2).join(' ') || 'Untitled Workspace'}".`, actions: [{ tool: 'ui_create_project', args: { name: parts.slice(2).join(' ') || 'Untitled Workspace' } }] };
 	if (cmd === '/project' && parts[1] === 'switch' && parts[2]) return { reply: `Switched active workspace to ${parts[2]}.`, actions: [{ tool: 'ui_switch_project', args: { projectId: parts[2] } }] };
 	if (cmd === '/export') return { reply: 'Triggered optimized static client build export.', actions: [{ tool: 'ui_export_static', args: { adapter: 'static-site-build' } }] };
+	if (cmd === '/motion') return { reply: `Switched motion profile to ${(parts[1] ?? 'CALM_SLOW').toUpperCase()}.`, actions: [{ tool: 'ui_set_motion_profile', args: { profile: (parts[1] ?? 'CALM_SLOW').toUpperCase() } }] };
 	return null;
 }
 
 function planStationOrZoneCommand(lower: string, corners: CornerKind | undefined): AssistantPlan | null {
 	const radiusRem = parseRadiusRem(lower);
 	const zoneId = detectZoneMatch(lower);
-	if (/\breset\s+(studio\s+)?defaults\b/.test(lower)) return { reply: 'Reset Studio geometry and ornament defaults to v0.0.8 baseline.', actions: [{ tool: 'ui_reset_studio_defaults', args: {} }] };
+	if (/\b(open\s+)?wireframe(\s+skeleton)?\b/.test(lower)) return { reply: 'Opened the CS6 Wireframe Skeleton Workbench.', actions: [{ tool: 'ui_open_wireframe_skeleton', args: {} }] };
+	if (/\bexport\s+full.?stack\b/.test(lower)) return { reply: 'Compiled standalone full-stack client + vendored Bun/Drizzle backend bundle.', actions: [{ tool: 'ui_export_fullstack_bundle', args: { emitZip: true } }] };
+	if (/\b(reject\s+all|discard\s+staged|clear\s+staging)\b/.test(lower)) return { reply: 'Discarded all un-committed staged nodes.', actions: [{ tool: 'ui_reject_all_staged', args: {} }] };
+	if (/\breset\s+(studio\s+)?defaults\b/.test(lower)) return { reply: 'Reset Studio geometry and ornament defaults to v0.0.11 baseline.', actions: [{ tool: 'ui_reset_studio_defaults', args: {} }] };
 	if (/\bstation\s+builder\b/.test(lower)) return { reply: 'Opened the Station Builder architectural workbench.', actions: [{ tool: 'ui_open_station_builder', args: {} }] };
 	if (/\bopen\b.*\bzone\s+edition\b/.test(lower)) return { reply: `Opened Zone Edition workbench focused on ${zoneId}.`, actions: [{ tool: 'ui_open_zone_edition', args: { zoneId } }] };
 	if (/\b(edit|update|configure)\b.*\bzone\b/.test(lower)) {

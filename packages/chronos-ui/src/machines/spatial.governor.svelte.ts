@@ -43,13 +43,15 @@ export function classifyCorridorTier(viewportW: number): CorridorBreakpointTier 
 	return 'ULTRA';
 }
 
-export function measureActivePerimeterRects(root: ParentNode = document): readonly SlotRect[] {
-	return [...root.querySelectorAll<HTMLElement>('[data-perimeter-zone]')]
-		.filter((el) => el.offsetParent !== null)
+export function measureActivePerimeterRects(root?: ParentNode): readonly SlotRect[] {
+	const target = root ?? (typeof document !== 'undefined' ? document : null);
+	if (!target) return [];
+	return [...target.querySelectorAll<HTMLElement>('[data-perimeter-zone], [data-testid="ui-assistant-dock"][data-dock-mode="DOCKED"]')]
 		.map((el) => {
 			const r = el.getBoundingClientRect();
-			return { slot: el.getAttribute('data-perimeter-zone') ?? 'ZONE', left: r.left, top: r.top, right: r.right, bottom: r.bottom };
-		});
+			return { slot: el.getAttribute('data-perimeter-zone') ?? 'ASSISTANT_DOCK', left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+		})
+		.filter((r) => r.right - r.left > 0 && r.bottom - r.top > 0);
 }
 
 export function computeSafeCorridorFromRects(
@@ -70,6 +72,7 @@ export function computeSafeCorridorFromRects(
 		const w = rect.right - rect.left;
 		const h = rect.bottom - rect.top;
 		if (w <= 0 || h <= 0) continue;
+		if (rect.slot === 'ASSISTANT_DOCK') { bottomPx = Math.max(bottomPx, Math.min(Math.round(viewportH * 0.66), Math.ceil(viewportH - rect.top + 8))); continue; }
 		if (rect.bottom < midY && w > viewportW * 0.28) topPx = Math.max(topPx, Math.ceil(rect.bottom + 8));
 		else if (rect.top > midY && w > viewportW * 0.28) bottomPx = Math.max(bottomPx, Math.ceil(viewportH - rect.top + 8));
 		else if (rect.right < midX && h > viewportH * 0.25) leftPx = Math.max(leftPx, Math.ceil(rect.right + 8));
@@ -96,6 +99,8 @@ export function applySafeCorridorCssVars(
 	target.style.setProperty('--ui-safe-top', `${bounds.topRem}rem`);
 	target.style.setProperty('--ui-safe-bottom', `${bounds.bottomRem}rem`);
 	target.style.setProperty('--ui-safe-side', `${bounds.sideRem}rem`);
+	target.style.setProperty('--ui-safe-left', `${bounds.sideRem}rem`);
+	target.style.setProperty('--ui-safe-right', `${bounds.sideRem}rem`);
 }
 
 export function rectsIntersect(a: SlotRect, b: SlotRect): boolean {

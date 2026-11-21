@@ -38,6 +38,8 @@ export interface UiNode {
 	readonly cornerAnimation?: CornerAnimation;
 	readonly embellishmentConfig?: EmbellishmentConfig;
 	readonly intentBinding?: string;
+	readonly locked?: boolean;
+	readonly visible?: boolean;
 	readonly children?: readonly UiNode[];
 }
 

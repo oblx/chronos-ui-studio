@@ -136,6 +136,11 @@ export function buildStationMcpTools(): readonly [string, ProjectMcpToolFn][] {
 		['ui_open_zone_edition', async (args) => ({
 			summary: 'opened Zone Edition modal', modal: 'zone-edition', zoneId: String(args.zoneId ?? 'TOP_RIGHT').toUpperCase(),
 			clientIntents: [{ kind: 'UI_OPEN_MODAL', payload: { id: 'zone-edition', zoneId: String(args.zoneId ?? 'TOP_RIGHT').toUpperCase() } }]
-		})]
+		})],
+		['ui_set_motion_profile', async (args) => {
+			const sensory = { profile: typeof args.profile === 'string' ? args.profile.toUpperCase() : 'CALM_SLOW', ...(args.ambientPulsesEnabled !== undefined ? { ambientPulsesEnabled: Boolean(args.ambientPulsesEnabled) } : {}), ...(typeof args.signalFlowSpeed === 'number' ? { signalFlowSpeed: args.signalFlowSpeed } : {}), ...(args.modalMorphEnabled !== undefined ? { modalMorphEnabled: Boolean(args.modalMorphEnabled) } : {}), ...(args.microDetentsEnabled !== undefined ? { microDetentsEnabled: Boolean(args.microDetentsEnabled) } : {}) };
+			return { summary: `motion profile ${sensory.profile}`, sensory, clientIntents: [{ kind: 'UI_SET_MOTION_PROFILE', payload: sensory }] };
+		}],
+		['ui_modal_toggle_expand', async (args) => ({ summary: `modal expand=${String(args.expanded ?? 'toggle')}`, expanded: typeof args.expanded === 'boolean' ? args.expanded : true, clientIntents: [{ kind: 'UI_MODAL_TOGGLE_EXPAND', payload: typeof args.expanded === 'boolean' ? { expanded: args.expanded } : {} }] })]
 	];
 }

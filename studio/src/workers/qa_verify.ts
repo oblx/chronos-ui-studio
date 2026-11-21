@@ -38,13 +38,13 @@ export async function runVerificationSuite(tier: QaTier = 'release'): Promise<bo
 
 	if (tier === 'fast') {
 		const ok = runStep('TypeScript Check', ['bunx', 'tsc', '--noEmit'])
-			&& runStep('v0.0.9 Core Spec', ['bun', 'test', 'studio/src/tests/releases/v009_harness_tome_realtime.test.ts']);
+			&& runStep('v0.0.12 Delta Seal', ['bun', 'test', 'studio/src/tests/releases/v012_delta_seal.test.ts']);
 		emitEdgeTiming(tier, Math.round(performance.now() - totalStart));
 		return ok;
 	}
 
 	if (tier === 'delta') {
-		const ok = runStep('v0.0.9 Core Spec', ['bun', 'test', 'studio/src/tests/releases/v009_harness_tome_realtime.test.ts'])
+		const ok = runStep('v0.0.12 Delta Seal', ['bun', 'test', 'studio/src/tests/releases/v012_delta_seal.test.ts'])
 			&& runStep('Svelte Check', ['bunx', 'svelte-check', '--tsconfig', './tsconfig.json'])
 			&& runStep('Vite Client Build', ['bun', 'run', '--bun', 'vite', 'build']);
 		emitEdgeTiming(tier, Math.round(performance.now() - totalStart));

@@ -9,8 +9,8 @@ import type { UiBlueprint, ZoneDensityMode, ZoneDispositionMode } from '@studio/
 import type { AiProviderKind, UiComponentPrototype } from '@studio/core';
 
 export type StudioViewId = 'WORKBENCH' | 'THEMES' | 'BLUEPRINTS' | 'MCP_TWIN';
-export type LeftTabId = 'zones' | 'blueprints' | 'spotlight';
-export type RightTabId = 'themes' | 'tokens' | 'export';
+export type LeftTabId = 'build' | 'zones' | 'blueprints' | 'tour' | 'spotlight';
+export type RightTabId = 'inspector' | 'themes' | 'export' | 'tokens';
 export type StudioModalId = 'tome' | 'settings' | 'wire' | 'auth' | 'export' | 'radar-skeleton' | 'cursors' | 'station-builder' | 'zone-edition';
 
 export interface StationLayerConfig {

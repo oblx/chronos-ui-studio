@@ -68,6 +68,8 @@ export async function apiRunPipelineExport(projectId: string, adapterId: string)
 	return jsonReq<{
 		artifact?: { filename: string; content: string; mimeType: string };
 		build?: { outDir: string; files: string[]; checksum: string };
+		bundle?: { outDir: string; files: string[]; checksum: string; serverEntry: string; migrationCount: number };
 		filename?: string; entries?: string[]; byteLength?: number; base64?: string; error?: string;
 	}>('/api/pipelines/export', { method: 'POST', body: JSON.stringify({ projectId, adapterId }) });
 }
+

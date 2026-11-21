@@ -51,7 +51,7 @@
 	]);
 </script>
 
-<div use:uiSpotlight={'spot-bottom-right'} class="h-full w-full">
+<div use:uiSpotlight={'spot-bento-radar'} class="h-full w-full">
 	<UiBentoRadar
 		{leftActions}
 		{rightActions}

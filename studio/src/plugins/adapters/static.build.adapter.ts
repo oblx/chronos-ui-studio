@@ -1,9 +1,10 @@
-import { clampCornerRadiusRem, CORNER_RADIUS_LIMITS, type MotionConfig, type UiProjectDefinition } from '@chronos-ui/svelte';
+import { clampCornerRadiusRem, CORNER_RADIUS_LIMITS, findThemePack, type MotionConfig, type UiProjectDefinition } from '@chronos-ui/svelte';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { build as viteBuild } from 'vite';
+import { buildCriticalTokensCss, buildLlmsTxt, buildRobotsTxt, buildWebManifest, buildWebMcpBridgeSource, buildWebMcpManifest } from '@studio/core';
 import { registerOutputAdapter } from '../registry';
 import { emitProjectCssTokens } from './css.adapter';
 import { buildRuntimeConfigSchema } from './json.adapter';
@@ -46,16 +47,17 @@ function computeInputCacheKey(opts: StaticBuildOptions): string {
 	return hasher.digest('hex');
 }
 
-function resolveLibraryAliases(): Record<string, string> {
+function resolveLibraryAliases(): Array<{ find: string | RegExp; replacement: string }> {
 	const pkg = resolve(process.cwd(), 'packages/chronos-ui/src');
-	const out: Record<string, string> = {
-		'@chronos-ui/svelte/styles.css': join(pkg, 'styles.css'),
-		'@chronos-ui/svelte/manifest': join(pkg, 'manifest.ts'),
-		'@chronos-ui/svelte': join(pkg, 'index.ts')
-	};
+	const out: Array<{ find: string | RegExp; replacement: string }> = [
+		{ find: '@ui', replacement: pkg },
+		{ find: '@chronos-ui/svelte/styles.css', replacement: join(pkg, 'styles.css') },
+		{ find: '@chronos-ui/svelte/manifest', replacement: join(pkg, 'manifest.ts') }
+	];
 	for (const sub of ['tokens', 'wire', 'input', 'motion', 'cursor', 'machines', 'atoms', 'forms', 'molecules', 'organisms', 'modals', 'canvas', 'assistant']) {
-		out[`@chronos-ui/svelte/${sub}`] = join(pkg, sub, 'index.ts');
+		out.push({ find: `@chronos-ui/svelte/${sub}`, replacement: join(pkg, sub, 'index.ts') });
 	}
+	out.push({ find: /^@chronos-ui\/svelte$/, replacement: join(pkg, 'index.ts') });
 	return out;
 }
 
@@ -73,12 +75,31 @@ function writeScaffoldWorkspace(project: UiProjectDefinition, srcDir: string, mo
 	mkdirSync(join(srcDir, 'src'), { recursive: true });
 	const nmLink = join(srcDir, 'node_modules');
 	if (!existsSync(nmLink)) symlinkSync(resolve(process.cwd(), 'node_modules'), nmLink, 'dir');
+	const pack = findThemePack(project.themeId);
+	const desc = (project.description || `${project.name} built with @chronos-ui/svelte`).replace(/"/g, '&quot;');
 	writeFileSync(join(srcDir, 'src/App.svelte'), emitProjectSvelteScaffold(project, motionConfig).content, 'utf8');
 	writeFileSync(join(srcDir, 'src/tokens.css'), emitProjectCssTokens(project).content, 'utf8');
+	writeFileSync(join(srcDir, 'src/webmcp.bridge.ts'), buildWebMcpBridgeSource(project), 'utf8');
 	const pkgSrc = resolve(process.cwd(), 'packages/chronos-ui/src');
 	writeFileSync(join(srcDir, 'src/app.css'), `@import "tailwindcss";\n@source ${JSON.stringify(pkgSrc)};\n@import "@chronos-ui/svelte/styles.css";\n@import "./tokens.css";\n`, 'utf8');
-	writeFileSync(join(srcDir, 'src/main.ts'), `import './app.css';\nimport { mount } from 'svelte';\nimport App from './App.svelte';\nmount(App, { target: document.getElementById('app')! });\n`, 'utf8');
-	writeFileSync(join(srcDir, 'index.html'), `<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>${project.name}</title></head><body><div id="app"></div><script type="module" src="/src/main.ts"></script></body></html>\n`, 'utf8');
+	writeFileSync(join(srcDir, 'src/main.ts'), `import './app.css';\nimport { mount } from 'svelte';\nimport App from './App.svelte';\nimport { registerChronosWebMcp } from './webmcp.bridge';\nregisterChronosWebMcp();\nmount(App, { target: document.getElementById('app')! });\n`, 'utf8');
+	writeFileSync(join(srcDir, 'index.html'), `<!doctype html><html lang="en" data-ui-theme="${pack.id}" data-ui-polarity="${pack.polarity}"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>${project.name}</title><meta name="description" content="${desc}"/><meta name="theme-color" content="${pack.tokens['--ui-primary']}"/><meta property="og:title" content="${project.name}"/><meta property="og:description" content="${desc}"/><meta property="og:type" content="website"/><link rel="manifest" href="./manifest.webmanifest"/><style id="chronos-critical-tokens">${buildCriticalTokensCss(project)}</style></head><body><div id="app"></div><script type="module" src="/src/main.ts"></script></body></html>\n`, 'utf8');
+}
+
+function emitAgenticAndPreloadArtifacts(project: UiProjectDefinition, outDir: string): void {
+	writeFileSync(join(outDir, 'robots.txt'), buildRobotsTxt(project), 'utf8');
+	writeFileSync(join(outDir, 'manifest.webmanifest'), buildWebManifest(project), 'utf8');
+	writeFileSync(join(outDir, 'llms.txt'), buildLlmsTxt(project), 'utf8');
+	writeFileSync(join(outDir, 'webmcp.bridge.ts'), buildWebMcpBridgeSource(project), 'utf8');
+	mkdirSync(join(outDir, '.well-known'), { recursive: true });
+	writeFileSync(join(outDir, '.well-known/webmcp.json'), buildWebMcpManifest(project), 'utf8');
+	const htmlPath = join(outDir, 'index.html');
+	if (!existsSync(htmlPath)) return;
+	const html = readFileSync(htmlPath, 'utf8');
+	const match = html.match(/<script[^>]+src="([^"]+\.js)"/);
+	if (match && !html.includes('rel="modulepreload"')) {
+		writeFileSync(htmlPath, html.replace('</head>', `<link rel="modulepreload" href="${match[1]}"/></head>`), 'utf8');
+	}
 }
 
 async function runSingleBuild(opts: StaticBuildOptions): Promise<StaticBuildResult> {
@@ -98,9 +119,8 @@ async function runSingleBuild(opts: StaticBuildOptions): Promise<StaticBuildResu
 			resolve: { alias: resolveLibraryAliases() },
 			build: { outDir, emptyOutDir: true, minify: true }
 		});
-	} finally {
-		rmSync(srcDir, { recursive: true, force: true });
-	}
+	} finally { rmSync(srcDir, { recursive: true, force: true }); }
+	emitAgenticAndPreloadArtifacts(opts.project, outDir);
 	const { schema, envExample } = buildRuntimeConfigSchema(opts.project);
 	const runtimeSchemaPath = join(outDir, 'runtime.config.schema.json');
 	const envExamplePath = join(outDir, '.env.example');

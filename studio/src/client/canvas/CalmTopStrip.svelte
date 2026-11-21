@@ -1,8 +1,8 @@
 <script lang="ts">
 	import {
-		LAYOUT_DENSITIES, mirrorCornerTuple, UiChamferButton, UiChamferFrame, UiIcon, UiInput, UiPopover,
+		mirrorCornerTuple, UiChamferButton, UiChamferFrame, UiInput, UiPopover,
 		UiUtilityIconButton, VERSION, Z_LAYERS, ZONE_CORNER_PRESETS,
-		type CornerKind, type InputModality, type LayoutDensity, type ThemePolarity, type UiIconName, type UiProjectDefinition
+		type CornerKind, type InputModality, type ThemePolarity, type UiProjectDefinition
 	} from '@chronos-ui/svelte';
 	import { STUDIO_UI_COPY } from '@studio/config';
 
@@ -12,8 +12,6 @@
 		cornerMode: CornerKind;
 		polarity: ThemePolarity;
 		chromeVisible: boolean;
-		layoutDensity: LayoutDensity;
-		toolPaletteOpen: boolean;
 		inputModality: InputModality;
 		isDirty: boolean;
 		saveStatus: 'SAVED' | 'DIRTY' | 'SAVING';
@@ -22,22 +20,17 @@
 		onSaveWorkspace: () => void;
 		onResetDefaultView: () => void;
 		onCleanWorkspace: () => void;
-		onTogglePalette: () => void;
 		onToggleChrome: () => void;
-		onSetDensity: (density: LayoutDensity) => void;
 		onTogglePolarity: () => void;
-		onOpenCursors: () => void;
-		onOpenStationBuilder: () => void;
-		onOpenZoneEdition: () => void;
-		onOpenExport: () => void;
+		onOpenWireframe: () => void;
 		onOpenSettings: () => void;
 		onOpenHelp: () => void;
 	}
 
 	let {
-		projects, activeProjectId, cornerMode, polarity, chromeVisible, layoutDensity, toolPaletteOpen, inputModality,
+		projects, activeProjectId, cornerMode, polarity, chromeVisible, inputModality,
 		isDirty, saveStatus, onSelectProject, onCreateProject, onSaveWorkspace, onResetDefaultView, onCleanWorkspace,
-		onTogglePalette, onToggleChrome, onSetDensity, onTogglePolarity, onOpenCursors, onOpenStationBuilder, onOpenZoneEdition, onOpenExport, onOpenSettings, onOpenHelp
+		onToggleChrome, onTogglePolarity, onOpenWireframe, onOpenSettings, onOpenHelp
 	}: Props = $props();
 
 	let creating = $state(false);
@@ -45,13 +38,7 @@
 	let newName = $state('');
 	const LEFT_CORNERS = ZONE_CORNER_PRESETS.TOP_LEFT;
 	const RIGHT_CORNERS = mirrorCornerTuple(ZONE_CORNER_PRESETS.TOP_LEFT);
-	const MODALITY_ICON: Record<InputModality, UiIconName> = { KEYBOARD: 'keyboard', XBOX: 'gamepad', DUALSENSE: 'gamepad', VOICE: 'mic' };
 	let activeProject = $derived(projects.find((p) => p.id === activeProjectId) ?? projects[0]);
-
-	function cycleDensity(): void {
-		const idx = LAYOUT_DENSITIES.indexOf(layoutDensity);
-		onSetDensity(LAYOUT_DENSITIES[(idx + 1) % LAYOUT_DENSITIES.length]);
-	}
 
 	function submitCreate(e: SubmitEvent): void {
 		e.preventDefault();
@@ -63,8 +50,9 @@
 	}
 </script>
 
-<div class="pointer-events-none fixed inset-x-0 top-0 flex flex-col items-stretch justify-between gap-1.5 p-2 sm:flex-row sm:items-start sm:gap-3 sm:p-3" style="z-index: {Z_LAYERS.studioChrome};" data-testid="calm-top-strip">
-	<div class="pointer-events-auto relative flex items-center gap-1.5" data-testid="calm-top-left" data-corners={LEFT_CORNERS.join(',')}>
+<div class="pointer-events-none fixed inset-x-2 top-2 flex flex-col items-stretch justify-between gap-1.5 md:inset-x-3 md:top-3 md:grid md:items-center md:gap-3"
+	style="z-index: {Z_LAYERS.studioChrome}; grid-template-columns: var(--ui-side-track-w) minmax(0, 1fr) var(--ui-side-track-w);" data-testid="calm-top-strip" data-modality={inputModality}>
+	<div class="pointer-events-auto relative flex items-center gap-1.5 md:h-[3.125rem]" data-testid="calm-top-left" data-corners={LEFT_CORNERS.join(',')}>
 		<UiChamferFrame corners={LEFT_CORNERS} {cornerMode} cutTier="station" className="flex flex-wrap items-center gap-1.5 px-2.5 py-1">
 			<span class="ui-font-display pr-1 text-xs font-semibold tracking-wide" style="color: var(--ui-primary);">
 				{activeProject?.name ?? 'Genesis Canvas'}
@@ -113,23 +101,18 @@
 		</UiPopover>
 	</div>
 
-	<div class="pointer-events-auto flex items-center gap-1.5" data-testid="calm-top-right" data-corners={RIGHT_CORNERS.join(',')}>
-		<UiChamferFrame corners={RIGHT_CORNERS} {cornerMode} cutTier="station" outerClass="w-full sm:w-auto" className="flex flex-wrap items-center gap-1 px-2.5 py-1.5">
-			<UiChamferButton {cornerMode} icon="wrench" label={STUDIO_UI_COPY.buildActionLabel} active={toolPaletteOpen} variant={toolPaletteOpen ? 'primary' : 'secondary'}
-				onclick={onTogglePalette} className="py-0.5 text-xs" />
-			<UiChamferButton {cornerMode} label={layoutDensity} tip={STUDIO_UI_COPY.densityTip} variant="ghost"
-				testId="density-cycle-btn" onclick={cycleDensity} className="py-0.5 text-[0.68rem]" />
+	<div class="pointer-events-auto flex items-center justify-center md:h-[3.125rem]" data-testid="calm-hud-anchor">
+		<UiChamferFrame corners={ZONE_CORNER_PRESETS.TOP_CENTER} {cornerMode} cutTier="station" outerClass="w-auto" className="flex h-full items-center gap-1.5 px-4 py-1">
 			<UiChamferButton {cornerMode} icon="layers" label={chromeVisible ? STUDIO_UI_COPY.shellCalmLabel : STUDIO_UI_COPY.shellHudLabel} active={chromeVisible}
-				variant={chromeVisible ? 'primary' : 'ghost'} onclick={onToggleChrome} className="py-0.5 text-xs" />
-			<span class="ui-font-mono inline-flex h-8 w-8 items-center justify-center" style="color: var(--ui-muted-content);" title={`Active input: ${inputModality}`} data-testid="modality-badge">
-				<UiIcon name={MODALITY_ICON[inputModality]} sizeRem={0.95} />
-			</span>
-			<UiUtilityIconButton {cornerMode} icon="sliders" label="Station Builder" testId="open-station-btn" onclick={onOpenStationBuilder} />
-			<UiUtilityIconButton {cornerMode} icon="grid" label="Zone Edition" onclick={onOpenZoneEdition} />
-			<UiUtilityIconButton {cornerMode} icon="cursor" label="Cursor Studio" onclick={onOpenCursors} />
-			<UiUtilityIconButton {cornerMode} icon="export" label="Export & Static Build" onclick={onOpenExport} />
-			<UiUtilityIconButton {cornerMode} icon={polarity === 'dark' ? 'sun' : 'moon'} label="Toggle Polarity" onclick={onTogglePolarity} />
-			<UiUtilityIconButton {cornerMode} icon="settings" label="Settings & Input" onclick={onOpenSettings} />
+				variant={chromeVisible ? 'primary' : 'surface'} testId="studio-hud-toggle-btn" onclick={onToggleChrome} className="h-8 min-w-[6.75rem] justify-center py-0.5 text-xs" />
+		</UiChamferFrame>
+	</div>
+
+	<div class="pointer-events-auto flex items-center justify-end md:h-[3.125rem]" data-testid="calm-top-right" data-corners={RIGHT_CORNERS.join(',')}>
+		<UiChamferFrame corners={RIGHT_CORNERS} {cornerMode} cutTier="station" outerClass="w-auto" className="flex h-full items-center justify-end gap-1.5 px-2.5 py-1">
+			<UiUtilityIconButton {cornerMode} icon="radar" label="Wireframe Skeleton Workbench" testId="calm-open-wireframe" onclick={onOpenWireframe} />
+			<UiUtilityIconButton {cornerMode} icon={polarity === 'dark' ? 'sun' : 'moon'} label="Toggle Polarity" testId="calm-toggle-polarity" onclick={onTogglePolarity} />
+			<UiUtilityIconButton {cornerMode} icon="settings" label="Settings & Input" testId="calm-open-settings" onclick={onOpenSettings} />
 			<UiUtilityIconButton {cornerMode} icon="help" label="Field Tome (F1)" testId="open-tome-btn" onclick={onOpenHelp} />
 		</UiChamferFrame>
 	</div>

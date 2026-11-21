@@ -2,83 +2,48 @@
 	import type {
 		AccessibilityPrefs, CornerKind, CssCursorState, CursorPackDefinition, EnvironmentCapabilityReport,
 		GamepadProfileId, HudZoneId, LayoutDensity, MotionConfig, RegisteredUiEntity, StudioDefaultsConfig, ThemePack,
-		UiProjectDefinition, VoiceCaptureMode, WireTraceRecord
+		UiNode, UiNodeTree, UiProjectDefinition, VoiceCaptureMode, WireTraceRecord
 	} from '@chronos-ui/svelte';
 	import type { UiBlueprint } from '@studio/config';
 	import type { UiComponentPrototype } from '@studio/core/engine';
 	import type { AiProfileSummary, StationLayerConfig, StudioUser, ZoneEditPayload } from '../state';
 
 	interface Props {
-		activeModalId: string | null;
-		helpTopic: string;
-		cornerMode: CornerKind;
-		isLocked: boolean;
-		remainingSeconds: number;
-		progressRatio: number;
-		accessibility: AccessibilityPrefs;
-		motionConfig: MotionConfig;
-		studioDefaults: StudioDefaultsConfig;
-		envCapabilities: EnvironmentCapabilityReport | null;
-		activeAdapterBadge: string;
-		stationLayer: StationLayerConfig;
-		studioChromeVisible: boolean;
-		layoutDensity: LayoutDensity;
-		blueprint: UiBlueprint;
-		selectedZoneId: HudZoneId;
-		prototypes: readonly UiComponentPrototype[];
-		themes: readonly ThemePack[];
-		activeThemeId: string;
-		aiProfiles: readonly AiProfileSummary[];
-		project: UiProjectDefinition;
-		entities: readonly RegisteredUiEntity[];
-		selectedNodeId: string | null;
-		lowMemoryMode: boolean;
-		voiceMode: VoiceCaptureMode;
-		gamepadOverride: GamepadProfileId | null;
-		cursorPacks: readonly CursorPackDefinition[];
-		activeCursorPackId: string | null;
-		traces: readonly WireTraceRecord[];
-		user: StudioUser | null;
-		onCloseModal: () => void;
-		onOpenCursors: () => void;
-		onOpenZoneEdition: (zoneId?: HudZoneId) => void;
-		onOpenExport: () => void;
-		onUpdatePrefs: (patch: Partial<AccessibilityPrefs>) => void;
-		onSetCornerStyle: (cornerMode: CornerKind) => void;
-		onSetCornerRadius: (cornerRadiusRem: number) => void;
-		onSetStudioDefaults: (patch: Partial<StudioDefaultsConfig>) => void;
-		onResetStudioDefaults: () => void;
-		onSetMotionConfig: (patch: Partial<MotionConfig>) => void;
-		onConfigureStationLayer: (patch: Partial<StationLayerConfig>) => void;
-		onToggleStudioChrome: () => void;
-		onCommitStaged: () => void;
-		onSetDensity: (density: LayoutDensity) => void;
-		onSelectZone: (zoneId: HudZoneId) => void;
-		onEditZone: (payload: ZoneEditPayload) => void;
+		activeModalId: string | null; helpTopic: string; cornerMode: CornerKind;
+		isLocked: boolean; remainingSeconds: number; progressRatio: number;
+		accessibility: AccessibilityPrefs; motionConfig: MotionConfig; studioDefaults: StudioDefaultsConfig;
+		envCapabilities: EnvironmentCapabilityReport | null; activeAdapterBadge: string; stationLayer: StationLayerConfig;
+		studioChromeVisible: boolean; layoutDensity: LayoutDensity; blueprint: UiBlueprint; selectedZoneId: HudZoneId;
+		prototypes: readonly UiComponentPrototype[]; themes: readonly ThemePack[]; activeThemeId: string;
+		aiProfiles: readonly AiProfileSummary[]; project: UiProjectDefinition; entities: readonly RegisteredUiEntity[];
+		selectedNodeId: string | null; undoStack: readonly UiNodeTree[]; lowMemoryMode: boolean; voiceMode: VoiceCaptureMode;
+		gamepadOverride: GamepadProfileId | null; cursorPacks: readonly CursorPackDefinition[];
+		activeCursorPackId: string | null; traces: readonly WireTraceRecord[]; user: StudioUser | null;
+		onCloseModal: () => void; onOpenCursors: () => void; onOpenZoneEdition: (zoneId?: HudZoneId) => void;
+		onOpenExport: () => void; onUpdatePrefs: (patch: Partial<AccessibilityPrefs>) => void;
+		onSetCornerStyle: (cornerMode: CornerKind) => void; onSetCornerRadius: (cornerRadiusRem: number) => void;
+		onSetStudioDefaults: (patch: Partial<StudioDefaultsConfig>) => void; onResetStudioDefaults: () => void;
+		onSetMotionConfig: (patch: Partial<MotionConfig>) => void; onSetMotionProfile?: (patch: Record<string, unknown>) => void; onConfigureStationLayer: (patch: Partial<StationLayerConfig>) => void;
+		onToggleStudioChrome: () => void; onCommitStaged: () => void; onSetDensity: (density: LayoutDensity) => void;
+		onUndo?: () => void; onRedo?: () => void; canRedo?: boolean; onClearTraces?: () => void;
+		onSelectZone: (zoneId: HudZoneId) => void; onEditZone: (payload: ZoneEditPayload) => void;
 		onMoveEntityToZone: (nodeId: string, targetZone: HudZoneId, direction?: 'UP' | 'DOWN') => void;
-		onRemoveEntity: (nodeId: string) => void;
-		onSpawnPrototype: (proto: UiComponentPrototype) => void;
-		onSelectTheme: (themeId: string) => void;
-		onSaveAiProfile: (payload: Record<string, unknown>) => Promise<void>;
-		onToggleLowMemory: (next: boolean) => void;
-		onSetVoiceMode: (mode: VoiceCaptureMode) => void;
-		onSetGamepadOverride: (id: GamepadProfileId | null) => void;
-		onApplyCursorPack: (packId: string) => void;
+		onRemoveEntity: (nodeId: string) => void; onSpawnPrototype: (proto: UiComponentPrototype) => void;
+		onSelectTheme: (themeId: string) => void; onSaveAiProfile: (payload: Record<string, unknown>) => Promise<void>;
+		onToggleLowMemory: (next: boolean) => void; onSetVoiceMode: (mode: VoiceCaptureMode) => void;
+		onSetGamepadOverride: (id: GamepadProfileId | null) => void; onApplyCursorPack: (packId: string) => void;
 		onResetCursorPack: () => void;
 		onCreateCursorPack: (payload: { name: string; sourcePngDataUrl?: string; forkFromUuid?: string }) => Promise<CursorPackDefinition | null>;
 		onDeriveCursorStates: (uuid: string, accentColor?: string) => Promise<CursorPackDefinition | null>;
 		onUpdateCursorHotspot: (uuid: string, cssState: CssCursorState, x: number, y: number) => Promise<void>;
-		onInspectEntity: (uuid: string) => void;
-		onMorphEntityCorner: (uuid: string, corner: CornerKind) => void;
-		onCloneDerivedEntity: (uuid: string, name: string) => void;
-		onCopiedUuid: (uuid: string) => void;
-		onDevLogin: () => Promise<void>;
-		onRefreshTraces: () => void;
+		onInspectEntity: (uuid: string) => void; onToggleEntityLock: (uuid: string) => void;
+		onToggleEntityVisibility: (uuid: string) => void; onPatchEntity: (uuid: string, patch: Partial<UiNode>) => void;
+		onSpawnQuickInZone: (zoneId: HudZoneId) => void; onJumpUndoSteps: (stepsBack: number) => void;
+		onCloneDerivedEntity: (uuid: string, name: string) => void; onCopiedUuid: (uuid: string) => void;
+		onDevLogin: () => Promise<void>; onRefreshTraces: () => void;
 		onLogin: (email: string, pw: string) => Promise<string | null>;
 		onRegister: (email: string, pw: string, name: string) => Promise<string | null>;
-		onLogout: () => Promise<void>;
-		onMintPat: (label: string) => Promise<string | null>;
-		onCopiedExport: () => void;
+		onLogout: () => Promise<void>; onMintPat: (label: string) => Promise<string | null>; onCopiedExport: () => void;
 	}
 
 	let p: Props = $props();
@@ -90,7 +55,7 @@
 	{/await}
 {:else if p.activeModalId === 'settings'}
 	{#await import('./SettingsModal.svelte') then mod}
-		<mod.default open={true} prefs={p.accessibility} motionConfig={p.motionConfig} studioDefaults={p.studioDefaults} envCapabilities={p.envCapabilities} activeAdapterBadge={p.activeAdapterBadge} themes={p.themes} activeThemeId={p.activeThemeId} aiProfiles={p.aiProfiles} projectNodeCount={p.project.nodes.length} traceCount={p.traces.length} lowMemoryMode={p.lowMemoryMode} cornerMorphEnabled={p.stationLayer.cornerMorphEnabled} voiceMode={p.voiceMode} gamepadOverride={p.gamepadOverride} onUpdate={p.onUpdatePrefs} onSetCornerStyle={p.onSetCornerStyle} onSetCornerRadius={p.onSetCornerRadius} onSetStudioDefaults={p.onSetStudioDefaults} onResetStudioDefaults={p.onResetStudioDefaults} onSetMotionConfig={p.onSetMotionConfig} onToggleCornerMorph={(cornerMorphEnabled) => p.onConfigureStationLayer({ cornerMorphEnabled })} onSelectTheme={p.onSelectTheme} onSaveAiProfile={p.onSaveAiProfile} onToggleLowMemory={p.onToggleLowMemory} onSetVoiceMode={p.onSetVoiceMode} onSetGamepadOverride={p.onSetGamepadOverride} onOpenCursors={p.onOpenCursors} onClose={p.onCloseModal} />
+		<mod.default open={true} prefs={p.accessibility} motionConfig={p.motionConfig} studioDefaults={p.studioDefaults} envCapabilities={p.envCapabilities} activeAdapterBadge={p.activeAdapterBadge} themes={p.themes} activeThemeId={p.activeThemeId} aiProfiles={p.aiProfiles} projectNodeCount={p.project.nodes.length} traceCount={p.traces.length} lowMemoryMode={p.lowMemoryMode} cornerMorphEnabled={p.stationLayer.cornerMorphEnabled} voiceMode={p.voiceMode} gamepadOverride={p.gamepadOverride} onUpdate={p.onUpdatePrefs} onSetCornerStyle={p.onSetCornerStyle} onSetCornerRadius={p.onSetCornerRadius} onSetStudioDefaults={p.onSetStudioDefaults} onResetStudioDefaults={p.onResetStudioDefaults} onSetMotionConfig={p.onSetMotionConfig} onSetMotionProfile={p.onSetMotionProfile} onToggleCornerMorph={(cornerMorphEnabled) => p.onConfigureStationLayer({ cornerMorphEnabled })} onSelectTheme={p.onSelectTheme} onSaveAiProfile={p.onSaveAiProfile} onToggleLowMemory={p.onToggleLowMemory} onSetVoiceMode={p.onSetVoiceMode} onSetGamepadOverride={p.onSetGamepadOverride} onOpenCursors={p.onOpenCursors} onClose={p.onCloseModal} />
 	{/await}
 {:else if p.activeModalId === 'station-builder'}
 	{#await import('./station/StationBuilderModal.svelte') then mod}
@@ -105,12 +70,12 @@
 		<mod.default open={true} cornerMode={p.cornerMode} packs={p.cursorPacks} activePackId={p.activeCursorPackId} onApplyPack={p.onApplyCursorPack} onResetPack={p.onResetCursorPack} onCreatePack={p.onCreateCursorPack} onDeriveStates={p.onDeriveCursorStates} onUpdateHotspot={p.onUpdateCursorHotspot} onClose={p.onCloseModal} />
 	{/await}
 {:else if p.activeModalId === 'radar-skeleton'}
-	{#await import('./RadarWireframeModal.svelte') then mod}
-		<mod.default open={true} cornerMode={p.cornerMode} projectName={p.project.name} entities={p.entities} selectedUuid={p.selectedNodeId} onSelectEntity={p.onInspectEntity} onInspectOnCanvas={p.onInspectEntity} onMorphEntityCorner={p.onMorphEntityCorner} onCloneDerived={p.onCloneDerivedEntity} onCopiedUuid={p.onCopiedUuid} onEditZone={p.onOpenZoneEdition} onClose={p.onCloseModal} />
+	{#await import('./wireframe/WireframeSkeletonModal.svelte') then mod}
+		<mod.default open={true} cornerMode={p.cornerMode} projectName={p.project.name} entities={p.entities} selectedUuid={p.selectedNodeId} undoStack={p.undoStack} canRedo={p.canRedo} onSelectEntity={p.onInspectEntity} onToggleLock={p.onToggleEntityLock} onToggleVisibility={p.onToggleEntityVisibility} onPatchEntity={p.onPatchEntity} onMoveEntity={(uuid, z) => p.onMoveEntityToZone(uuid, z)} onRemoveEntity={p.onRemoveEntity} onSpawnQuickInZone={p.onSpawnQuickInZone} onJumpUndoSteps={p.onJumpUndoSteps} onUndo={p.onUndo} onRedo={p.onRedo} onCommitStaged={p.onCommitStaged} onCopiedUuid={p.onCopiedUuid} onClose={p.onCloseModal} />
 	{/await}
 {:else if p.activeModalId === 'wire'}
 	{#await import('./WireTapModal.svelte') then mod}
-		<mod.default open={true} traces={p.traces} user={p.user} cornerMode={p.cornerMode} onDevArchitectLogin={() => void p.onDevLogin()} onRefresh={p.onRefreshTraces} onClose={p.onCloseModal} />
+		<mod.default open={true} traces={p.traces} user={p.user} cornerMode={p.cornerMode} onDevArchitectLogin={() => void p.onDevLogin()} onRefresh={p.onRefreshTraces} onClearBuffer={p.onClearTraces} onClose={p.onCloseModal} />
 	{/await}
 {:else if p.activeModalId === 'auth'}
 	{#await import('./AuthMcpModal.svelte') then mod}
@@ -121,3 +86,4 @@
 		<mod.default open={true} project={p.project} cornerMode={p.cornerMode} onCopied={p.onCopiedExport} onClose={p.onCloseModal} />
 	{/await}
 {/if}
+

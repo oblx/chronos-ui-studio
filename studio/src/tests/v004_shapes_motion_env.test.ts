@@ -62,7 +62,7 @@ describe('v0.0.4 Svelte 5 motion engine and reduced-motion discipline', () => {
 			}
 		}
 		const durations = MOTION_SPEEDS.map((speed) => resolveEffectiveDuration({ preset: 'CYBER_UNFOLD', speed, reducedMotionOverride: 'AUTO' }, false));
-		expect(durations).toEqual([0, 120, 220, 360]);
+		expect(durations).toEqual([0, 120, 220, 440]);
 		expect(resolveEffectiveDuration(DEFAULT_MOTION_CONFIG, true)).toBe(0);
 		expect(resolveEffectiveDuration({ ...DEFAULT_MOTION_CONFIG, reducedMotionOverride: 'FORCE_ON' }, true)).toBe(220);
 	});

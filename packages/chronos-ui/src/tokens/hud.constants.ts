@@ -1,4 +1,4 @@
-export const VERSION = '0.0.9' as const;
+export const VERSION = '0.0.12' as const;
 export const STUDIO_DEFAULTS_VERSION = 2 as const;
 
 export type HudZoneId =
@@ -37,12 +37,13 @@ export const HUD_METRICS = {
 	sideTrackClamp: 'clamp(15.5rem, 20vw, 22.5rem)',
 	corridorMaxRem: 90,
 	dragThresholdPx: 5,
-	modalTweenMs: 220,
-	stageMorphMs: 220,
+	modalTweenMs: 440,
+	stageMorphMs: 440,
+	wheelSettleMs: 180,
 	sampleStepMs: 75,
 	stickDeadzone: 0.18,
 	assistantWidthRem: 44,
-	viewportMarginRem: 1,
+	viewportMarginRem: 0.75,
 	countdownTickMs: 100,
 	refreshGraceMs: 3000,
 	toastAutoDismissMs: 3500,
@@ -53,8 +54,8 @@ export const HUD_METRICS = {
 } as const;
 
 export const SAFE_CORRIDOR_REM = {
-	calmTop: 4.25, calmBottom: 4.5, calmSide: 1,
-	hudTop: 7, hudBottom: 9, hudSide: 3.75
+	calmTop: 4.5, calmBottom: 5.25, calmSide: 4.5,
+	hudTop: 7.75, hudBottom: 8.75, hudSide: 4.5
 } as const;
 
 export const DEFAULT_VIEWPORT = { width: 1440, height: 900, minSafeW: 390, minSafeH: 300 } as const;

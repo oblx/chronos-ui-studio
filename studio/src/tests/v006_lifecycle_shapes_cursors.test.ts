@@ -26,7 +26,7 @@ function makeTinyPngDataUrl(width = 16, height = 16): string {
 
 describe('v0.0.6 workspace lifecycle, 14 contour-locked shapes, motion, and tooltips', () => {
 	test('save, clean, default-view, and undo lifecycle actions maintain dirty state cleanly', async () => {
-		expect(VERSION).toBe('0.0.9');
+		expect(VERSION).toBe('0.0.12');
 		const sample = findStarterSample('sample-shape-matrix')!;
 		const fresh = sample.nodes.map((n) => ({ ...n, id: generateUuidV7() }));
 		const created = await createStudioProject({ name: 'v006 Lifecycle Spec', themeId: sample.themeId, nodes: fresh });
@@ -99,8 +99,8 @@ describe('v0.0.6 AI 17-state CSS Cursor Studio, PNG validation, Drizzle CRUD & 2
 		expect(exportedCss.content).toContain('--ui-cursor-nwse-resize:');
 		const rpcList = await handleBuilderMcpRpc({ jsonrpc: '2.0', id: 601, method: 'tools/list' });
 		const tools = (rpcList.result as unknown as { tools: { name: string }[] }).tools;
-		expect(tools.length).toBe(35);
-		expect(STUDIO_TOOL_REGISTRY.length).toBe(35);
+		expect(tools.length).toBe(42);
+		expect(STUDIO_TOOL_REGISTRY.length).toBe(42);
 		const applyRes = await handleBuilderMcpRpc({ jsonrpc: '2.0', id: 602, method: 'tools/call', params: { name: 'ui_list_cursor_packs', arguments: {} } });
 		expect(applyRes.error).toBeUndefined();
 	});

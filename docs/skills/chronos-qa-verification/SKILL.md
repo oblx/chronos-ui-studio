@@ -5,7 +5,7 @@ license: MIT
 compatibility: Bun test, svelte-check, tsc, Vite, playwright-cli
 metadata:
   author: Oblx <code@oblx.dev>
-  version: "0.0.9"
+  version: "0.0.12"
 allowed-tools: run_command view_file compile_applet lint_applet
 ---
 
@@ -22,6 +22,6 @@ Validate every change inside the `25m` soft target / `32m` scope-freeze / `38m` 
 ## 4-Stage Zero-Screenshot Verification Pipeline
 
 1. **Stage 1 (`qa_audit.ts`)**: Incremental SHA-256 cached audit in `qa:fast`; uncached full scan in `qa:delta`/`qa:release` enforcing tabs, LoC caps (`<= 150` code, `<= 42` fn, `<= 100` doc), `<= 10` files/dir, 100% barrels, `NO_DEEP_RELATIVE_IMPORTS`, and AgentSkills frontmatter.
-2. **Stage 2 (`qa:fast` / `qa:delta`)**: `tsc --noEmit`, `svelte-check`, scoped `v009` tests, and code-split `vite build` (`< 350 kB` main entry chunk).
-3. **Stage 3 (`qa:release`)**: All 11 `:memory:` SQLite test suites, AST `compile_tome_ssg.ts`, and full production `vite build`.
-4. **Stage 4 (`bun run qa:harness`)**: Zero-screenshot scripted headless Chromium via pre-installed `playwright-cli` (`--scenario=all --viewports=1440x900,390x844 --json`), asserting `calm-density`, `assistant-dock`, `station-preview`, `field-tome`, `persistence`, and `responsive` with `0` console/page errors and `0` PNG screenshots (`--debug-capture` opt-in only).
+2. **Stage 2 (`qa:fast` / `qa:delta`)**: `tsc --noEmit`, `svelte-check`, scoped `v011` tests, and code-split `vite build` (`< 250 kB` main entry chunk).
+3. **Stage 3 (`qa:release`)**: All 13 `:memory:` SQLite test suites, AST `compile_tome_ssg.ts`, and full production `vite build`.
+4. **Stage 4 (`bun run qa:harness`)**: Zero-screenshot, zero-pollution headless Chromium via pre-installed `playwright-cli` (`--scenario=all --viewports=1440x900,390x844 --json`), asserting Minimal Calm launch, unified edge rails, `Image.decode()` `32x32` concrete-hex cursor + live polarity swap, safe-corridor containment + `[ Reject All ]`, `Twin MCP` width, and `finally` `proj-genesis` teardown (`0` leftover nodes, `0` console errors, `0` PNG screenshots).

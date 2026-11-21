@@ -63,7 +63,7 @@
 	data-ui-interactive="true"
 	data-ui-cursor={disabled ? 'not-allowed' : 'pointer'}
 	aria-pressed={active}
-	class="relative inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap px-3 py-1 text-xs font-semibold tracking-wide transition-transform duration-150 active:scale-[0.97] disabled:opacity-45 {className}"
+	class="ui-dur-micro ui-detent relative inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap px-3 py-1 text-xs font-semibold tracking-wide transition-transform disabled:opacity-45 {className}"
 	style="color: {tone.fg}; background: transparent; border: none;"
 >
 	<span class="pointer-events-none absolute inset-0 z-0" style="{surfaceStyle} background-color: {tone.bg};" aria-hidden="true"></span>

@@ -34,8 +34,17 @@
 		summarize: (env) => `client:${String((env.payload as { action?: string }).action ?? 'event')}`
 	});
 
-	let committed = $derived(nodes.filter((n) => n.lifecycle === 'COMMITTED'));
-	const byZone = (z: HudZoneId) => committed.filter((n) => n.zone === z);
+	let committed = $derived(nodes.filter((n) => n.lifecycle === 'COMMITTED' && n.visible !== false));
+	let zoneMap = $derived.by(() => {
+		const map = new Map<HudZoneId, UiNode[]>();
+		for (const n of committed) {
+			const bucket = map.get(n.zone);
+			if (bucket) bucket.push(n);
+			else map.set(n.zone, [n]);
+		}
+		return map;
+	});
+	const byZone = (z: HudZoneId): readonly UiNode[] => zoneMap.get(z) ?? [];
 	let hasLeft = $derived(byZone('LEFT_EDGE').length > 0);
 	let hasRight = $derived(byZone('RIGHT_EDGE').length > 0);
 	let midGridCols = $derived(hasLeft && hasRight ? 'md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)]' : hasLeft ? 'md:grid-cols-[minmax(0,1fr)_minmax(0,3fr)]' : hasRight ? 'md:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]' : 'md:grid-cols-1');
@@ -62,26 +71,28 @@
 </script>
 
 {#snippet renderNode(node: UiNode)}
-	{@const DynamicComponent = resolveClientComponent(node.type)}
-	{@const hasKids = Boolean(node.children && node.children.length > 0)}
-	{#snippet nodeChildren()}
-		{#each node.children ?? [] as child (child.id)}{@render renderNode(child)}{/each}
-	{/snippet}
-	<div use:measureNode={node.id} in:uiTransition={{ offsetPx: 10 }} out:uiTransition={{ offsetPx: 10 }} class="flex flex-col gap-2">
-		<DynamicComponent {node} {cornerMode} {traces} selected={selectedNodeId === node.id} childrenSlot={hasKids ? nodeChildren : undefined} onSelect={(id) => onSelectNode(id)} onNodeAction={fireNodeAction} />
-	</div>
+	{#if node.visible !== false}
+		{@const DynamicComponent = resolveClientComponent(node.type)}
+		{@const hasKids = Boolean(node.children && node.children.length > 0)}
+		{#snippet nodeChildren()}
+			{#each node.children ?? [] as child (child.id)}{@render renderNode(child)}{/each}
+		{/snippet}
+		<div use:measureNode={node.id} in:uiTransition={{ offsetPx: 10 }} out:uiTransition={{ offsetPx: 10 }} class="ui-virtual-node flex flex-col gap-2">
+			<DynamicComponent {node} {cornerMode} {traces} selected={selectedNodeId === node.id} childrenSlot={hasKids ? nodeChildren : undefined} onSelect={(id) => onSelectNode(id)} onNodeAction={fireNodeAction} />
+		</div>
+	{/if}
 {/snippet}
 
-<div data-testid="client-document-root" data-project-id={projectId} class="relative flex min-h-full w-full flex-col justify-between px-4 py-4 pb-12 sm:px-8" style={`z-index: ${Z_LAYERS.paintedClientCanvas};`}>
+<div data-testid="client-document-root" data-project-id={projectId} class="relative flex w-full flex-col justify-center gap-3 px-4 py-3 sm:px-6" style={`z-index: ${Z_LAYERS.paintedClientCanvas};`}>
 	{#if committed.length === 0 && !hasStagingNodes}
-		<div class="m-auto flex max-w-[44rem] flex-col items-center gap-4 text-center select-none" data-testid="calm-empty-stage">
+		<div class="m-auto flex w-full flex-col items-center gap-4 text-center select-none" style="max-width: min(46rem, var(--ui-stage-free-w, 46rem));" data-testid="calm-empty-stage">
 			<span class="ui-font-mono text-[0.7rem] tracking-widest uppercase" style="color: var(--ui-muted-content);">
 				Calm Empty Stage · Ready
 			</span>
 			<h1 class="ui-font-display max-w-[36rem] text-xl font-medium" style="color: var(--ui-base-content); text-wrap: balance;">
 				Describe an interface below, click Build, or launch a starter sample
 			</h1>
-			<div class="grid w-full grid-cols-1 gap-2 pt-1 sm:grid-cols-2 lg:grid-cols-3" data-testid="starter-sample-chips">
+			<div class="grid w-full grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-2 pt-1" data-testid="starter-sample-chips">
 				{#each STARTER_SAMPLE_PROJECTS as sample (sample.id)}
 					<UiChamferButton {cornerMode} icon="star" label={sample.title} tip={sample.tagline} variant="surface"
 						onclick={() => onLoadSample(sample.id)} className="w-full py-1.5 text-xs" />
@@ -90,23 +101,28 @@
 			</div>
 		</div>
 	{:else}
-		<div class="grid grid-cols-1 gap-3 md:grid-cols-3">
-			<div class="flex flex-col gap-2">{#each byZone('TOP_LEFT') as n (n.id)}{@render renderNode(n)}{/each}</div>
-			<div class="flex flex-col gap-2">
-				{#each byZone('TOP_CENTER') as n (n.id)}{@render renderNode(n)}{/each}
-				{#each byZone('PROJECT_TAB_DECK') as n (n.id)}{@render renderNode(n)}{/each}
+		{#if byZone('TOP_LEFT').length + byZone('TOP_CENTER').length + byZone('PROJECT_TAB_DECK').length + byZone('TOP_RIGHT').length > 0}
+			<div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+				<div class="flex flex-col gap-2">{#each byZone('TOP_LEFT') as n (n.id)}{@render renderNode(n)}{/each}</div>
+				<div class="flex flex-col gap-2">
+					{#each byZone('TOP_CENTER') as n (n.id)}{@render renderNode(n)}{/each}
+					{#each byZone('PROJECT_TAB_DECK') as n (n.id)}{@render renderNode(n)}{/each}
+				</div>
+				<div class="flex flex-col items-end gap-2">{#each byZone('TOP_RIGHT') as n (n.id)}{@render renderNode(n)}{/each}</div>
 			</div>
-			<div class="flex flex-col items-end gap-2">{#each byZone('TOP_RIGHT') as n (n.id)}{@render renderNode(n)}{/each}</div>
-		</div>
-		<div class="my-auto grid grid-cols-1 items-start gap-4 py-2 {midGridCols}">
+		{/if}
+		<div class="grid grid-cols-1 items-start gap-3 {midGridCols}">
 			{#if hasLeft}<div class="flex flex-col gap-3">{#each byZone('LEFT_EDGE') as n (n.id)}{@render renderNode(n)}{/each}</div>{/if}
 			<div class="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 {(!hasLeft || !hasRight) ? 'lg:grid-cols-3' : ''}">{#each byZone('WORLD_CANVAS') as n (n.id)}{@render renderNode(n)}{/each}</div>
 			{#if hasRight}<div class="flex flex-col gap-3">{#each byZone('RIGHT_EDGE') as n (n.id)}{@render renderNode(n)}{/each}</div>{/if}
 		</div>
-		<div class="grid grid-cols-1 items-end gap-3 md:grid-cols-3">
-			<div class="flex flex-col gap-2">{#each byZone('BOTTOM_LEFT') as n (n.id)}{@render renderNode(n)}{/each}</div>
-			<div class="flex flex-col gap-2">{#each byZone('BOTTOM_CENTER') as n (n.id)}{@render renderNode(n)}{/each}</div>
-			<div class="flex flex-col items-end gap-2">{#each byZone('BOTTOM_RIGHT') as n (n.id)}{@render renderNode(n)}{/each}</div>
-		</div>
+		{#if byZone('BOTTOM_LEFT').length + byZone('BOTTOM_CENTER').length + byZone('BOTTOM_RIGHT').length > 0}
+			<div class="grid grid-cols-1 items-end gap-3 md:grid-cols-3">
+				<div class="flex flex-col gap-2">{#each byZone('BOTTOM_LEFT') as n (n.id)}{@render renderNode(n)}{/each}</div>
+				<div class="flex flex-col gap-2">{#each byZone('BOTTOM_CENTER') as n (n.id)}{@render renderNode(n)}{/each}</div>
+				<div class="flex flex-col items-end gap-2">{#each byZone('BOTTOM_RIGHT') as n (n.id)}{@render renderNode(n)}{/each}</div>
+			</div>
+		{/if}
 	{/if}
 </div>
+

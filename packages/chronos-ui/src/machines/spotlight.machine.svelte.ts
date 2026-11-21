@@ -6,6 +6,8 @@ export interface SpotlightStep {
 	readonly title: string;
 	readonly body: string;
 	readonly dockPlacement?: 'top' | 'bottom' | 'center';
+	readonly drillLabel?: string;
+	readonly drillPrompt?: string;
 }
 
 export interface SpotlightRect {

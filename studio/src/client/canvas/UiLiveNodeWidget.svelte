@@ -81,7 +81,7 @@
 			{/each}
 		</UiChamferFrame>
 	{:else if node.type === 'UiBentoRadar'}
-		<div class="h-32 w-60"><UiBentoRadar cornerMode={effectiveCornerMode} zoom={Number(node.props.zoom ?? 1)} panX={0} panY={0} activeZoneCount={Number(node.props.activeZoneCount ?? 3)} leftActions={[{ id: 'in', icon: 'plus', label: 'Zoom In', onClick: () => onNodeAction(node, 'zoom-in') }, { id: 'rst', icon: 'reset', label: 'Reset', onClick: () => onNodeAction(node, 'reset') }]} rightActions={[{ id: 'rad', icon: 'radar', label: 'Focus', onClick: () => onNodeAction(node, 'focus') }]} /></div>
+		<div class="relative h-32 w-60 overflow-hidden"><UiBentoRadar cornerMode={effectiveCornerMode} zoom={Number(node.props.zoom ?? 1)} panX={0} panY={0} activeZoneCount={Number(node.props.activeZoneCount ?? 3)} leftActions={[{ id: 'in', icon: 'plus', label: 'Zoom In', onClick: () => onNodeAction(node, 'zoom-in') }, { id: 'rst', icon: 'reset', label: 'Reset', onClick: () => onNodeAction(node, 'reset') }]} rightActions={[{ id: 'rad', icon: 'radar', label: 'Focus', onClick: () => onNodeAction(node, 'focus') }]} /></div>
 	{:else if node.type === 'UiActionBar'}
 		<UiChamferFrame outerClass="w-full" corners={node.corners} cornerMode={effectiveCornerMode} cornerRadiusRem={node.cornerRadiusRem} {shape} cornerEmbellishment={emb} cornerAnimation={anim} embellishmentConfig={embCfg} className="flex flex-nowrap items-center justify-center gap-1 px-1 py-1">
 			{#each actions as act (`${node.id}-a-${act}`)}<UiChamferButton cornerMode={effectiveCornerMode} label={act} variant="surface" onclick={(e) => { e.stopPropagation(); onNodeAction(node, act); }} className="whitespace-nowrap px-1.5 py-0.5 text-[0.62rem]" />{/each}

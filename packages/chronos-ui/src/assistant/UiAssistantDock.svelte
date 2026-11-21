@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { UiChamferButton, UiChamferFrame, UiIcon } from '../atoms';
 	import type { InputModality } from '../input';
-	import { uiDrawerGrip } from '../machines';
+	import { uiDrawerGrip, uiSpotlight } from '../machines';
 	import { UiAnimatedResizeBody } from '../molecules';
 	import { HUD_METRICS, ZONE_CORNER_PRESETS, Z_LAYERS, type CornerKind, type UiIconName } from '../tokens';
 	import type { AssistantDockState, AssistantMessage, AssistantOcularState, AssistantQuickAction } from './assistant.types';
@@ -29,13 +29,18 @@
 	let draft = $state('');
 	let sectionEl = $state<HTMLElement | null>(null);
 	const MODALITY_ICON: Record<InputModality, UiIconName> = { KEYBOARD: 'keyboard', XBOX: 'gamepad', DUALSENSE: 'gamepad', VOICE: 'mic' };
-	let dockedBottom = $derived(studioChromeVisible ? 'var(--ui-safe-bottom, 9rem)' : `${HUD_METRICS.viewportMarginRem}rem`);
+	let dockedBottom = $derived(`${HUD_METRICS.viewportMarginRem}rem`);
+	let dockedWidth = $derived(
+		studioChromeVisible
+			? `min(var(--ui-corridor-max-w, ${HUD_METRICS.assistantWidthRem}rem), calc(100vw - 2 * var(--ui-side-track-w) - 3rem))`
+			: `min(${HUD_METRICS.assistantWidthRem}rem, calc(100vw - 2rem))`
+	);
 	let gripTip = $derived(dockState.mode === 'FLOATING' ? 'Click to dock · Drag to move' : 'Click to float · Drag to move');
 	let primaryCtaLabel = $derived(busy ? 'Running' : hasBuiltOnce ? 'Send' : 'Build');
 	let positionStyle = $derived(
 		dockState.mode === 'FLOATING'
 			? `z-index: ${Z_LAYERS.assistantDock}; left: ${dockState.xRem}rem; top: ${dockState.yRem}rem; width: min(${HUD_METRICS.assistantWidthRem}rem, calc(100vw - 2rem));`
-			: `z-index: ${Z_LAYERS.assistantDock}; left: 50%; bottom: ${dockedBottom}; transform: translateX(-50%); width: min(${HUD_METRICS.assistantWidthRem}rem, calc(100vw - 2rem));`
+			: `z-index: ${Z_LAYERS.assistantDock}; left: 50%; bottom: ${dockedBottom}; transform: translateX(-50%); width: ${dockedWidth};`
 	);
 
 	function sendPrompt(raw?: string): void {
@@ -51,7 +56,7 @@
 	}
 </script>
 
-<section bind:this={sectionEl} aria-label="Chronos AI Assistant Dock" data-testid="ui-assistant-dock" data-dock-mode={dockState.mode} data-expanded={dockState.expanded ? 'true' : 'false'} data-has-built-once={hasBuiltOnce ? 'true' : 'false'} class="fixed select-none" style={positionStyle}>
+<section bind:this={sectionEl} use:uiSpotlight={'hud-assistant-dock'} aria-label="Chronos AI Assistant Dock" data-testid="ui-assistant-dock" data-ui-interactive="true" data-dock-mode={dockState.mode} data-expanded={dockState.expanded ? 'true' : 'false'} data-has-built-once={hasBuiltOnce ? 'true' : 'false'} class="fixed select-none" style={positionStyle}>
 	<UiChamferFrame corners={ZONE_CORNER_PRESETS.BOTTOM_CENTER} {cornerMode} carets={true} bezel={true} outerClass="w-full" className="flex flex-col gap-2 px-3 py-2">
 		<UiAnimatedResizeBody open={dockState.expanded}>
 			<div class="mb-1 flex flex-col gap-2 border-b pb-2" style="border-color: var(--ui-border-subtle); max-height: clamp(14rem, 34vh, 20rem);" inert={!dockState.expanded}>

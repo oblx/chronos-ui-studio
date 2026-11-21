@@ -31,6 +31,7 @@
 		onSetStudioDefaults: (patch: Partial<StudioDefaultsConfig>) => void;
 		onResetStudioDefaults: () => void;
 		onSetMotionConfig: (patch: Partial<MotionConfig>) => void;
+		onSetMotionProfile?: (patch: Record<string, unknown>) => void;
 		onToggleCornerMorph: (enabled: boolean) => void;
 		onSelectTheme: (themeId: string) => void;
 		onSaveAiProfile: (payload: Record<string, unknown>) => Promise<void>;
@@ -44,7 +45,7 @@
 	let {
 		open, prefs, motionConfig, studioDefaults, envCapabilities, activeAdapterBadge, themes, activeThemeId, aiProfiles,
 		projectNodeCount, traceCount, lowMemoryMode, cornerMorphEnabled, voiceMode, gamepadOverride,
-		onUpdate, onSetCornerStyle, onSetCornerRadius, onSetStudioDefaults, onResetStudioDefaults, onSetMotionConfig, onToggleCornerMorph,
+		onUpdate, onSetCornerStyle, onSetCornerRadius, onSetStudioDefaults, onResetStudioDefaults, onSetMotionConfig, onSetMotionProfile, onToggleCornerMorph,
 		onSelectTheme, onSaveAiProfile, onToggleLowMemory, onSetVoiceMode, onSetGamepadOverride, onOpenCursors, onClose
 	}: Props = $props();
 
@@ -74,7 +75,7 @@
 		{#if activeTab === 'ai'}
 			<SettingsAiTab cornerMode={prefs.cornerMode} profiles={aiProfiles} {envCapabilities} {activeAdapterBadge} onSaveProfile={onSaveAiProfile} />
 		{:else if activeTab === 'visuals'}
-			<SettingsVisualsTab {prefs} {motionConfig} {studioDefaults} {themes} {activeThemeId} {cornerMorphEnabled} {onUpdate} {onSetCornerStyle} {onSetCornerRadius} {onSetStudioDefaults} {onResetStudioDefaults} {onSetMotionConfig} {onToggleCornerMorph} {onSelectTheme} {onOpenCursors} />
+			<SettingsVisualsTab {prefs} {motionConfig} {studioDefaults} {themes} {activeThemeId} {cornerMorphEnabled} {onUpdate} {onSetCornerStyle} {onSetCornerRadius} {onSetStudioDefaults} {onResetStudioDefaults} {onSetMotionConfig} {onSetMotionProfile} {onToggleCornerMorph} {onSelectTheme} {onOpenCursors} />
 		{:else if activeTab === 'input'}
 			<div class="grid grid-cols-1 gap-3 text-xs md:grid-cols-2" data-testid="settings-input-tab">
 				<div class="flex flex-col gap-2">

@@ -52,7 +52,7 @@
 	}
 </script>
 
-<div class="flex flex-col gap-3">
+<div class="flex flex-col gap-3 pb-4">
 	<div class="flex flex-wrap gap-1">
 		<UiChamferButton {cornerMode} label="All" active={filter === 'all'} onclick={() => (filter = 'all')} />
 		<UiChamferButton {cornerMode} label="Dark" active={filter === 'dark'} onclick={() => (filter = 'dark')} />
@@ -86,10 +86,10 @@
 		{/each}
 	</div>
 
-	<div class="flex flex-col gap-1.5 p-2" style="background-color: var(--ui-base-100); border: var(--ui-hairline) solid var(--ui-border-subtle);">
+	<div data-testid="wcag-contrast-audit" class="flex flex-col gap-1.5 p-2" style="background-color: var(--ui-base-100); border: var(--ui-hairline) solid var(--ui-border-subtle);">
 		<span class="text-xs font-semibold" style="color: var(--ui-muted-content);">WCAG Contrast Audit</span>
 		{#each wcagChecks as chk (chk.pair)}
-			<div class="flex items-center justify-between gap-2 text-xs">
+			<div data-testid="wcag-audit-row" class="flex items-center justify-between gap-2 text-xs">
 				<span class="truncate" style="color: var(--ui-base-content);">{chk.pair}</span>
 				<UiBadge text={`${chk.ratio}:1 ${chk.grade}`} tone={chk.passAa ? 'success' : 'error'} />
 			</div>

@@ -34,7 +34,7 @@ export async function startStudioServer() {
 	const isDev = process.env.DEVMODE === 'true' || !existsSync(join(DIST_DIR, 'index.html'));
 	let viteServer: ViteDevServer | null = null;
 	if (isDev) {
-		viteServer = await createServer({ server: { port: STUDIO_CONFIG.viteDevPort, host: '127.0.0.1', strictPort: false, hmr: false } });
+		viteServer = await createServer({ server: { port: STUDIO_CONFIG.viteDevPort, host: '127.0.0.1', strictPort: false, ws: false, hmr: false } });
 		await viteServer.listen();
 	}
 	const port = Number(process.env.PORT ?? STUDIO_CONFIG.defaultPort);

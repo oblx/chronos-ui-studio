@@ -5,5 +5,6 @@ export { default as UiSpotlightVeil } from './UiSpotlightVeil.svelte';
 export { default as UiBentoRadar } from './UiBentoRadar.svelte';
 export { default as UiVirtualCursors } from './UiVirtualCursors.svelte';
 export { default as UiToastStack } from './UiToastStack.svelte';
+export * from './wire-observatory';
 export { default as UiWireInspector } from './UiWireInspector.svelte';
 export { default as UiInteractiveCanvasStage } from './UiInteractiveCanvasStage.svelte';

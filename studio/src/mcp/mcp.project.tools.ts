@@ -15,7 +15,7 @@ import { getStudioDb, uiProjects } from '../lib';
 import { compileStaticClientBuild } from '../plugins';
 import { commitProjectRevision, createStudioProject, loadProjectWithNodes } from '../server/routes/routes.projects';
 import { buildWorkspaceCursorMcpTools } from './mcp.cursor.tools';
-import { buildEntityMcpTools } from './mcp.entity.tools';
+import { buildEntityMcpTools, buildWireframeMcpTools } from './mcp.entity.tools';
 import { buildStationMcpTools } from './mcp.station.tools';
 
 export type ProjectMcpToolFn = (args: Record<string, unknown>) => Promise<unknown>;
@@ -41,6 +41,8 @@ async function toolSpawnNode(args: Record<string, unknown>) {
 		intentBinding: typeof args.intentBinding === 'string' ? args.intentBinding : undefined
 	});
 	if (!check.ok) throw new Error(check.error);
+	const dup = check.node.lifecycle === 'STAGING' && project.nodes.some((n) => (n.lifecycle === 'STAGING' || n.lifecycle === 'BUILDING') && n.type === check.node.type && n.zone === check.node.zone && n.label === check.node.label && JSON.stringify(n.props) === JSON.stringify(check.node.props));
+	if (dup) return { summary: `deduplicated ${check.node.type} in ${check.node.zone}`, node: check.node, project };
 	const res = await commitProjectRevision(project.id, [...project.nodes, check.node], 'MCP_BUILDER');
 	return { summary: `spawned ${check.node.type} in ${check.node.zone}`, node: check.node, project: res.project };
 }
@@ -48,6 +50,8 @@ async function toolSpawnNode(args: Record<string, unknown>) {
 async function toolConfigureNode(args: Record<string, unknown>) {
 	const project = await resolveProjectOrThrow(args);
 	const nodeId = String(args.nodeId ?? '');
+	const target = project.nodes.find((n) => n.id === nodeId);
+	if (target?.locked) throw new Error(`GOVERNANCE_LOCKED: Entity ${nodeId} is locked against mutations.`);
 	const nextNodes: UiNode[] = project.nodes.map((n) => n.id !== nodeId ? n : {
 		...n,
 		label: typeof args.label === 'string' ? args.label : n.label,
@@ -72,15 +76,20 @@ async function toolCommitNode(args: Record<string, unknown>) {
 }
 
 async function toolRemoveNode(args: Record<string, unknown>) {
-	const project = await resolveProjectOrThrow(args);
-	const nodeId = String(args.nodeId ?? '');
+	const project = await resolveProjectOrThrow(args), nodeId = String(args.nodeId ?? '');
+	if (project.nodes.find((n) => n.id === nodeId)?.locked) throw new Error(`GOVERNANCE_LOCKED: Entity ${nodeId} is locked against deletion.`);
 	const res = await commitProjectRevision(project.id, project.nodes.filter((n) => n.id !== nodeId), 'MCP_BUILDER');
 	return { summary: `removed ${nodeId}`, project: res.project };
 }
 
+async function toolRejectAllStaged(args: Record<string, unknown>) {
+	const project = await resolveProjectOrThrow(args), next = project.nodes.filter((n) => n.lifecycle === 'COMMITTED');
+	const res = await commitProjectRevision(project.id, next, 'MCP_BUILDER');
+	return { summary: `rejected ${project.nodes.length - next.length} staged node(s)`, rejectedCount: project.nodes.length - next.length, project: res.project };
+}
+
 async function toolLoadSample(args: Record<string, unknown>) {
-	const project = await resolveProjectOrThrow(args);
-	const sample = findStarterSample(String(args.sampleId ?? 'sample-neon-ops'));
+	const project = await resolveProjectOrThrow(args), sample = findStarterSample(String(args.sampleId ?? 'sample-neon-ops'));
 	if (!sample) throw new Error(`Starter sample not found: ${String(args.sampleId)}`);
 	const db = await getStudioDb();
 	await db.update(uiProjects).set({ themeId: sample.themeId, updatedAt: Date.now() }).where(eq(uiProjects.id, project.id));
@@ -89,39 +98,31 @@ async function toolLoadSample(args: Record<string, unknown>) {
 }
 
 async function toolDeriveBlueprint(args: Record<string, unknown>) {
-	const project = await resolveProjectOrThrow(args);
-	const node = project.nodes.find((n) => n.id === String(args.nodeId ?? ''));
+	const project = await resolveProjectOrThrow(args), node = project.nodes.find((n) => n.id === String(args.nodeId ?? ''));
 	if (!node) throw new Error(`Node not found for derivation: ${String(args.nodeId)}`);
 	const prototype = derivePrototypeFromNode(node, String(args.name ?? `${node.label} Blueprint`));
 	return { summary: `derived prototype ${prototype.name}`, prototype };
 }
 
 async function toolPatchDocument(args: Record<string, unknown>) {
-	const project = await resolveProjectOrThrow(args);
-	const patches = Array.isArray(args.patches) ? (args.patches as JsonPatchOp[]) : [];
-	const graph = nodeTreeToDocumentGraph(project.nodes);
-	const { doc, inverse } = applyJsonPatchWithInverse(graph, patches);
+	const project = await resolveProjectOrThrow(args), patches = Array.isArray(args.patches) ? (args.patches as JsonPatchOp[]) : [];
+	const { doc, inverse } = applyJsonPatchWithInverse(nodeTreeToDocumentGraph(project.nodes), patches);
 	const mask = typeof args.capabilityMask === 'number' ? args.capabilityMask : STUDIO_ROLE_MASKS.ARCHITECT;
 	const gate = evaluateGovernanceGate({ graph: doc, actorCapabilityMask: mask, requiredCapabilityBit: CAPABILITY_BITS.WRITE_BLUEPRINTS });
 	if (!gate.ok) throw new Error(`${gate.code}: ${gate.reason}`);
-	const nextNodes = documentGraphToNodeTree(doc);
-	const res = await commitProjectRevision(project.id, nextNodes, 'MCP_BUILDER');
+	const res = await commitProjectRevision(project.id, documentGraphToNodeTree(doc), 'MCP_BUILDER');
 	return { summary: `applied ${patches.length} RFC 6902 patch op(s)`, inverseCount: inverse.length, inverse, project: res.project };
 }
 
 async function toolApplyTheme(args: Record<string, unknown>) {
-	const project = await resolveProjectOrThrow(args);
-	const themeId = String(args.themeId ?? 'obsidian-brass');
-	const db = await getStudioDb();
+	const project = await resolveProjectOrThrow(args), themeId = String(args.themeId ?? 'obsidian-brass'), db = await getStudioDb();
 	await db.update(uiProjects).set({ themeId, updatedAt: Date.now() }).where(eq(uiProjects.id, project.id));
 	return { summary: `theme ${themeId}`, project: await loadProjectWithNodes(project.id) };
 }
 
 async function toolExportStatic(args: Record<string, unknown>) {
 	const project = await resolveProjectOrThrow(args);
-	const workDir = typeof args.outDir === 'string' && args.outDir.trim()
-		? args.outDir.trim()
-		: join(tmpdir(), `chronos-mcp-static-${project.slug}-${Date.now().toString(36)}`);
+	const workDir = typeof args.outDir === 'string' && args.outDir.trim() ? args.outDir.trim() : join(tmpdir(), `chronos-mcp-static-${project.slug}-${Date.now().toString(36)}`);
 	const build = await compileStaticClientBuild({ project, workDir });
 	return { summary: `compiled ${build.files.length} static assets`, build };
 }
@@ -129,20 +130,12 @@ async function toolExportStatic(args: Record<string, unknown>) {
 export function buildProjectMcpTools(): readonly [string, ProjectMcpToolFn][] {
 	return [
 		['ui_probe_environment', async () => probeServerEnvironmentCapabilities()],
-		['ui_get_viewport_occupancy', async (args) => computeViewportOccupancy({
-			viewportW: Number(args.viewportW ?? DEFAULT_VIEWPORT.width), viewportH: Number(args.viewportH ?? DEFAULT_VIEWPORT.height),
-			chromeVisible: Boolean(args.chromeVisible ?? true), density: String(args.density ?? 'BALANCED') as LayoutDensity,
-			leftPanelOpen: Boolean(args.leftPanelOpen ?? true), rightPanelOpen: Boolean(args.rightPanelOpen ?? true),
-			toastVisible: Boolean(args.toastVisible ?? true), assistantExpanded: Boolean(args.assistantExpanded ?? true)
-		})],
-		['ui_create_project', async (args) => {
-			const project = await createStudioProject({ name: String(args.name ?? 'Untitled Workspace'), description: typeof args.description === 'string' ? args.description : undefined, themeId: typeof args.themeId === 'string' ? args.themeId : undefined });
-			return { summary: `created ${project.slug}`, project };
-		}],
+		['ui_get_viewport_occupancy', async (args) => computeViewportOccupancy({ viewportW: Number(args.viewportW ?? DEFAULT_VIEWPORT.width), viewportH: Number(args.viewportH ?? DEFAULT_VIEWPORT.height), chromeVisible: Boolean(args.chromeVisible ?? true), density: String(args.density ?? 'BALANCED') as LayoutDensity, leftPanelOpen: Boolean(args.leftPanelOpen ?? true), rightPanelOpen: Boolean(args.rightPanelOpen ?? true), toastVisible: Boolean(args.toastVisible ?? true), assistantExpanded: Boolean(args.assistantExpanded ?? true) })],
+		['ui_create_project', async (args) => { const project = await createStudioProject({ name: String(args.name ?? 'Untitled Workspace'), description: typeof args.description === 'string' ? args.description : undefined, themeId: typeof args.themeId === 'string' ? args.themeId : undefined }); return { summary: `created ${project.slug}`, project }; }],
 		['ui_switch_project', async (args) => ({ summary: `switched to ${String(args.projectId ?? 'proj-genesis')}`, project: await resolveProjectOrThrow(args) })],
 		['ui_load_sample', toolLoadSample], ['ui_spawn_node', toolSpawnNode], ['ui_configure_node', toolConfigureNode],
-		['ui_commit_node', toolCommitNode], ['ui_remove_node', toolRemoveNode], ['ui_derive_blueprint', toolDeriveBlueprint],
+		['ui_commit_node', toolCommitNode], ['ui_remove_node', toolRemoveNode], ['ui_reject_all_staged', toolRejectAllStaged], ['ui_derive_blueprint', toolDeriveBlueprint],
 		['ui_patch_document', toolPatchDocument], ['ui_apply_theme', toolApplyTheme], ['ui_export_static', toolExportStatic],
-		...buildEntityMcpTools(), ...buildWorkspaceCursorMcpTools(), ...buildStationMcpTools()
+		...buildEntityMcpTools(), ...buildWorkspaceCursorMcpTools(), ...buildStationMcpTools(), ...buildWireframeMcpTools()
 	];
 }

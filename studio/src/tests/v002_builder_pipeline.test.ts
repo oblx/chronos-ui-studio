@@ -76,7 +76,7 @@ describe('v0.0.2 Calm Genesis, Local Agent, Multi-Project Sync, Connectors & Sta
 		expect(hydrated!.nodes.length).toBe(3);
 		expect(hydrated!.nodes.every((n) => n.lifecycle === 'COMMITTED')).toBe(true);
 
-		expect(emitProjectSvelteScaffold(hydrated!).content).toContain("from '@chronos-ui/svelte'");
+		expect(emitProjectSvelteScaffold(hydrated!).content).toContain("from '@chronos-ui/svelte/");
 		expect(emitProjectCssTokens(hydrated!).content).toContain('--ui-primary');
 		const jsonBundle = emitProjectJsonBundle(hydrated!);
 		expect(jsonBundle.content).toContain(created.id);

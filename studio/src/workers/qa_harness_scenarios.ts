@@ -1,108 +1,129 @@
-export type HarnessScenarioId =
-	| 'calm-density'
-	| 'assistant-dock'
-	| 'station-preview'
-	| 'field-tome'
-	| 'persistence'
-	| 'responsive';
+export type HarnessScenarioId = 'calm-density' | 'wireframe-cs6' | 'spotlight-tour' | 'assistant-dock' | 'station-preview' | 'field-tome' | 'persistence' | 'responsive';
 
 export const ALL_HARNESS_SCENARIOS: readonly HarnessScenarioId[] = [
-	'calm-density', 'assistant-dock', 'station-preview', 'field-tome', 'persistence', 'responsive'
+	'calm-density', 'wireframe-cs6', 'spotlight-tour', 'assistant-dock', 'station-preview', 'field-tome', 'persistence', 'responsive'
 ] as const;
 
 export const SCENARIO_SCRIPTS: Readonly<Record<HarnessScenarioId, string>> = {
 	'calm-density': `async (page) => {
 		const root = page.locator('[data-layout-density]').first();
 		await root.waitFor({ state: 'visible', timeout: 8000 });
-		const states = [];
-		for (let i = 0; i < 4; i++) {
-			const density = await root.getAttribute('data-layout-density');
-			const chrome = await root.getAttribute('data-studio-chrome');
-			states.push({ density, chrome });
-			await page.locator('[data-testid="density-cycle-btn"]').first().click({ force: true });
-			await page.waitForTimeout(160);
+		if ((await root.getAttribute('data-studio-chrome')) !== 'false') throw new Error('Expected Minimal Calm launch on boot');
+		const calmRightBtns = await page.locator('[data-testid="calm-top-right"] button').count();
+		if (calmRightBtns > 5) throw new Error('Calm top-right controls exceeded 5: ' + calmRightBtns);
+		const centerDrift = await page.evaluate(() => { const b = document.querySelector('[data-testid="studio-hud-toggle-btn"]')?.getBoundingClientRect(); return b ? Math.abs(b.left + b.width / 2 - window.innerWidth / 2) : 999; });
+		if (centerDrift > 14) throw new Error('Studio HUD toggle not centered on 50vw: drift=' + centerDrift);
+		if ((await page.locator('[data-testid="edge-rail-left"]').count()) < 1 || (await page.locator('[data-testid="edge-rail-right"]').count()) < 1) throw new Error('Persistent folded edge rails missing in Calm mode');
+		if ((await page.locator('[data-testid="staging-build-layer"]').count()) !== 0) throw new Error('Ghost staged nodes present on fresh boot');
+		const marginPan = await page.evaluate(() => { const s = document.querySelector('[data-ui-stage-viewport]'); const before = s?.getAttribute('data-camera-x') || '0'; const el = document.elementFromPoint(12, window.innerHeight - 10); const cur = el ? getComputedStyle(el).cursor : ''; return { before, cur, insideStage: Boolean(el?.closest('[data-ui-stage-viewport]')) }; });
+		await page.mouse.move(12, 890); await page.mouse.down(); await page.mouse.move(160, 890, { steps: 6 }); await page.mouse.up(); await page.waitForTimeout(120);
+		const afterX = await page.locator('[data-ui-stage-viewport]').first().getAttribute('data-camera-x');
+		if (marginPan.insideStage || afterX !== marginPan.before) throw new Error('Outer margin leaked stage pan: ' + JSON.stringify({ marginPan, afterX }));
+		const cursorBefore = await page.evaluate(async () => { const cur = getComputedStyle(document.body).cursor; const m = cur.match(/url\\("?(data:image\\/svg\\+xml,[^"\\)]+)"?\\)/); if (!m) throw new Error('Body cursor missing SVG data URL: ' + cur); if (m[1].includes('var(--')) throw new Error('Unresolved var(-- in cursor SVG'); const img = new Image(); img.src = m[1]; await img.decode(); return { w: img.naturalWidth, h: img.naturalHeight, uri: m[1] }; });
+		if (cursorBefore.w !== 32 || cursorBefore.h !== 32) throw new Error('Cursor SVG decoded wrong size: ' + JSON.stringify(cursorBefore));
+		await page.locator('[data-testid="starter-sample-chips"] button').first().click({ force: true }); await page.waitForTimeout(420);
+		const calmStage = await page.evaluate(() => { const s = document.querySelector('[data-ui-stage-viewport]')?.getBoundingClientRect(), d = document.querySelector('[data-testid="client-document-root"]')?.getBoundingClientRect(); if (!s || !d) return null; return { cx: d.left + d.width / 2, cy: d.top + d.height / 2, topClip: Math.max(0, s.top - d.top), rightClip: Math.max(0, d.right - s.right) }; });
+		await page.locator('[data-testid="studio-hud-toggle-btn"]').first().click({ force: true }); await page.waitForTimeout(320);
+		const hudStage = await page.evaluate(() => { const s = document.querySelector('[data-ui-stage-viewport]')?.getBoundingClientRect(), d = document.querySelector('[data-testid="client-document-root"]')?.getBoundingClientRect(); if (!s || !d) return null; return { cx: d.left + d.width / 2, cy: d.top + d.height / 2, topClip: Math.max(0, s.top - d.top), rightClip: Math.max(0, d.right - s.right) }; });
+		const dx = calmStage && hudStage ? Math.abs(calmStage.cx - hudStage.cx) : 999, dy = calmStage && hudStage ? Math.abs(calmStage.cy - hudStage.cy) : 999;
+		if (!calmStage || !hudStage || calmStage.topClip > 4 || hudStage.topClip > 4 || hudStage.rightClip > 4 || dx > 12 || dy > 16) throw new Error('Stage framing/constancy violation: ' + JSON.stringify({ calmStage, hudStage, dx, dy }));
+		const twinClip = await page.evaluate(() => { const bar = document.querySelector('[data-testid="zone-top-center"]'); const btn = bar ? [...bar.querySelectorAll('button')].find((b) => (b.textContent || '').includes('Twin MCP')) : null; if (!btn || !bar) return 999; const br = btn.getBoundingClientRect(), pr = btn.parentElement?.getBoundingClientRect(); return Math.max(btn.scrollWidth - btn.clientWidth, pr ? Math.ceil(br.right - pr.right) : 0); });
+		if (twinClip > 1) throw new Error('Twin MCP button truncated by ' + twinClip + 'px');
+		return { calmRightBtns, centerDrift: Math.round(centerDrift), cursorPx: cursorBefore.w, dx: Math.round(dx), dy: Math.round(dy), twinClip };
+	}`,
+	'wireframe-cs6': `async (page) => {
+		const root = page.locator('[data-layout-density]').first();
+		if ((await root.getAttribute('data-studio-chrome')) !== 'true') { await page.locator('[data-testid="studio-hud-toggle-btn"]').first().click({ force: true }); await page.waitForTimeout(260); }
+		await page.locator('[data-testid="zone-bottom-right"] [data-testid="radar-open-skeleton"]').first().click({ force: true });
+		await page.locator('[data-testid="wireframe-skeleton-modal"]').first().waitFor({ state: 'visible', timeout: 8000 });
+		const panels = await Promise.all(['wf-toolbox', 'wf-artboard', 'wf-right-stack', 'wf-status-strip'].map((id) => page.locator('[data-testid="' + id + '"]').count()));
+		if (panels.some((c) => c < 1)) throw new Error('Missing CS6 panel(s): ' + JSON.stringify(panels));
+		const beforeBox = await page.locator('[role="dialog"]').first().boundingBox();
+		await page.locator('[data-testid="modal-expand-btn"]').first().click({ force: true }); await page.waitForTimeout(220);
+		const expandedAttr = await page.locator('[role="dialog"]').first().getAttribute('data-modal-expanded');
+		await page.locator('[data-testid="modal-expand-btn"]').first().click({ force: true }); await page.waitForTimeout(220);
+		const restoredBox = await page.locator('[role="dialog"]').first().boundingBox();
+		if (expandedAttr !== 'true' || !beforeBox || !restoredBox || Math.abs(beforeBox.width - restoredBox.width) > 4) throw new Error('Wireframe modal Grow/Shrink restore mismatch');
+		const labelOverlaps = await page.evaluate(() => { let hits = 0; document.querySelectorAll('[data-testid^="wf-node-"]').forEach((g) => { const texts = [...g.querySelectorAll('text')].map((t) => t.getBoundingClientRect()); for (let i = 0; i < texts.length; i++) for (let j = i + 1; j < texts.length; j++) if (texts[i].left < texts[j].right && texts[i].right > texts[j].left && texts[i].top < texts[j].bottom && texts[i].bottom > texts[j].top) hits++; }); return hits; });
+		if (labelOverlaps > 0) throw new Error('Wireframe node label overlap count=' + labelOverlaps);
+		await page.keyboard.press('Escape'); await page.locator('[data-testid="wireframe-skeleton-modal"]').first().waitFor({ state: 'detached', timeout: 4000 }).catch(() => {}); await page.waitForTimeout(180);
+		await page.locator('[data-testid="hud-open-wire"]').first().click({ force: true });
+		await page.locator('[data-testid="wire-dag-graph"]').first().waitFor({ state: 'visible', timeout: 8000 });
+		const dagNodes = await page.locator('[data-dag-node]').count();
+		const filterW = await page.locator('[data-testid="wire-filter-input"]').first().boundingBox();
+		if (dagNodes < 15 || !filterW || filterW.width < 220) throw new Error('Wire DAG check failed: nodes=' + dagNodes + ' filterW=' + JSON.stringify(filterW));
+		await page.keyboard.press('Escape'); await page.waitForTimeout(180);
+		return { panels, labelOverlaps, dagNodes, filterW: Math.round(filterW.width) };
+	}`,
+	'spotlight-tour': `async (page) => {
+		const root = page.locator('[data-layout-density]').first();
+		if ((await root.getAttribute('data-studio-chrome')) !== 'true') { await page.locator('[data-testid="studio-hud-toggle-btn"]').first().click({ force: true }); await page.waitForTimeout(260); }
+		await page.locator('[data-testid="hud-tour-btn"]').first().click({ force: true });
+		const veil = page.locator('[data-testid="spotlight-veil"]').first();
+		await veil.waitFor({ state: 'visible', timeout: 8000 });
+		let step4Drill = false;
+		for (let i = 0; i < 7; i++) {
+			const txt = (await veil.textContent()) || '';
+			if (!txt.includes('Step ' + (i + 1) + ' of 7')) throw new Error('Expected Step ' + (i + 1) + ' of 7, got: ' + txt);
+			if (i === 3) step4Drill = (await veil.locator('[data-testid="tour-drill-btn"]').count()) > 0;
+			if ((await veil.locator('rect, polygon, path').count()) < 2) throw new Error('Spotlight cutout missing at step ' + (i + 1));
+			await veil.locator('button').last().click({ force: true }); await page.waitForTimeout(180);
 		}
-		const distinct = new Set(states.map((s) => s.density + ':' + s.chrome)).size;
-		if (distinct < 3) throw new Error('Density cycle did not mutate layout/chrome: ' + JSON.stringify(states));
-		return { states, distinct };
+		if (!step4Drill) throw new Error('Tour Step 4 missing assistant drill CTA');
+		return { stepsVerified: 7, step4Drill };
 	}`,
 	'assistant-dock': `async (page) => {
-		const submitBtn = page.locator('[data-testid="assistant-submit-btn"]').first();
-		const input = page.locator('[data-testid="assistant-prompt-input"]').first();
+		const submitBtn = page.locator('[data-testid="assistant-submit-btn"]').first(), input = page.locator('[data-testid="assistant-prompt-input"]').first();
 		await submitBtn.waitFor({ state: 'visible', timeout: 8000 });
-		const beforeLabel = (await submitBtn.textContent() || '').trim();
+		const borderOverlap = await page.evaluate(() => { const dk = document.querySelector('[data-testid="ui-assistant-dock"]')?.getBoundingClientRect(), bd = document.querySelector('[data-testid="world-canvas-border"]')?.getBoundingClientRect(); return dk && bd ? Math.max(0, bd.bottom - dk.top) : 0; });
+		if (borderOverlap > 4) throw new Error('UiAssistantDock overlapped WORLD_CANVAS bottom border by ' + borderOverlap + 'px');
 		const grip = page.locator('[data-testid="assistant-drag-grip"]').first();
-		await grip.click({ force: true });
-		await page.waitForTimeout(180);
-		const floating = await page.locator('[data-dock-mode="FLOATING"]').count();
-		if (floating < 1) throw new Error('Click on dotted grip did not detach to FLOATING');
-		await grip.click({ force: true });
-		await page.waitForTimeout(180);
-		const redocked = await page.locator('[data-dock-mode="DOCKED"]').count();
-		if (redocked < 1) throw new Error('Second click on dotted grip did not re-dock to DOCKED');
-		await input.fill('Add a telemetry card');
-		await submitBtn.click({ force: true });
-		await page.waitForTimeout(600);
-		const afterLabel = (await submitBtn.textContent() || '').trim();
-		if (afterLabel !== 'Send') throw new Error('Expected Send after first build, got: ' + afterLabel);
-		return { beforeLabel, afterLabel, floating, redocked };
+		await grip.click({ force: true }); await page.waitForTimeout(180);
+		if ((await page.locator('[data-dock-mode="FLOATING"]').count()) < 1) throw new Error('Grip click did not detach to FLOATING');
+		await grip.click({ force: true }); await page.waitForTimeout(180);
+		if ((await page.locator('[data-dock-mode="DOCKED"]').count()) < 1) throw new Error('Second grip click did not re-dock');
+		await input.fill('Add a telemetry card'); await input.press('Enter');
+		await page.waitForFunction(() => (document.querySelector('[data-testid="assistant-submit-btn"]')?.textContent || '').trim() === 'Send', null, { timeout: 6000 });
+		await page.locator('[data-testid="staging-build-layer"]').first().waitFor({ state: 'visible', timeout: 6000 });
+		await page.locator('[data-testid="staging-reject-all-btn"]').first().click({ force: true });
+		await page.locator('[data-testid="staging-build-layer"]').first().waitFor({ state: 'detached', timeout: 3000 });
+		return { borderOverlap: Math.round(borderOverlap), rejectedAll: true };
 	}`,
 	'station-preview': `async (page) => {
-		const density = await page.locator('[data-layout-density]').first().getAttribute('data-layout-density');
-		if (density === 'CALM') {
-			await page.locator('[data-testid="density-cycle-btn"]').first().click({ force: true });
-			await page.waitForTimeout(180);
-		}
 		await page.locator('[data-testid="open-station-btn"]').first().click({ force: true });
 		const preview = page.locator('[data-testid="station-live-preview"]').first();
 		await preview.waitFor({ state: 'visible', timeout: 8000 });
 		const presetCount = await page.locator('[data-testid="station-motion-preset"]').count();
-		if (presetCount < 8) throw new Error('Expected 8 motion presets in Station Builder, got ' + presetCount);
-		const roundBtn = page.locator('[data-testid="station-corner-ROUND"]').first();
-		await roundBtn.click({ force: true });
-		await page.waitForTimeout(140);
+		if (presetCount < 8) throw new Error('Expected 8 motion presets, got ' + presetCount);
+		await page.locator('[data-testid="station-corner-ROUND"]').first().click({ force: true }); await page.waitForTimeout(140);
 		const cornerAttr = await preview.getAttribute('data-preview-corner');
-		if (cornerAttr !== 'ROUND') throw new Error('Station live preview did not reflect ROUND corner: ' + cornerAttr);
-		await page.keyboard.press('Escape');
-		await page.waitForTimeout(160);
+		if (cornerAttr !== 'ROUND') throw new Error('Station live preview corner mismatch: ' + cornerAttr);
+		await page.keyboard.press('Escape'); await preview.waitFor({ state: 'hidden', timeout: 4000 }).catch(() => {}); await page.waitForTimeout(180);
 		return { presetCount, cornerAttr };
 	}`,
 	'field-tome': `async (page) => {
-		const tomeBtn = page.locator('[data-testid="open-tome-btn"]').first();
-		await tomeBtn.click({ force: true });
+		await page.locator('[data-testid="open-tome-btn"]').first().click({ force: true });
 		const book = page.locator('[data-testid="tome-dual-book"]').first();
 		await book.waitFor({ state: 'visible', timeout: 8000 });
 		const text = (await book.textContent()) || '';
-		if (text.includes('Test 3s Zero-CLS Lock')) throw new Error('Deprecated Test 3s Zero-CLS Lock button still present');
-		if (text.includes('\`')) throw new Error('Raw markdown backtick leaked into Field Tome');
+		if (text.includes('Test 3s Zero-CLS Lock') || text.includes('\`')) throw new Error('Invalid Field Tome output');
 		const mathCount = await book.locator('math').count();
 		if (mathCount < 1) throw new Error('Expected native MathML <math> in Field Tome');
-		await page.keyboard.press('ArrowRight');
-		await page.waitForTimeout(140);
-		const folio = await page.locator('[data-testid="tome-folio-counter"]').first().textContent();
-		await page.keyboard.press('Escape');
-		await page.waitForTimeout(160);
-		return { mathCount, folio: (folio || '').trim() };
+		await page.keyboard.press('ArrowRight'); await page.waitForTimeout(140);
+		const folio = (await page.locator('[data-testid="tome-folio-counter"]').first().textContent() || '').trim();
+		await page.keyboard.press('Escape'); await page.waitForTimeout(160);
+		return { mathCount, folio };
 	}`,
 	'persistence': `async (page) => {
-		const root = page.locator('[data-layout-density]').first();
-		const beforeDensity = await root.getAttribute('data-layout-density');
-		const beforeBuilt = await page.locator('[data-testid="assistant-submit-btn"]').first().textContent();
-		await page.reload({ waitUntil: 'networkidle' });
-		await root.waitFor({ state: 'visible', timeout: 8000 });
-		await page.waitForTimeout(260);
-		const afterDensity = await root.getAttribute('data-layout-density');
-		const afterBuilt = await page.locator('[data-testid="assistant-submit-btn"]').first().textContent();
-		if (afterDensity !== beforeDensity) throw new Error('Density lost across reload: ' + beforeDensity + ' -> ' + afterDensity);
-		if ((afterBuilt || '').trim() !== (beforeBuilt || '').trim()) throw new Error('Build/Send state lost across reload: ' + beforeBuilt + ' -> ' + afterBuilt);
-		return { beforeDensity, afterDensity, afterBuilt: (afterBuilt || '').trim() };
+		const root = page.locator('[data-layout-density]').first(), beforeBuilt = (await page.locator('[data-testid="assistant-submit-btn"]').first().textContent() || '').trim();
+		await page.reload({ waitUntil: 'domcontentloaded' }); await root.waitFor({ state: 'visible', timeout: 12000 }); await page.waitForTimeout(500);
+		const afterChrome = await root.getAttribute('data-studio-chrome'), afterBuilt = (await page.locator('[data-testid="assistant-submit-btn"]').first().textContent() || '').trim();
+		if (afterChrome !== 'false') throw new Error('Cold reload did not boot unconditionally in Calm Mode: ' + afterChrome);
+		if (afterBuilt !== beforeBuilt) throw new Error('Build/Send state lost across reload');
+		return { afterChrome, afterBuilt };
 	}`,
 	'responsive': `async (page) => {
-		const metrics = await page.evaluate(() => ({
-			innerW: window.innerWidth,
-			scrollW: document.documentElement.scrollWidth,
-			overflowPx: document.documentElement.scrollWidth - window.innerWidth
-		}));
+		const metrics = await page.evaluate(() => ({ innerW: window.innerWidth, scrollW: document.documentElement.scrollWidth, overflowPx: document.documentElement.scrollWidth - window.innerWidth }));
 		if (metrics.overflowPx > 4) throw new Error('Horizontal overflow detected: ' + JSON.stringify(metrics));
 		return metrics;
 	}`

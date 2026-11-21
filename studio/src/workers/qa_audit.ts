@@ -98,11 +98,16 @@ function scanCachedFile(file: string, ext: string, rootDir: string, prevCache: R
 function checkPackageAndDocs(rootDir: string, violations: AuditViolation[]): void {
 	const pkg = JSON.parse(readFileSync(join(rootDir, 'packages/chronos-ui/package.json'), 'utf8'));
 	const hasSubpaths = Boolean(pkg.exports?.['./tokens'] && pkg.exports?.['./forms'] && pkg.exports?.['./cursor']) && Array.isArray(pkg.sideEffects) && pkg.sideEffects.includes('*.css');
-	if (pkg.version !== '0.0.9' || Object.keys(pkg.dependencies ?? {}).length > 0 || !hasSubpaths) {
+	if (pkg.version !== '0.0.12' || Object.keys(pkg.dependencies ?? {}).length > 0 || !hasSubpaths) {
 		violations.push({ rule: 'PACKAGE_LOCK_0_DEPS', target: 'packages/chronos-ui/package.json', detail: 'Invalid version, deps, sideEffects, or subpath exports' });
 	}
-	const sprintFiles = readdirSync(join(rootDir, 'docs/08-sprints')).filter((n) => n.endsWith('.md'));
-	if (sprintFiles.length < 9) violations.push({ rule: 'SPRINT_ARCHIVE_REQUIRED', target: 'docs/08-sprints', detail: `Found ${sprintFiles.length} sprint logs, expected >= 9` });
+	const sprintsDir = join(rootDir, 'docs/08-sprints');
+	const archiveDir = join(sprintsDir, 'archive');
+	const sprintFiles = [
+		...readdirSync(sprintsDir).filter((n) => n.endsWith('.md')),
+		...(existsSync(archiveDir) ? readdirSync(archiveDir).filter((n) => n.endsWith('.md')) : [])
+	];
+	if (sprintFiles.length < 10) violations.push({ rule: 'SPRINT_ARCHIVE_REQUIRED', target: 'docs/08-sprints', detail: `Found ${sprintFiles.length} sprint logs, expected >= 10` });
 }
 
 export function runStaticAudit(rootDir: string = process.cwd(), opts?: { full?: boolean }): AuditViolation[] {

@@ -23,6 +23,7 @@ export interface HarnessReport {
 	readonly url: string;
 	readonly screenshotsTaken: number;
 	readonly consoleErrors: number;
+	readonly cleanTeardown: boolean;
 	readonly results: readonly HarnessScenarioResult[];
 	readonly totalDurationMs: number;
 }
@@ -58,21 +59,38 @@ function countConsoleErrors(raw: string): number {
 	return raw.split('\n').filter((line) => /\[error\]|Uncaught|PageError/i.test(line) && !/WebSocket|hmr/i.test(line)).length;
 }
 
+function resetHarnessGenesis(reloadAfter: boolean): boolean {
+	const script = `async (page) => {
+		await page.evaluate(async () => {
+			await fetch('/api/projects/proj-genesis/clean', { method: 'POST' });
+			try { localStorage.clear(); sessionStorage.clear(); } catch {}
+		});
+		${reloadAfter ? `await page.reload({ waitUntil: 'domcontentloaded' }); await page.locator('[data-layout-density]').first().waitFor({ state: 'visible', timeout: 10000 }); await page.waitForTimeout(350);` : ''}
+		const check = await page.evaluate(async () => {
+			const res = await fetch('/api/projects');
+			const data = await res.json();
+			const proj = Array.isArray(data.projects) ? data.projects.find((p) => p.id === 'proj-genesis') : null;
+			return Array.isArray(proj?.nodes) ? proj.nodes.length : -1;
+		});
+		if (check !== 0) throw new Error('proj-genesis not clean: remaining nodes=' + check);
+		return { remainingNodes: check };
+	}`;
+	return runPlaywrightCli(['run-code', script]).ok;
+}
+
 export function runQaHarness(opts: HarnessOptions): HarnessReport {
 	const t0 = performance.now();
 	const results: HarnessScenarioResult[] = [];
 	let screenshotsTaken = 0;
 	let consoleErrors = 0;
+	let cleanTeardown = false;
 	if (!opts.json) console.log(formatClockBanner('qa:harness'));
 	try {
 		const open = runPlaywrightCli(['open', '--browser=chromium', opts.url]);
 		if (!open.ok) {
-			return {
-				ok: false, url: opts.url, screenshotsTaken: 0, consoleErrors: 1,
-				results: [{ scenario: opts.scenarios[0], viewport: 'init', pass: false, durationMs: Math.round(performance.now() - t0), detail: open.output.slice(0, 260) }],
-				totalDurationMs: Math.round(performance.now() - t0)
-			};
+			return { ok: false, url: opts.url, screenshotsTaken: 0, consoleErrors: 1, cleanTeardown: false, results: [{ scenario: opts.scenarios[0], viewport: 'init', pass: false, durationMs: Math.round(performance.now() - t0), detail: open.output.slice(0, 260) }], totalDurationMs: Math.round(performance.now() - t0) };
 		}
+		resetHarnessGenesis(true);
 		for (const vp of opts.viewports) {
 			const vpLabel = `${vp.width}x${vp.height}`;
 			runPlaywrightCli(['resize', String(vp.width), String(vp.height)]);
@@ -81,20 +99,17 @@ export function runQaHarness(opts: HarnessOptions): HarnessReport {
 				const st = performance.now();
 				const res = runPlaywrightCli(['run-code', SCENARIO_SCRIPTS[scenario]]);
 				results.push({ scenario, viewport: vpLabel, pass: res.ok, durationMs: Math.round(performance.now() - st), detail: res.ok ? 'PASS' : res.output.slice(0, 260) });
-				if (!res.ok && opts.debugCapture) {
-					runPlaywrightCli(['screenshot', `--filename=.playwright-cli/debug-${scenario}-${vpLabel}.png`]);
-					screenshotsTaken += 1;
-				}
+				if (!res.ok && opts.debugCapture) { runPlaywrightCli(['screenshot', `--filename=.playwright-cli/debug-${scenario}-${vpLabel}.png`]); screenshotsTaken += 1; }
 				if (!res.ok && opts.failFast) break;
 			}
 		}
-		const cons = runPlaywrightCli(['console']);
-		consoleErrors = countConsoleErrors(cons.output);
+		consoleErrors = countConsoleErrors(runPlaywrightCli(['console']).output);
 	} finally {
+		cleanTeardown = resetHarnessGenesis(false);
 		runPlaywrightCli(['close']);
 	}
-	const ok = results.length > 0 && results.every((r) => r.pass) && consoleErrors === 0;
-	return { ok, url: opts.url, screenshotsTaken, consoleErrors, results, totalDurationMs: Math.round(performance.now() - t0) };
+	const ok = results.length > 0 && results.every((r) => r.pass) && consoleErrors === 0 && cleanTeardown;
+	return { ok, url: opts.url, screenshotsTaken, consoleErrors, cleanTeardown, results, totalDurationMs: Math.round(performance.now() - t0) };
 }
 
 if (import.meta.main) {
@@ -103,7 +118,7 @@ if (import.meta.main) {
 	if (opts.json) console.log(JSON.stringify(report, null, 2));
 	else {
 		for (const r of report.results) console.log(`[qa:harness] ${r.pass ? 'PASS' : 'FAIL'} ${r.scenario} @ ${r.viewport} (${r.durationMs}ms)${r.pass ? '' : ` -> ${r.detail}`}`);
-		console.log(`[qa:harness] summary: ${report.results.filter((r) => r.pass).length}/${report.results.length} passed | consoleErrors=${report.consoleErrors} | screenshots=${report.screenshotsTaken} | ${report.totalDurationMs}ms`);
+		console.log(`[qa:harness] summary: ${report.results.filter((r) => r.pass).length}/${report.results.length} passed | cleanTeardown=${report.cleanTeardown} | consoleErrors=${report.consoleErrors} | screenshots=${report.screenshotsTaken} | ${report.totalDurationMs}ms`);
 	}
 	process.exit(report.ok ? 0 : 1);
 }

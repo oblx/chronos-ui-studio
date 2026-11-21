@@ -1,7 +1,7 @@
 import { backOut, cubicOut, expoOut, quintOut } from 'svelte/easing';
 import type { TransitionConfig } from 'svelte/transition';
 import type { CornerTuple, UiFrameShape } from '../tokens';
-import { getActiveMotionConfig } from './motion.machine.svelte';
+import { getActiveMotionConfig, resolveDurationMs } from './motion.machine.svelte';
 import { MOTION_SPEED_MS, type MotionConfig, type MotionPreset } from './motion.types';
 
 export interface UiTransitionParams {
@@ -27,7 +27,9 @@ export function resolveEffectiveDuration(
 	if (config.preset === 'NONE' || config.speed === 'INSTANT') return 0;
 	if (config.reducedMotionOverride === 'FORCE_OFF') return 0;
 	if (config.reducedMotionOverride === 'AUTO' && prefersReducedMotion) return 0;
-	return MOTION_SPEED_MS[config.speed];
+	const profileBase = resolveDurationMs('base', prefersReducedMotion);
+	if (profileBase === 0 && config.reducedMotionOverride === 'AUTO') return 0;
+	return config.speed === 'DELIBERATE' ? Math.max(MOTION_SPEED_MS.DELIBERATE, profileBase) : MOTION_SPEED_MS[config.speed];
 }
 
 function buildShapeClip(preset: MotionPreset, t: number, u: number, shape: UiFrameShape): string {
