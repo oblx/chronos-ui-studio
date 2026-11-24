@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { getActiveStudioDefaults, subscribeMotionState } from '../motion';
+	import { createControlCornerRef } from '../motion';
 	import {
-		buildClipPathPolygon, clampControlCutRem, CONTROL_MAX_CUT_RATIO, DEFAULT_CHAMFER_TUPLE, remToPx,
-		resolveCornerTuple, type CornerKind, type UiIconName
+		clampControlCutRem, CONTROL_MAX_CUT_RATIO, DEFAULT_CHAMFER_TUPLE, resolveControlSurface,
+		type CornerKind, type UiIconName
 	} from '../tokens';
 	import { UiIcon, UiVectorBorder } from '../atoms';
 
@@ -26,24 +26,14 @@
 		onToggleExpand, onClose
 	}: Props = $props();
 
-	let controlCutRem = $state(getActiveStudioDefaults().controlCornerCutRem);
-	$effect(() => subscribeMotionState(() => { controlCutRem = getActiveStudioDefaults().controlCornerCutRem; }));
-	let resolvedCorners = $derived(resolveCornerTuple(DEFAULT_CHAMFER_TUPLE, cornerMode));
-	let cutRem = $derived(cornerMode === 'STRAIGHT' ? 0 : clampControlCutRem(controlCutRem));
-	let cutPx = $derived(remToPx(cutRem));
-	let clipStyle = $derived(
-		cornerMode === 'CHAMFER'
-			? `clip-path: ${buildClipPathPolygon(cutRem, resolvedCorners)};`
-			: cornerMode === 'ROUND'
-				? `border-radius: ${cutRem}rem;`
-				: ''
-	);
+	const cornerRef = createControlCornerRef();
+	let surface = $derived(resolveControlSurface(cornerMode, DEFAULT_CHAMFER_TUPLE, clampControlCutRem(cornerRef.cutRem)));
 	let expandTip = $derived(isExpanded ? 'Restore Previous Size [Alt+M]' : 'Expand to Full Viewport [Alt+M]');
 </script>
 
 <header
 	role="presentation"
-	ondblclick={() => { if (expandable && onToggleExpand) onToggleExpand(); }}
+	ondblclick={(e) => { if ((e.target as HTMLElement)?.closest('button')) return; if (expandable && onToggleExpand) onToggleExpand(); }}
 	class="flex shrink-0 items-center justify-between gap-3 px-4 py-3 select-none"
 	style="border-bottom: var(--ui-hairline) solid var(--ui-border-subtle); background-color: var(--ui-base-300);"
 >
@@ -73,8 +63,8 @@
 				class="ui-dur-micro ui-detent relative inline-flex shrink-0 items-center justify-center transition-colors"
 				style="width: 2.25rem; height: 2.25rem; contain: size layout; color: {isExpanded ? 'var(--ui-primary)' : 'var(--ui-base-content)'};"
 			>
-				<span aria-hidden="true" class="pointer-events-none absolute inset-0" style="background-color: var(--ui-base-200); {clipStyle}"></span>
-				<UiVectorBorder corners={DEFAULT_CHAMFER_TUPLE} {cornerMode} {cutPx} maxCutRatio={CONTROL_MAX_CUT_RATIO} strokeVar={isExpanded ? 'var(--ui-primary)' : 'var(--ui-border-subtle)'} strokeWidth={1.35} />
+				<span aria-hidden="true" class="pointer-events-none absolute inset-0" style="background-color: var(--ui-base-200); {surface.surfaceStyle}"></span>
+				<UiVectorBorder corners={DEFAULT_CHAMFER_TUPLE} {cornerMode} cutPx={surface.cutPx} maxCutRatio={CONTROL_MAX_CUT_RATIO} strokeVar={isExpanded ? 'var(--ui-primary)' : 'var(--ui-border-subtle)'} strokeWidth={1.35} />
 				<span class="relative z-10 inline-flex items-center justify-center">
 					<UiIcon name={isExpanded ? 'minimize' : 'expand'} sizeRem={0.95} />
 				</span>
@@ -92,8 +82,8 @@
 			class="ui-dur-micro ui-detent relative inline-flex shrink-0 items-center justify-center transition-colors"
 			style="width: 2.25rem; height: 2.25rem; contain: size layout; color: {isLocked ? 'var(--ui-muted-content)' : 'var(--ui-base-content)'};"
 		>
-			<span aria-hidden="true" class="pointer-events-none absolute inset-0" style="background-color: var(--ui-base-200); {clipStyle}"></span>
-			<UiVectorBorder corners={DEFAULT_CHAMFER_TUPLE} {cornerMode} {cutPx} maxCutRatio={CONTROL_MAX_CUT_RATIO} strokeVar="var(--ui-border-subtle)" strokeWidth={1.35} progressRatio={isLocked ? progressRatio : 0} progressStrokeVar="var(--ui-accent)" />
+			<span aria-hidden="true" class="pointer-events-none absolute inset-0" style="background-color: var(--ui-base-200); {surface.surfaceStyle}"></span>
+			<UiVectorBorder corners={DEFAULT_CHAMFER_TUPLE} {cornerMode} cutPx={surface.cutPx} maxCutRatio={CONTROL_MAX_CUT_RATIO} strokeVar="var(--ui-border-subtle)" strokeWidth={1.35} progressRatio={isLocked ? progressRatio : 0} progressStrokeVar="var(--ui-accent)" />
 			<span class="relative z-10 inline-flex items-center justify-center">
 				{#if isLocked}
 					<span class="ui-font-mono text-xs font-bold">{remainingSeconds}</span>

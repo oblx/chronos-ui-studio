@@ -1,12 +1,12 @@
 import { THEME_PACKS, UI_FRAMEWORK_MANIFEST, validateThemePackContrast, type ThemePack } from '@chronos-ui/svelte';
 import { eq } from 'drizzle-orm';
-import { STUDIO_CONFIG } from '../config';
-import { blueprints, getStudioDb, mapBlueprintRow } from '../lib';
-import { exportBlueprintArtifact, listInputConnectors, listOutputAdapters, runInputConnector, type BlueprintImportResult, type ExportFormat } from '../plugins';
-import { pushServerTrace } from '../server/server.telemetry';
+import { STUDIO_CONFIG } from '@studio/config';
+import { blueprints, getStudioDb, mapBlueprintRow } from '@studio/lib';
+import { exportBlueprintArtifact, listInputConnectors, listOutputAdapters, runInputConnector, type BlueprintImportResult, type ExportFormat } from '@studio/plugins';
+import { pushServerTrace } from '@studio/server/server.telemetry';
 import { MCP_MANIFEST } from './mcp.manifest';
-import { buildProjectMcpTools } from './mcp.project.tools';
 import { dispatchJsonRpc, type JsonRpcRequest } from './mcp.rpc';
+import { buildProjectMcpTools } from './tools';
 
 type ToolFn = (args: Record<string, unknown>) => Promise<unknown>;
 

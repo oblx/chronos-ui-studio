@@ -1,8 +1,8 @@
 <script lang="ts">
 	import {
-		UiChamferButton, UiModalShell, type CornerKind, type HudZoneId, type RegisteredUiEntity, type UiNode, type UiNodeTree
+		clamp, UiChamferButton, UiModalShell, type CornerKind, type HudZoneId, type RegisteredUiEntity, type UiNode, type UiNodeTree
 	} from '@chronos-ui/svelte';
-	import type { WireframeFilterId, WireframeRightTabId, WireframeToolId } from './wireframe.types';
+	import { ARTBOARD_SPEC, type WireframeFilterId, type WireframeRightTabId, type WireframeToolId } from './wireframe.types';
 	import WireframeArtboard from './WireframeArtboard.svelte';
 	import WireframeOptionsBar, { type WireframeAlignMode } from './WireframeOptionsBar.svelte';
 	import WireframeRightStack from './WireframeRightStack.svelte';
@@ -69,7 +69,7 @@
 	}
 	function setZoom(z: number | 'FIT'): void {
 		if (z === 'FIT') { zoom = 1; panX = 0; panY = 0; return; }
-		zoom = Math.max(0.5, Math.min(1.5, Number(z.toFixed(2))));
+		zoom = clamp(Number(z.toFixed(2)), ARTBOARD_SPEC.zoomMin, ARTBOARD_SPEC.zoomMax);
 	}
 	async function copySelectedUuid(): Promise<void> {
 		if (!selected) return;

@@ -13,7 +13,7 @@ import { classifySprintTimeBand, SPRINT_TIME_BANDS } from '@studio/workers/qa_ti
 
 describe('v0.0.8 3-tier parametric corner cuts & anti-pinch geometry', () => {
 	test('locks v0.0.8 defaults (0.5rem base, 0.75rem station, 0.3125rem control) and clamps <= 28% height', () => {
-		expect(VERSION).toBe('0.0.12');
+		expect(VERSION).toBe('0.1.0');
 		expect(DEFAULT_CORNER_CUT_REM).toBe(0.5);
 		expect(DEFAULT_STATION_CORNER_CUT_REM).toBe(0.75);
 		expect(DEFAULT_CONTROL_CORNER_CUT_REM).toBe(0.3125);

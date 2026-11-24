@@ -7,12 +7,12 @@ import {
 	computeTooltipAnchor, CORNER_ANIMATIONS, CSS_CURSOR_STATES, DEFAULT_CHAMFER_TUPLE, DEFAULT_VIEWPORT, generateUuidV7,
 	MOTION_PRESETS, UI_FRAME_SHAPES, uiTransition, VERSION
 } from '@chronos-ui/svelte';
-import { findStarterSample } from '../config';
-import { DEFAULT_BUILD_CONFIG, STUDIO_TOOL_REGISTRY, validatePngDataUrl } from '../core';
-import { handleBuilderMcpRpc } from '../mcp';
-import { emitProjectCssTokens } from '../plugins';
-import { createStudioProject, handleCursorRoutes, handleLifecycleRoutes } from '../server/routes';
-import { getSprintTimerStatus, lapSprintTimer, resetSprintTimer, runStaticAudit, startSprintTimer } from '../workers';
+import { findStarterSample } from '@studio/config';
+import { DEFAULT_BUILD_CONFIG, STUDIO_TOOL_REGISTRY, validatePngDataUrl } from '@studio/core';
+import { handleBuilderMcpRpc } from '@studio/mcp';
+import { emitProjectCssTokens } from '@studio/plugins';
+import { createStudioProject, handleCursorRoutes, handleLifecycleRoutes } from '@studio/server/routes';
+import { getSprintTimerStatus, lapSprintTimer, resetSprintTimer, runStaticAudit, startSprintTimer } from '@studio/workers';
 
 function makeTinyPngDataUrl(width = 16, height = 16): string {
 	const buf = Buffer.alloc(33);
@@ -26,7 +26,7 @@ function makeTinyPngDataUrl(width = 16, height = 16): string {
 
 describe('v0.0.6 workspace lifecycle, 14 contour-locked shapes, motion, and tooltips', () => {
 	test('save, clean, default-view, and undo lifecycle actions maintain dirty state cleanly', async () => {
-		expect(VERSION).toBe('0.0.12');
+		expect(VERSION).toBe('0.1.0');
 		const sample = findStarterSample('sample-shape-matrix')!;
 		const fresh = sample.nodes.map((n) => ({ ...n, id: generateUuidV7() }));
 		const created = await createStudioProject({ name: 'v006 Lifecycle Spec', themeId: sample.themeId, nodes: fresh });

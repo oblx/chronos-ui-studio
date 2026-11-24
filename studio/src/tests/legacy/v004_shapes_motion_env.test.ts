@@ -10,9 +10,9 @@ import {
 import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DEFAULT_BUILD_CONFIG, probeServerEnvironmentCapabilities } from '../core';
-import { handleBuilderMcpRpc } from '../mcp';
-import { compileStaticClientBuild } from '../plugins';
+import { DEFAULT_BUILD_CONFIG, probeServerEnvironmentCapabilities } from '@studio/core';
+import { handleBuilderMcpRpc } from '@studio/mcp';
+import { compileStaticClientBuild } from '@studio/plugins';
 
 describe('v0.0.4 tri-mode corners, 8 UML shapes, and vivid WCAG accents', () => {
 	test('tri-mode corners emit straight, 45-deg chamfer, and quadratic round SVG paths', () => {

@@ -25,19 +25,16 @@
 		role="tooltip"
 		data-testid="ui-cyber-tooltip"
 		use:uiClampTooltipRect={{ x: tooltip.x, y: tooltip.y, placement: tooltip.placement }}
-		in:uiTransition={{ offsetPx: 6 }}
-		out:uiTransition={{ offsetPx: 6 }}
-		class="pointer-events-none fixed max-w-xs whitespace-nowrap px-2.5 py-1 text-xs font-medium shadow-md"
-		style="
-			z-index: {Z_LAYERS.overlays};
-			left: {tooltip.x}px;
-			top: {tooltip.y}px;
-			transform: {transformOrigin};
-			background-color: var(--ui-base-300);
-			color: var(--ui-base-content);
-			border: var(--ui-hairline) solid var(--ui-accent-vivid, var(--ui-accent));
-		"
+		class="pointer-events-none fixed max-w-xs"
+		style="z-index: {Z_LAYERS.overlays}; left: {tooltip.x}px; top: {tooltip.y}px; transform: {transformOrigin};"
 	>
-		{tooltip.text}
+		<div
+			in:uiTransition={{ offsetPx: 6 }}
+			out:uiTransition={{ offsetPx: 6 }}
+			class="whitespace-nowrap px-2.5 py-1 text-xs font-medium shadow-md"
+			style="background-color: var(--ui-base-300); color: var(--ui-base-content); border: var(--ui-hairline) solid var(--ui-accent-vivid, var(--ui-accent));"
+		>
+			{tooltip.text}
+		</div>
 	</div>
 {/if}

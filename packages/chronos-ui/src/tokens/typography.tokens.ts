@@ -1,6 +1,6 @@
 import type { CornerKind } from './corners.geometry';
 import {
-	CONTROL_CUT_LIMITS, CORNER_RADIUS_LIMITS, DEFAULT_CONTROL_CORNER_CUT_REM, DEFAULT_CORNER_CUT_REM,
+	clamp, CONTROL_CUT_LIMITS, CORNER_RADIUS_LIMITS, DEFAULT_CONTROL_CORNER_CUT_REM, DEFAULT_CORNER_CUT_REM,
 	DEFAULT_STATION_CORNER_CUT_REM, ORNAMENT_LIMITS, STUDIO_DEFAULTS_VERSION
 } from './hud.constants';
 
@@ -58,10 +58,8 @@ export const DEFAULT_STUDIO_DEFAULTS: StudioDefaultsConfig = {
 	autoSaveMode: 'OFF'
 } as const;
 
-const snapStep = (v: number, min: number, max: number, step: number): number => {
-	const c = Math.max(min, Math.min(max, v));
-	return Number((Math.round(c / step) * step).toFixed(4));
-};
+const snapStep = (v: number, min: number, max: number, step: number): number =>
+	Number((Math.round(clamp(v, min, max) / step) * step).toFixed(4));
 
 export function clampCornerRadiusRem(value?: number): number {
 	const safe = typeof value === 'number' && Number.isFinite(value) ? value : CORNER_RADIUS_LIMITS.defaultRem;

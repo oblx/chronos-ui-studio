@@ -1,0 +1,26 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"strict": true,
+		"skipLibCheck": true,
+		"declaration": true,
+		"emitDeclarationOnly": true,
+		"outDir": "./dist",
+		"rootDir": "./src",
+		"isolatedModules": true
+	},
+	"include": [
+		"src/manifest.ts",
+		"src/tokens/**/*.ts",
+		"src/motion/**/*.ts",
+		"src/wire/**/*.ts",
+		"src/canvas/**/*.ts",
+		"src/input/**/*.ts",
+		"src/cursor/**/*.ts",
+		"src/machines/**/*.ts"
+	],
+	"exclude": ["dist", "node_modules"]
+}

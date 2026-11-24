@@ -39,7 +39,7 @@
 	{/if}
 {/snippet}
 
-<div role="button" tabindex="0" data-testid={`live-node-${node.id}`} data-node-zone={node.zone} data-node-shape={shape}
+<div role="button" tabindex="0" data-ui-interactive="true" data-testid={`live-node-${node.id}`} data-node-zone={node.zone} data-node-shape={shape}
 	onclick={(e) => { e.stopPropagation(); onSelect(node.id); }}
 	onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onSelect(node.id); } }}
 	class="ui-commit-morph cursor-pointer text-left"

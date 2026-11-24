@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getActiveMotionSensory, resolveDurationMs, subscribeMotionState } from '@ui/motion';
-	import { buildShapeGeometry, type CornerKind } from '@ui/tokens';
+	import { buildShapeGeometry, clamp, DEFAULT_CHAMFER_TUPLE, resolveCornerTuple, type CornerKind } from '@ui/tokens';
 	import type { WireTraceRecord } from '@ui/wire';
 	import {
 		buildBezierEdgePath, computeDagNodeStats, resolveTracePathNodes,
@@ -60,7 +60,7 @@
 	}
 	function onWheel(e: WheelEvent): void {
 		e.preventDefault();
-		zoom = Number(Math.max(0.65, Math.min(1.6, zoom + (e.deltaY < 0 ? 0.08 : -0.08))).toFixed(2));
+		zoom = Number(clamp(zoom + (e.deltaY < 0 ? 0.08 : -0.08), 0.65, 1.6).toFixed(2));
 	}
 </script>
 
@@ -113,7 +113,7 @@
 			{@const isSel = selectedNodeId === node.id}
 			{@const inTrace = tracePath ? tracePath.has(node.id) : false}
 			{@const isServerLocked = node.column === 'SERVER_DAG' && !hasBit28}
-			{@const geom = buildShapeGeometry('BOX', node.w, node.h, cornerMode === 'STRAIGHT' ? 0 : 7)}
+			{@const geom = buildShapeGeometry('BOX', node.w, node.h, cornerMode === 'STRAIGHT' ? 0 : 7, resolveCornerTuple(DEFAULT_CHAMFER_TUPLE, cornerMode))}
 			<g
 				transform="translate({node.x}, {node.y})"
 				opacity={isServerLocked ? 0.48 : 1}

@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import {
-	buildMotionCssVars, coalesceBurstTraces, computeDagNodeStats, createModalMachine, createStagePanZoomCoalescer,
-	createUiWireBroker, filterTracesByDagNode, fitNodesToSafeCorridor, getActiveMotionSensory, isPointerInsideRect,
-	MOTION_PROFILE_SPECS, setActiveMotionProfile, setActiveMotionSensory, VERSION, WIRE_DAG_NODES,
-	type WireTraceRecord
+	buildMotionCssVars, buildWireTraceKey, clamp, clampStageCamera, coalesceBurstTraces, computeDagNodeStats,
+	computeSafeCorridorFromRects, createModalMachine, createStagePanZoomCoalescer, createUiWireBroker,
+	DEFAULT_CHAMFER_TUPLE, filterTracesByDagNode, fitNodesToSafeCorridor, getActiveMotionSensory,
+	isPointerInsideRect, MOTION_PROFILE_SPECS, resolveControlSurface, setActiveMotionProfile,
+	setActiveMotionSensory, VERSION, WIRE_DAG_NODES, type WireTraceRecord
 } from '@chronos-ui/svelte';
 import { createInitialStudioState, registerStudioIntentHandlers } from '@studio/client/state';
 import { STUDIO_SPOTLIGHT_STEPS } from '@studio/config';
@@ -20,7 +21,7 @@ function makeTrace(seq: number, kind: WireTraceRecord['kind'], origin: WireTrace
 
 describe('v0.0.12 ADHD-friendly global motion system (CALM_SLOW default)', () => {
 	test('defaults to CALM_SLOW tokens and updates CSS vars via UI_SET_MOTION_PROFILE', () => {
-		expect(VERSION).toBe('0.0.12');
+		expect(VERSION).toBe('0.1.0');
 		setActiveMotionProfile('CALM_SLOW');
 		setActiveMotionSensory({ ambientPulsesEnabled: true, signalFlowSpeed: 1, modalMorphEnabled: true, microDetentsEnabled: true });
 		const def = getActiveMotionSensory();
@@ -123,5 +124,21 @@ describe('v0.0.12 Modal Grow/Shrink state restoration, 2D Wire DAG & 42-tool MCP
 		expect(plan.actions[0]?.tool).toBe('ui_set_motion_profile');
 		expect(STUDIO_SPOTLIGHT_STEPS[3]?.targetIds[0]).toBe('hud-assistant-dock');
 		expect(STUDIO_SPOTLIGHT_STEPS[3]?.drillPrompt).toBe('Add Metric Card');
+	});
+
+	test('SSOT control surface, asymmetric drawer corridor, O(N) burst coalescing & MCP profile guard', async () => {
+		expect(resolveControlSurface('STRAIGHT', DEFAULT_CHAMFER_TUPLE, 0.375)).toEqual({ tuple: ['STRAIGHT', 'STRAIGHT', 'STRAIGHT', 'STRAIGHT'], cutRem: 0, cutPx: 0, surfaceStyle: '' });
+		expect(resolveControlSurface('ROUND', DEFAULT_CHAMFER_TUPLE, 0.375).surfaceStyle).toBe('border-radius: 0.375rem;');
+		expect(resolveControlSurface('CHAMFER', DEFAULT_CHAMFER_TUPLE, 0.375).surfaceStyle).toContain('clip-path: polygon(');
+		const closedCorr = computeSafeCorridorFromRects(1440, 900, true, [], 16, { leftOpen: false, leftFloating: false, rightOpen: false, rightFloating: false });
+		const openCorr = computeSafeCorridorFromRects(1440, 900, true, [], 16, { leftOpen: true, leftFloating: false, rightOpen: true, rightFloating: false });
+		expect(openCorr.leftPx).toBe(72); expect(openCorr.rightPx).toBe(72); expect(openCorr.stageFreeWidthPx).toBe(closedCorr.stageFreeWidthPx);
+		expect(clampStageCamera({ panX: 9999, panY: -9999, zoom: 9 })).toEqual({ panX: 600, panY: -400, zoom: 2.2 });
+		expect(clamp(5, 10, 20)).toBe(10);
+		const burst500 = Array.from({ length: 500 }, (_, i) => makeTrace(i + 1, 'UI_STAGE_PAN_ZOOM', 'USER', 2));
+		const coalesced = coalesceBurstTraces(burst500);
+		expect(coalesced.length).toBe(1); expect(coalesced[0]?.count).toBe(500); expect(coalesced[0]?.key).toBe(buildWireTraceKey(burst500[0]!));
+		const badProfile = await handleBuilderMcpRpc({ jsonrpc: '2.0', id: 1204, method: 'tools/call', params: { name: 'ui_set_motion_profile', arguments: { profile: 'BOGUS_MODE' } } });
+		expect(JSON.stringify(badProfile.result)).toContain('CALM_SLOW');
 	});
 });

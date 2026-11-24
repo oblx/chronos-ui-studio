@@ -1,15 +1,20 @@
 <script lang="ts">
-	import type {
-		AccessibilityPrefs, CornerKind, CssCursorState, CursorPackDefinition, EnvironmentCapabilityReport,
-		GamepadProfileId, HudZoneId, LayoutDensity, MotionConfig, RegisteredUiEntity, StudioDefaultsConfig, ThemePack,
-		UiNode, UiNodeTree, UiProjectDefinition, VoiceCaptureMode, WireTraceRecord
+	import { setContext } from 'svelte';
+	import {
+		MODAL_EXPANSION_CTX_KEY, type AccessibilityPrefs, type CornerKind, type CssCursorState,
+		type CursorPackDefinition, type EnvironmentCapabilityReport, type GamepadProfileId, type HudZoneId,
+		type LayoutDensity, type ModalExpansionBridge, type ModalGeometrySnapshot, type MotionConfig,
+		type RegisteredUiEntity, type StudioDefaultsConfig, type ThemePack, type UiNode, type UiNodeTree,
+		type UiProjectDefinition, type VoiceCaptureMode, type WireTraceRecord
 	} from '@chronos-ui/svelte';
 	import type { UiBlueprint } from '@studio/config';
 	import type { UiComponentPrototype } from '@studio/core/engine';
 	import type { AiProfileSummary, StationLayerConfig, StudioUser, ZoneEditPayload } from '../state';
 
 	interface Props {
-		activeModalId: string | null; helpTopic: string; cornerMode: CornerKind;
+		activeModalId: string | null; modalExpanded: boolean; modalRestoreSnapshot: ModalGeometrySnapshot | null;
+		onSetModalExpanded: (next: boolean, snapshot?: ModalGeometrySnapshot | null) => void;
+		helpTopic: string; cornerMode: CornerKind;
 		isLocked: boolean; remainingSeconds: number; progressRatio: number;
 		accessibility: AccessibilityPrefs; motionConfig: MotionConfig; studioDefaults: StudioDefaultsConfig;
 		envCapabilities: EnvironmentCapabilityReport | null; activeAdapterBadge: string; stationLayer: StationLayerConfig;
@@ -47,6 +52,11 @@
 	}
 
 	let p: Props = $props();
+	setContext<ModalExpansionBridge>(MODAL_EXPANSION_CTX_KEY, {
+		get isExpanded() { return p.modalExpanded; },
+		get restoreSnapshot() { return p.modalRestoreSnapshot; },
+		setExpanded(next, snap) { p.onSetModalExpanded(next, snap); }
+	});
 </script>
 
 {#if p.activeModalId === 'tome'}

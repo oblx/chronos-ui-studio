@@ -1,5 +1,5 @@
 import {
-	applyAccessibilityPrefs, applyThemeToRoot, findThemePack, generateUuidV7, HUD_METRICS,
+	applyAccessibilityPrefs, clamp, generateUuidV7, HUD_METRICS,
 	type HudZoneId, type SemanticInputAction, type UiComponentKind, type UiNode, type UiWireBroker
 } from '@chronos-ui/svelte';
 import { CAPABILITY_BITS, findStarterSample, SAMPLE_LOAD_CHOREOGRAPHY, sortNodesForChoreography } from '@studio/config';
@@ -8,20 +8,19 @@ import {
 	evaluateGovernanceGate, instantiateFromPrototype, nodeTreeToDocumentGraph, STUDIO_ROLE_MASKS,
 	type JsonPatchOp, type UiComponentPrototype
 } from '@studio/core/engine';
+import { resolveRootFontPx, syncThemeAndCursor } from './lifecycle';
 import { apiCommitRevision } from './studio.project.api';
 import type { StudioModalId, StudioState } from './studio.types';
 
-const clamp = (v: number, min: number, max: number): number => Math.max(min, Math.min(max, v));
 export interface ChoreographyEpochGuard { epoch: number; controller: AbortController | null; timers: ReturnType<typeof setTimeout>[]; }
 export function cancelChoreographyEpoch(guard: ChoreographyEpochGuard): number {
 	guard.epoch += 1; guard.controller?.abort(); guard.controller = null;
 	for (const t of guard.timers.splice(0)) clearTimeout(t);
 	return guard.epoch;
 }
-const getRootPx = (): number => typeof window !== 'undefined' ? (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) : 16;
 
 function moveAssistantDockState(s: StudioState, dxPx: number, dyPx: number, rect?: { left: number; top: number; width: number; height: number }): StudioState {
-	const rootPx = getRootPx();
+	const rootPx = resolveRootFontPx();
 	const vwRem = typeof window !== 'undefined' ? window.innerWidth / rootPx : 90;
 	const vhRem = typeof window !== 'undefined' ? window.innerHeight / rootPx : 56.25;
 	const panelWRem = rect ? rect.width / rootPx : HUD_METRICS.assistantWidthRem;
@@ -44,7 +43,7 @@ function registerAssistantDockHandlers(broker: UiWireBroker<StudioState>): void 
 		reduce: (s, env) => {
 			const expanded = env.payload.expanded ?? !s.assistantDock.expanded;
 			if (!expanded || s.assistantDock.mode !== 'FLOATING') return { ...s, assistantDock: { ...s.assistantDock, expanded } };
-			const yRem = Number(Math.min(s.assistantDock.yRem, Math.max(HUD_METRICS.viewportMarginRem, (typeof window !== 'undefined' ? window.innerHeight / getRootPx() : 56.25) - 20)).toFixed(3));
+			const yRem = Number(Math.min(s.assistantDock.yRem, Math.max(HUD_METRICS.viewportMarginRem, (typeof window !== 'undefined' ? window.innerHeight / resolveRootFontPx() : 56.25) - 20)).toFixed(3));
 			return { ...s, assistantDock: { ...s.assistantDock, expanded, yRem } };
 		}
 	});
@@ -95,7 +94,7 @@ function scheduleSampleAssembly(broker: UiWireBroker<StudioState>, sampleId: str
 		projects: s.projects.map((p) => (p.id === cur.id ? { ...p, themeId: sample.themeId, cornerMode: sample.cornerMode, nodes: reduced ? ordered : [] } : p))
 	}));
 	broker.dispatch('UI_LOAD_SAMPLE', { sampleId: sample.id, title: sample.title });
-	applyThemeToRoot(broker.state.themes.find((t) => t.id === sample.themeId) ?? findThemePack(sample.themeId));
+	syncThemeAndCursor(broker.state);
 	applyAccessibilityPrefs(broker.state.accessibility);
 	if (reduced) { void apiCommitRevision(cur.id, ordered, 'USER'); pushToast(`Loaded ${sample.title}`, 'success'); return; }
 	ordered.forEach((node, idx) => {
@@ -123,7 +122,7 @@ export function createV003Actions(broker: UiWireBroker<StudioState>, deps: { pus
 	};
 	const actionRoutes: Record<string, (a: SemanticInputAction) => void> = {
 		PAN_DELTA: (a) => broker.dispatch('UI_STAGE_PAN_ZOOM', { dx: a.dx ?? 0, dy: a.dy ?? 0 }),
-		ZOOM_IN: () => broker.dispatch('UI_STAGE_PAN_ZOOM', { dz: 0.12 }), ZOOM_OUT: () => broker.dispatch('UI_STAGE_PAN_ZOOM', { dz: -0.12 }),
+		ZOOM_IN: () => broker.dispatch('UI_STAGE_PAN_ZOOM', { dz: HUD_METRICS.buttonZoomStep }), ZOOM_OUT: () => broker.dispatch('UI_STAGE_PAN_ZOOM', { dz: -HUD_METRICS.buttonZoomStep }),
 		TAB_PREV: () => broker.dispatch('UI_UNDO_REVISION', {}), TAB_NEXT: () => broker.dispatch('UI_REDO_REVISION', {}),
 		FIT_CANVAS: () => broker.dispatch('UI_STAGE_PAN_ZOOM', { reset: true }), TOGGLE_HUD: () => broker.dispatch('UI_TOGGLE_STUDIO_CHROME', {}),
 		TOGGLE_ASSISTANT: () => broker.dispatch('UI_ASSISTANT_EXPAND', {}), OPEN_SETTINGS: () => deps.openModal('settings'),

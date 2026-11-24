@@ -12,7 +12,7 @@ import { classifySprintTimeBand, formatClockBanner, SPRINT_TIME_BANDS } from '@s
 
 describe('v0.0.9 25m clock guard & zero-screenshot qa:harness CLI', () => {
 	test('enforces 25m soft / 32m freeze / 38m hard stop and parses harness CLI flags cleanly', () => {
-		expect(VERSION).toBe('0.0.12');
+		expect(VERSION).toBe('0.1.0');
 		expect(SPRINT_TIME_BANDS.SOFT_TARGET_MIN).toBe(25);
 		expect(SPRINT_TIME_BANDS.FREEZE_SCOPE_MIN).toBe(32);
 		expect(SPRINT_TIME_BANDS.HARD_STOP_MIN).toBe(38);

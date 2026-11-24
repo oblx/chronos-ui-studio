@@ -64,10 +64,11 @@ export function encodeSvgCursorDataUrl(svg: string, palette?: ResolvedCursorPale
 	return `data:image/svg+xml,${encoded}`;
 }
 
+const CENTERED_CURSOR_STATES = new Set<CssCursorState>(['crosshair', 'cell']);
+
 export function buildVectorCursorDataUrl(state: CssCursorState, fill: string, stroke: string, accent: string): string {
 	const sz = CURSOR_LIMITS.normalizedPx;
-	const centered = state === 'crosshair' || state === 'cell';
-	const base = centered
+	const base = CENTERED_CURSOR_STATES.has(state)
 		? ''
 		: `<path d="${BASE_POINTER_PATH}" fill="${fill}" stroke="${stroke}" stroke-width="1.75" stroke-linejoin="miter"/>`;
 	const overlay = CURSOR_OVERLAY_MAP.get(state)?.(accent, stroke) ?? '';
@@ -78,7 +79,7 @@ export function buildVectorCursorDataUrl(state: CssCursorState, fill: string, st
 function buildPresetStates(fill: string, stroke: string, accent: string): Readonly<Record<CssCursorState, CursorStateAsset>> {
 	const out = {} as Record<CssCursorState, CursorStateAsset>;
 	for (const cssState of CSS_CURSOR_STATES) {
-		const isCenter = cssState === 'crosshair' || cssState === 'cell';
+		const isCenter = CENTERED_CURSOR_STATES.has(cssState);
 		out[cssState] = {
 			cssState,
 			assetDataUrl: buildVectorCursorDataUrl(cssState, fill, stroke, accent),
@@ -90,47 +91,19 @@ function buildPresetStates(fill: string, stroke: string, accent: string): Readon
 	return out;
 }
 
+function defineBuiltinCursorPack(uuid: string, slug: string, name: string, description: string, fill: string, stroke: string, accent: string): CursorPackDefinition {
+	return {
+		uuid, slug, name, description, isBuiltin: true,
+		baseHotspotX: CURSOR_LIMITS.defaultHotspotX, baseHotspotY: CURSOR_LIMITS.defaultHotspotY,
+		states: buildPresetStates(fill, stroke, accent)
+	};
+}
+
 export const BUILTIN_CURSOR_PACKS: readonly CursorPackDefinition[] = [
-	{
-		uuid: '01950000-0000-7000-8000-000000000c01',
-		slug: 'cyber-reticle',
-		name: 'Cyber Reticle',
-		description: 'Precision chamfered pointer with cyan tactical reticles across all 21 CSS UI Level 4 states.',
-		isBuiltin: true,
-		baseHotspotX: CURSOR_LIMITS.defaultHotspotX,
-		baseHotspotY: CURSOR_LIMITS.defaultHotspotY,
-		states: buildPresetStates('#0b1020', '#22d3ee', '#f59e0b')
-	},
-	{
-		uuid: '01950000-0000-7000-8000-000000000c02',
-		slug: 'archival-nib',
-		name: 'Archival Nib',
-		description: 'Warm ink-vellum stylus pointer crafted for bright reading and editorial suites.',
-		isBuiltin: true,
-		baseHotspotX: CURSOR_LIMITS.defaultHotspotX,
-		baseHotspotY: CURSOR_LIMITS.defaultHotspotY,
-		states: buildPresetStates('#faf7f0', '#1f2937', '#b45309')
-	},
-	{
-		uuid: '01950000-0000-7000-8000-000000000c03',
-		slug: 'tactical-brass',
-		name: 'Tactical Brass',
-		description: 'High-contrast amber and obsidian mechanical calipers for command consoles.',
-		isBuiltin: true,
-		baseHotspotX: CURSOR_LIMITS.defaultHotspotX,
-		baseHotspotY: CURSOR_LIMITS.defaultHotspotY,
-		states: buildPresetStates('#18181b', '#f59e0b', '#fbbf24')
-	},
-	{
-		uuid: '01950000-0000-7000-8000-000000000c04',
-		slug: 'minimal-precision',
-		name: 'Minimal Precision',
-		description: 'Razor-thin neutral geometric pointers with indigo focus accents.',
-		isBuiltin: true,
-		baseHotspotX: CURSOR_LIMITS.defaultHotspotX,
-		baseHotspotY: CURSOR_LIMITS.defaultHotspotY,
-		states: buildPresetStates('#ffffff', '#111827', '#6366f1')
-	}
+	defineBuiltinCursorPack('01950000-0000-7000-8000-000000000c01', 'cyber-reticle', 'Cyber Reticle', 'Precision chamfered pointer with cyan tactical reticles across all 21 CSS UI Level 4 states.', '#0b1020', '#22d3ee', '#f59e0b'),
+	defineBuiltinCursorPack('01950000-0000-7000-8000-000000000c02', 'archival-nib', 'Archival Nib', 'Warm ink-vellum stylus pointer crafted for bright reading and editorial suites.', '#faf7f0', '#1f2937', '#b45309'),
+	defineBuiltinCursorPack('01950000-0000-7000-8000-000000000c03', 'tactical-brass', 'Tactical Brass', 'High-contrast amber and obsidian mechanical calipers for command consoles.', '#18181b', '#f59e0b', '#fbbf24'),
+	defineBuiltinCursorPack('01950000-0000-7000-8000-000000000c04', 'minimal-precision', 'Minimal Precision', 'Razor-thin neutral geometric pointers with indigo focus accents.', '#ffffff', '#111827', '#6366f1')
 ] as const;
 
 export function findBuiltinCursorPack(idOrSlug: string): CursorPackDefinition | undefined {

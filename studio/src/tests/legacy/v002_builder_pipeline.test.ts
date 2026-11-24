@@ -3,15 +3,15 @@ import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { eq } from 'drizzle-orm';
-import { planLocalAssistantPrompt } from '../core';
-import { decryptSecret, encryptSecret, getStudioDb, uiProjectRevisions, uiProjects } from '../lib';
-import { getLiveMcpManifest, handleBuilderMcpRpc } from '../mcp';
+import { planLocalAssistantPrompt } from '@studio/core';
+import { decryptSecret, encryptSecret, getStudioDb, uiProjectRevisions, uiProjects } from '@studio/lib';
+import { getLiveMcpManifest, handleBuilderMcpRpc } from '@studio/mcp';
 import {
 	compileStaticClientBuild, emitProjectCssTokens, emitProjectJsonBundle, emitProjectSvelteScaffold,
 	emitProjectZipBundle, ingestCloudRemote, ingestGitRemote, ingestSshRemote, ingestZipArchive,
 	listInputConnectors, listOutputAdapters, packZipFiles, parseMermaidWireframe
-} from '../plugins';
-import { createStudioProject, loadProjectWithNodes } from '../server/routes/routes.projects';
+} from '@studio/plugins';
+import { createStudioProject, loadProjectWithNodes } from '@studio/server/routes/routes.projects';
 
 async function callMcpTool(name: string, args: Record<string, unknown>) {
 	const res = await handleBuilderMcpRpc({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } });

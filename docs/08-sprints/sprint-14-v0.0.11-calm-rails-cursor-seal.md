@@ -1,6 +1,6 @@
 # Sprint 14 Record — `@chronos-ui/svelte` `v0.0.11` (Pre-0.1.0 Stabilization Seal)
 
-Author: `Oblx <code@oblx.dev>` | Release Lock: `0.0.11` | Status: `ACTIVE_SEAL`
+Author: `Oblx <code@oblx.dev>` | Release Lock: `0.0.11` | Status: `SEALED (superseded by v0.0.12)`
 
 ## Bounded-Context Lineage (`v0.0.1` – `v0.0.10`)
 

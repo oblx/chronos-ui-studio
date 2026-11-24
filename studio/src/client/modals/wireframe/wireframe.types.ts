@@ -29,6 +29,26 @@ export const WIREFRAME_FILTERS: readonly { readonly id: WireframeFilterId; reado
 
 export const WIREFRAME_ZOOMS = [0.5, 0.75, 1] as const;
 
+export const ARTBOARD_SPEC = {
+	w: 1000,
+	h: 590,
+	tickStep: 100,
+	compactHeightPx: 52,
+	cellPadPx: 8,
+	minCellW: 88,
+	minCellH: 28,
+	maxCellH: 72,
+	zoomMin: 0.5,
+	zoomMax: 1.5,
+	zoomStep: 0.1
+} as const;
+
+const buildTicks = (max: number, step: number): readonly number[] =>
+	Array.from({ length: Math.floor(max / step) + 1 }, (_, i) => i * step);
+
+export const ARTBOARD_H_TICKS: readonly number[] = buildTicks(ARTBOARD_SPEC.w, ARTBOARD_SPEC.tickStep);
+export const ARTBOARD_V_TICKS: readonly number[] = buildTicks(ARTBOARD_SPEC.h, ARTBOARD_SPEC.tickStep);
+
 export interface ArtboardZoneBox {
 	readonly id: HudZoneId;
 	readonly label: string;

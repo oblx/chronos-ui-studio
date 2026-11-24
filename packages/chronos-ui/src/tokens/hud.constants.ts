@@ -1,4 +1,4 @@
-export const VERSION = '0.0.12' as const;
+export const VERSION = '0.1.0' as const;
 export const STUDIO_DEFAULTS_VERSION = 2 as const;
 
 export type HudZoneId =
@@ -43,12 +43,17 @@ export const HUD_METRICS = {
 	sampleStepMs: 75,
 	stickDeadzone: 0.18,
 	assistantWidthRem: 44,
+	assistantExpandedReserveRem: 21,
 	viewportMarginRem: 0.75,
 	countdownTickMs: 100,
 	refreshGraceMs: 3000,
 	toastAutoDismissMs: 3500,
 	probeCacheTtlMs: 15000,
 	sonarPingMs: 600,
+	glitterBurstMs: 2400,
+	wheelZoomStep: 0.06,
+	buttonZoomStep: 0.12,
+	perimeterGapPx: 8,
 	ringCapacity: 256,
 	maxToasts: 4
 } as const;
@@ -96,6 +101,10 @@ export const ORNAMENT_LIMITS = {
 
 export const ROOT_FONT_PX = 16;
 
+export function clamp(value: number, min: number, max: number): number {
+	return Math.max(min, Math.min(max, value));
+}
+
 export function remToPx(rem: number): number {
 	return Math.round(rem * ROOT_FONT_PX);
 }
@@ -106,7 +115,7 @@ export function pxToRem(px: number, digits = 3): number {
 
 export function clampControlCutPx(cutPx: number, heightPx: number, maxRatio = CONTROL_MAX_CUT_RATIO): number {
 	if (cutPx <= 0 || heightPx <= 0) return 0;
-	return Math.max(0, Math.min(cutPx, Math.floor(heightPx * maxRatio)));
+	return clamp(cutPx, 0, Math.floor(heightPx * maxRatio));
 }
 
 export const BILATERAL_ZONE_TWINS: Readonly<Partial<Record<HudZoneId, HudZoneId>>> = {
@@ -128,5 +137,7 @@ export const CURSOR_LIMITS = {
 export const STAGE_LIMITS = {
 	railOffsetPx: 140, floatMarginLeftPx: 24, floatMarginTopPx: 112,
 	floatPadRightPx: 360, floatPadBottomPx: 280, defaultMaxWidthPx: 1080,
-	defaultMaxHeightPx: 620, panMaxX: 600, panMaxY: 400, zoomMin: 0.45, zoomMax: 2.2
+	defaultMaxHeightPx: 620, panMaxX: 600, panMaxY: 400, zoomMin: 0.45, zoomMax: 2.2,
+	desktopMinPx: 768, railOccupiedPx: 72,
+	mobileEdgePx: 16, minFreeWidthPx: 280, freeWidthGutterPx: 32
 } as const;

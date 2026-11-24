@@ -5,6 +5,7 @@
 	} from '@chronos-ui/svelte';
 	import type { UiBlueprint } from '@studio/config';
 	import { computeBlueprintGrade } from '@studio/core';
+	import { ProjectLifecyclePod } from '../canvas';
 	import type { StudioUser } from '../state';
 
 	interface Props {
@@ -16,6 +17,7 @@
 		activeModalId: string | null;
 		glitterBurst: number;
 		isDirty?: boolean;
+		saveStatus?: 'SAVED' | 'DIRTY' | 'SAVING';
 		onSaveWorkspace?: () => void;
 		onResetDefaultView?: () => void;
 		onCleanWorkspace?: () => void;
@@ -58,19 +60,17 @@
 				<UiProgressGauge value={visibleZones} max={11} label="Perimeter Coverage" unitText={`${visibleZones}/11`} />
 				<div class="ui-font-mono flex items-center justify-between gap-1 text-[0.65rem]" style="color: var(--ui-muted-content);">
 					<span>v{VERSION}</span>
-					<div class="flex items-center gap-1">
-						{#if props.onSaveWorkspace}
-							<UiChamferButton cornerMode={props.cornerMode} icon="save" variant={props.isDirty ? 'secondary' : 'ghost'} onclick={props.onSaveWorkspace} testId="hud-save-btn" className="px-1.5 py-0.5 text-[0.62rem]">
-								<span>Save</span>
-								<span class="inline-flex h-1.5 w-1.5 shrink-0 items-center justify-center">
-									{#if props.isDirty}<span class="inline-block h-1.5 w-1.5 rounded-full" style="background-color: var(--ui-accent-vivid, var(--ui-primary));"></span>{/if}
-								</span>
-							</UiChamferButton>
-						{/if}
-						{#if props.onCleanWorkspace}
-							<UiChamferButton cornerMode={props.cornerMode} icon="reset" label="Clean" variant="ghost" onclick={props.onCleanWorkspace} testId="hud-clean-btn" className="px-1.5 py-0.5 text-[0.62rem]" />
-						{/if}
-					</div>
+					{#if props.onSaveWorkspace && props.onResetDefaultView && props.onCleanWorkspace}
+						<ProjectLifecyclePod
+							cornerMode={props.cornerMode}
+							isDirty={Boolean(props.isDirty)}
+							saveStatus={props.saveStatus ?? 'SAVED'}
+							compact={true}
+							onSaveWorkspace={props.onSaveWorkspace}
+							onResetDefaultView={props.onResetDefaultView}
+							onCleanWorkspace={props.onCleanWorkspace}
+						/>
+					{/if}
 				</div>
 			</div>
 		</UiChamferFrame>

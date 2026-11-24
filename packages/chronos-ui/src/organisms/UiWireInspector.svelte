@@ -2,7 +2,7 @@
 	import { UiBadge, UiChamferButton } from '../atoms';
 	import type { CornerKind } from '../tokens';
 	import type { WireSpine, WireTraceRecord } from '../wire';
-	import { coalesceBurstTraces, filterTracesByDagNode, UiWireDagGraph } from './wire-observatory';
+	import { buildWireTraceKey, coalesceBurstTraces, filterTracesByDagNode, UiWireDagGraph } from './wire-observatory';
 
 	interface Props {
 		traces: readonly WireTraceRecord[];
@@ -32,7 +32,7 @@
 			.reverse();
 	});
 	let bursts = $derived(coalesceBurstTraces(filtered));
-	let activeTrace = $derived(filtered.find((r) => `${r.spine}-${r.seq}-${r.envelopeId}` === selectedTraceId) ?? null);
+	let activeTrace = $derived(filtered.find((r) => buildWireTraceKey(r) === selectedTraceId) ?? null);
 
 	function togglePause(): void {
 		if (!paused) frozenTraces = [...traces];
@@ -125,7 +125,7 @@
 								<td class="px-2 py-1.5"><UiBadge text={row.ok ? 'OK' : 'REJECT'} tone={row.ok ? 'success' : 'error'} /></td>
 							</tr>
 							{#if burst.count > 1 && expandedBurstKeys.has(burst.key)}
-								{#each burst.rows as sub (`${sub.spine}-${sub.seq}-${sub.envelopeId}`)}
+								{#each burst.rows as sub (buildWireTraceKey(sub))}
 									<tr style="border-top: 1px dashed var(--ui-border-subtle); background-color: var(--ui-base-100);">
 										<td class="ui-font-mono px-2 py-1 pl-5 text-[0.65rem]" style="color: var(--ui-muted-content);">{sub.seq}</td>
 										<td colspan="3" class="ui-font-mono px-2 py-1 text-[0.65rem]" style="color: var(--ui-muted-content);">{sub.summary}</td>

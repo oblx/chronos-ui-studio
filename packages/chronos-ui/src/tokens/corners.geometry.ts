@@ -111,3 +111,27 @@ export function buildCornerCarets(w: number, h: number, cut: number, tuple: Corn
 		return { points: `${bx + sx * s},${y} ${bx},${y} ${x},${by} ${x},${by + sy * s}` };
 	});
 }
+
+export interface ControlSurfaceGeometry {
+	readonly tuple: CornerTuple;
+	readonly cutRem: number;
+	readonly cutPx: number;
+	readonly surfaceStyle: string;
+}
+
+export function resolveControlSurface(
+	cornerMode: CornerKind,
+	corners: CornerTuple,
+	resolvedCutRem: number,
+	rootFontPx = 16
+): ControlSurfaceGeometry {
+	const tuple = resolveCornerTuple(corners, cornerMode);
+	const cutRem = cornerMode === 'STRAIGHT' ? 0 : Math.max(0, resolvedCutRem);
+	const cutPx = Math.round(cutRem * rootFontPx);
+	const surfaceStyle = cornerMode === 'CHAMFER'
+		? `clip-path: ${buildClipPathPolygon(cutRem, tuple)};`
+		: cornerMode === 'ROUND'
+			? `border-radius: ${cutRem}rem;`
+			: '';
+	return { tuple, cutRem, cutPx, surfaceStyle };
+}

@@ -6,14 +6,14 @@ import {
 import { existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { CAPABILITY_BITS, findStarterSample, STARTER_SAMPLE_PROJECTS } from '../config';
+import { CAPABILITY_BITS, findStarterSample, STARTER_SAMPLE_PROJECTS } from '@studio/config';
 import {
 	applyJsonPatchWithInverse, DEFAULT_BUILD_CONFIG, derivePrototypeFromNode, documentGraphToNodeTree,
 	evaluateGovernanceGate, instantiateFromPrototype, nodeTreeToDocumentGraph,
 	planLocalAssistantPrompt, STUDIO_ROLE_MASKS, STUDIO_TOOL_REGISTRY
-} from '../core';
-import { handleBuilderMcpRpc } from '../mcp';
-import { compileStaticClientBuild } from '../plugins';
+} from '@studio/core';
+import { handleBuilderMcpRpc } from '@studio/mcp';
+import { compileStaticClientBuild } from '@studio/plugins';
 
 describe('v0.0.3 RFC 6902 patcher, normalized graph & governance gate', () => {
 	test('RFC 6902 forward and inverse patches roundtrip identically across all 6 ops', () => {

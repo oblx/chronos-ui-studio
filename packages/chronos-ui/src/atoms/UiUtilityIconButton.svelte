@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { getActiveStudioDefaults, subscribeMotionState } from '../motion';
+	import { createControlCornerRef } from '../motion';
 	import {
-		buildClipPathPolygon, clampControlCutRem, CONTROL_MAX_CUT_RATIO, DEFAULT_CHAMFER_TUPLE, remToPx,
-		resolveCornerTuple, type CornerKind, type CornerTuple, type UiIconName
+		clampControlCutRem, CONTROL_MAX_CUT_RATIO, DEFAULT_CHAMFER_TUPLE, HUD_METRICS, resolveControlSurface,
+		type CornerKind, type CornerTuple, type UiIconName
 	} from '../tokens';
 	import UiIcon from './UiIcon.svelte';
 	import UiVectorBorder from './UiVectorBorder.svelte';
@@ -21,43 +21,24 @@
 	}
 
 	let {
-		icon,
-		label,
-		tip,
-		testId,
-		active = false,
-		glitterBurst = 0,
-		corners = DEFAULT_CHAMFER_TUPLE,
-		cornerMode = 'CHAMFER',
-		onclick,
-		className = ''
+		icon, label, tip, testId, active = false, glitterBurst = 0,
+		corners = DEFAULT_CHAMFER_TUPLE, cornerMode = 'CHAMFER', onclick, className = ''
 	}: Props = $props();
 
 	let showGlitter = $state(false);
 	let lastBurst = 0;
-	let controlCutRem = $state(getActiveStudioDefaults().controlCornerCutRem);
-
-	$effect(() => subscribeMotionState(() => { controlCutRem = getActiveStudioDefaults().controlCornerCutRem; }));
+	const cornerRef = createControlCornerRef();
 
 	$effect(() => {
 		if (glitterBurst > lastBurst) {
 			lastBurst = glitterBurst;
 			showGlitter = true;
-			const timer = setTimeout(() => {
-				showGlitter = false;
-			}, 2400);
+			const timer = setTimeout(() => { showGlitter = false; }, HUD_METRICS.glitterBurstMs);
 			return () => clearTimeout(timer);
 		}
 	});
 
-	let tuple = $derived(resolveCornerTuple(corners, cornerMode));
-	let cutRem = $derived(cornerMode === 'STRAIGHT' ? 0 : clampControlCutRem(controlCutRem));
-	let cutPx = $derived(remToPx(cutRem));
-	let surfaceStyle = $derived(
-		cornerMode === 'ROUND'
-			? `border-radius: ${cutRem}rem;`
-			: `clip-path: ${buildClipPathPolygon(cutRem, tuple)};`
-	);
+	let surface = $derived(resolveControlSurface(cornerMode, corners, clampControlCutRem(cornerRef.cutRem)));
 	let strokeVar = $derived(active ? 'var(--ui-accent)' : 'var(--ui-border-subtle)');
 </script>
 
@@ -67,7 +48,7 @@
 	aria-pressed={active}
 	data-testid={testId}
 	data-corner-mode={cornerMode}
-	data-corner-cut-rem={cutRem}
+	data-corner-cut-rem={surface.cutRem}
 	data-ui-tip={tip ?? label}
 	data-ui-interactive="true"
 	data-ui-cursor="pointer"
@@ -75,12 +56,8 @@
 	class="ui-dur-micro ui-detent group relative inline-flex h-8 w-8 shrink-0 items-center justify-center transition-all {className}"
 	style="color: {active ? 'var(--ui-accent)' : 'var(--ui-muted-content)'}; opacity: {active ? '1' : '0.82'}; background: transparent; border: none;"
 >
-	<span
-		aria-hidden="true"
-		class="pointer-events-none absolute inset-0 z-0"
-		style="{surfaceStyle} background-color: {active ? 'var(--ui-base-300)' : 'transparent'};"
-	></span>
-	<UiVectorBorder {corners} {cornerMode} {cutPx} maxCutRatio={CONTROL_MAX_CUT_RATIO} {strokeVar} />
+	<span aria-hidden="true" class="pointer-events-none absolute inset-0 z-0" style="{surface.surfaceStyle} background-color: {active ? 'var(--ui-base-300)' : 'transparent'};"></span>
+	<UiVectorBorder {corners} {cornerMode} cutPx={surface.cutPx} maxCutRatio={CONTROL_MAX_CUT_RATIO} {strokeVar} />
 	<span class="ui-dur-micro relative z-10 transition-transform group-hover:scale-105 group-hover:opacity-100" style="color: inherit;">
 		<UiIcon name={icon} sizeRem={1} />
 	</span>

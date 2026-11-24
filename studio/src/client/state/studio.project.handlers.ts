@@ -1,8 +1,6 @@
-import {
-	applyCursorPackToDocument, applySafeCorridorCssVars, applyThemeToRoot, computeSafeCorridor, DEFAULT_VIEWPORT,
-	findThemePack, resetCursorPackOnDocument, resolveThemeCursorPalette, type UiNode, type UiNodeTree, type UiWireBroker
-} from '@chronos-ui/svelte';
+import type { UiNode, UiNodeTree, UiWireBroker } from '@chronos-ui/svelte';
 import { patchNodeInTreeByUuid } from '@studio/core/engine';
+import { syncCorridorForState, syncThemeAndCursor } from './lifecycle';
 import { apiCommitRevision } from './studio.project.api';
 import type { StudioState } from './studio.types';
 
@@ -119,12 +117,7 @@ export function registerProjectHandlers(broker: UiWireBroker<StudioState>): void
 			const cleaned = s.projects.map((p) => (p.id === s.activeProjectId ? { ...p, nodes: p.nodes.filter((n) => n.lifecycle === 'COMMITTED') } : p));
 			return { ...s, projects: cleaned, activeProjectId: target.id, activeThemeId: target.themeId, activeCursorPackId: target.activeCursorPackId ?? null, projectPersistence: { isDirty: false, lastSavedAt: target.updatedAt, autoSave: false, status: 'SAVED' }, selectedNodeId: null, undoStack: [], redoStack: [] };
 		},
-		effect: (s) => {
-			const theme = s.themes.find((t) => t.id === s.activeThemeId) ?? findThemePack(s.activeThemeId);
-			applyThemeToRoot(theme);
-			const pack = s.activeCursorPackId ? s.cursorPacks.find((c) => c.uuid === s.activeCursorPackId || c.slug === s.activeCursorPackId) : null;
-			if (pack) applyCursorPackToDocument(pack, resolveThemeCursorPalette(theme)); else resetCursorPackOnDocument();
-		},
+		effect: (s) => syncThemeAndCursor(s, true),
 		summarize: (env) => `Switched project -> ${env.payload.projectId}`
 	});
 	broker.register<{ nodeId: string | null }>('UI_SELECT_NODE', {
@@ -136,7 +129,7 @@ export function registerProjectHandlers(broker: UiWireBroker<StudioState>): void
 	broker.register<{ visible?: boolean }>('UI_TOGGLE_STUDIO_CHROME', {
 		tier: 'TIER_0_LOCAL_UI',
 		reduce: (s, env) => ({ ...s, studioChromeVisible: env.payload.visible ?? !s.studioChromeVisible }),
-		effect: (s) => applySafeCorridorCssVars(computeSafeCorridor(s.studioChromeVisible, typeof window !== 'undefined' ? window.innerWidth : DEFAULT_VIEWPORT.width, typeof window !== 'undefined' ? window.innerHeight : DEFAULT_VIEWPORT.height)),
+		effect: syncCorridorForState,
 		summarize: () => 'Toggled Studio meta-chrome'
 	});
 }

@@ -36,7 +36,8 @@
 	--ui-focus-ring: 2px solid var(--ui-accent-vivid, var(--ui-accent));
 	--ui-backdrop-radial: radial-gradient(circle at center, color-mix(in srgb, var(--ui-base-100) 68%, transparent), color-mix(in srgb, var(--ui-base-100) 90%, transparent));
 	--ui-stage-free-w: 46rem;
-	--ui-studio-toggle-anchor: 0px;
+	--ui-center-corridor-end: calc(var(--ui-side-track-w) + var(--ui-perimeter-gutter) * 2);
+	--ui-studio-toggle-anchor: var(--ui-center-corridor-end);
 	font-size: calc(100% * var(--ui-font-scale, 1));
 }
 :root[data-ui-contrast="aaa"] { --ui-hairline: 2px; --ui-border-subtle: var(--ui-base-content); }
@@ -113,4 +114,4 @@ button:focus-visible, [tabindex]:focus-visible, input:focus-visible, select:focu
 .ui-virtual-row { contain: layout style; content-visibility: auto; contain-intrinsic-size: auto 2rem; }
 @keyframes ui-dag-arc-flow { 0% { stroke-dashoffset: 24; } 100% { stroke-dashoffset: 0; } }
 .ui-dag-arc { stroke-dasharray: 5 3; animation: ui-dag-arc-flow var(--ui-dur-ambient) linear infinite; }
-.ui-modal-morph { transition: width var(--ui-dur-morph) var(--ui-ease-calm), max-width var(--ui-dur-morph) var(--ui-ease-calm), height var(--ui-dur-morph) var(--ui-ease-calm), max-height var(--ui-dur-morph) var(--ui-ease-calm); }
+.ui-modal-morph { will-change: transform; }

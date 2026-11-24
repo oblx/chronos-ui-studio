@@ -113,31 +113,23 @@ export function computeDagNodeStats(traces: readonly WireTraceRecord[], hasBit28
 	return out;
 }
 
+export const buildWireTraceKey = (row: WireTraceRecord): string => `${row.spine}-${row.seq}-${row.envelopeId}`;
+
 export function coalesceBurstTraces(traces: readonly WireTraceRecord[]): readonly CoalescedWireBurst[] {
-	const out: CoalescedWireBurst[] = [];
+	const groups: { key: string; representative: WireTraceRecord; totalMs: number; rows: WireTraceRecord[] }[] = [];
 	for (const row of traces) {
-		const prev = out[out.length - 1];
+		const prev = groups[groups.length - 1];
 		if (prev && prev.representative.kind === row.kind && prev.representative.spine === row.spine && prev.representative.ok === row.ok) {
-			const rows = [...prev.rows, row];
-			const totalMs = rows.reduce((sum, r) => sum + r.stageMs, 0);
-			out[out.length - 1] = { ...prev, count: rows.length, avgMs: Number((totalMs / rows.length).toFixed(2)), rows };
+			prev.rows.push(row); prev.totalMs += row.stageMs;
 		} else {
-			out.push({ key: `${row.spine}-${row.seq}-${row.envelopeId}`, representative: row, count: 1, avgMs: Number(row.stageMs.toFixed(2)), rows: [row] });
+			groups.push({ key: buildWireTraceKey(row), representative: row, totalMs: row.stageMs, rows: [row] });
 		}
 	}
-	return out;
+	return groups.map((g) => ({ key: g.key, representative: g.representative, count: g.rows.length, avgMs: Number((g.totalMs / g.rows.length).toFixed(2)), rows: g.rows }));
 }
 
 export function buildBezierEdgePath(from: WireDagNodeDef, to: WireDagNodeDef): string {
-	const sameCol = from.column === to.column;
-	if (sameCol) {
-		const x = from.x + from.w * 0.5;
-		return `M ${x} ${from.y + from.h} L ${x} ${to.y}`;
-	}
-	const x1 = from.x + from.w;
-	const y1 = from.y + from.h * 0.5;
-	const x2 = to.x;
-	const y2 = to.y + to.h * 0.5;
-	const cx = (x1 + x2) * 0.5;
+	if (from.column === to.column) { const x = from.x + from.w * 0.5; return `M ${x} ${from.y + from.h} L ${x} ${to.y}`; }
+	const x1 = from.x + from.w, y1 = from.y + from.h * 0.5, x2 = to.x, y2 = to.y + to.h * 0.5, cx = (x1 + x2) * 0.5;
 	return `M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}`;
 }

@@ -6,6 +6,7 @@ import { buildWireframeSkeleton, patchNodeInTreeByUuid } from '@studio/core';
 import { getStudioDb, uiEntities } from '@studio/lib';
 import { compileFullstackBundle } from '@studio/plugins';
 import { commitProjectRevision, loadProjectWithNodes } from '@studio/server/routes/routes.projects';
+import { resolveMcpProject } from './mcp.project.tools';
 
 export type EntityMcpToolFn = (args: Record<string, unknown>) => Promise<unknown>;
 
@@ -19,9 +20,7 @@ function patchNodeFlag(nodes: readonly UiNode[], nodeId: string, updater: (node:
 }
 
 async function toolListEntities(args: Record<string, unknown>) {
-	const projectKey = String(args.projectId ?? args.slug ?? 'proj-genesis');
-	const project = await loadProjectWithNodes(projectKey);
-	if (!project) throw new Error(`Project not found: ${projectKey}`);
+	const project = await resolveMcpProject(args);
 	const db = await getStudioDb();
 	let rows = await db.select().from(uiEntities).where(eq(uiEntities.projectUuid, project.id));
 	if (typeof args.zoneId === 'string') rows = rows.filter((r) => r.zoneId === args.zoneId);
@@ -59,16 +58,11 @@ async function toolPatchEntity(args: Record<string, unknown>) {
 }
 
 async function toolGetWireframeSkeleton(args: Record<string, unknown>) {
-	const projectKey = String(args.projectId ?? args.slug ?? 'proj-genesis');
-	const project = await loadProjectWithNodes(projectKey);
-	if (!project) throw new Error(`Project not found: ${projectKey}`);
-	return buildWireframeSkeleton(project);
+	return buildWireframeSkeleton(await resolveMcpProject(args));
 }
 
 async function toolToggleEntityLock(args: Record<string, unknown>) {
-	const key = String(args.projectId ?? 'proj-genesis');
-	const project = await loadProjectWithNodes(key);
-	if (!project) throw new Error(`Project not found: ${key}`);
+	const project = await resolveMcpProject(args);
 	const { next, matched } = patchNodeFlag(project.nodes, String(args.nodeId ?? ''), (n) => ({ ...n, locked: typeof args.locked === 'boolean' ? args.locked : !(n.locked ?? false) }));
 	if (!matched) throw new Error(`Entity not found: ${String(args.nodeId ?? '')}`);
 	const res = await commitProjectRevision(project.id, next, 'MCP_LOCK_TOGGLE');
@@ -76,9 +70,7 @@ async function toolToggleEntityLock(args: Record<string, unknown>) {
 }
 
 async function toolToggleEntityVisibility(args: Record<string, unknown>) {
-	const key = String(args.projectId ?? 'proj-genesis');
-	const project = await loadProjectWithNodes(key);
-	if (!project) throw new Error(`Project not found: ${key}`);
+	const project = await resolveMcpProject(args);
 	const { next, matched } = patchNodeFlag(project.nodes, String(args.nodeId ?? ''), (n) => ({ ...n, visible: typeof args.visible === 'boolean' ? args.visible : !(n.visible !== false) }));
 	if (!matched) throw new Error(`Entity not found: ${String(args.nodeId ?? '')}`);
 	const res = await commitProjectRevision(project.id, next, 'MCP_VISIBILITY_TOGGLE');
@@ -86,9 +78,7 @@ async function toolToggleEntityVisibility(args: Record<string, unknown>) {
 }
 
 async function toolExportFullstackBundle(args: Record<string, unknown>) {
-	const key = String(args.projectId ?? 'proj-genesis');
-	const project = await loadProjectWithNodes(key);
-	if (!project) throw new Error(`Project not found: ${key}`);
+	const project = await resolveMcpProject(args);
 	const workDir = typeof args.outDir === 'string' && args.outDir.trim() ? args.outDir.trim() : join(tmpdir(), `chronos-mcp-fullstack-${project.slug}-${Date.now().toString(36)}`);
 	const bundle = await compileFullstackBundle({ project, workDir, emitZip: Boolean(args.emitZip) });
 	return { summary: `compiled ${bundle.files.length} full-stack files`, bundle: { adapterId: bundle.adapterId, outDir: bundle.outDir, clientDir: bundle.clientDir, serverDir: bundle.serverDir, files: bundle.files, checksum: bundle.checksum } };

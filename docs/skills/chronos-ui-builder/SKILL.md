@@ -19,7 +19,7 @@ Compose sovereign Svelte 5 Runes interfaces inside `studio/src/client/` using pr
 2. **Humble Svelte Views**: `.svelte` views perform zero `fetch()`, storage I/O, or domain math; dispatch typed `DagEnvelope` intents through `createUiWireBroker`.
 3. **3-Tier Parametric Geometry**: Assign `cutTier="station"` (`0.75rem`) to perimeter pods & modals, default `0.5rem` to base frames, and `0.3125rem` (`CONTROL_MAX_CUT_RATIO = 0.28`) to compact buttons, icon triggers, badges, inputs, and selects.
 4. **14 Contour-Locked Shapes & 5x3 Embellishments**: Plot all `9` `CORNER_EMBELLISHMENTS` (`+DIAMOND`, `DOUBLE_LINE`, `CROSSHAIR`) on `anchorVertices` or concentric `ROUND` `A` arcs, and pair `6` `CORNER_ANIMATIONS` (`+ORBIT_TRACE`, `SCAN_GLINT` on `pathLength="100"` perimeter trace).
-5. **High-Scale Indexing & Spatial Constancy**: Use O(1) indexed `createUiEntityRegistry`, batched `dispatchBatch`, dynamic `--ui-stage-free-w` drawer-safe stage corridors, and reciprocal `Studio HUD <-> Calm View` alignment.
+5. **High-Scale Indexing & Spatial Constancy**: Use O(1) indexed `createUiEntityRegistry`, batched `dispatchBatch`, invariant `--ui-safe-left`/`--ui-safe-right` (`72px` desktop) overlay-only `UiEdgeDrawer` panels (`0px` workspace width shift), and reciprocal `Studio HUD <-> Calm View` alignment.
 
 ## Workspace Workflow
 

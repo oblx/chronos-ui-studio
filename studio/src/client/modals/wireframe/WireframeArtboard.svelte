@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { buildShapeGeometry, type CornerKind, type HudZoneId, type RegisteredUiEntity } from '@chronos-ui/svelte';
-	import { ARTBOARD_ZONES, type WireframeToolId } from './wireframe.types';
+	import { buildShapeGeometry, clamp, type CornerKind, type HudZoneId, type RegisteredUiEntity } from '@chronos-ui/svelte';
+	import { ARTBOARD_H_TICKS, ARTBOARD_SPEC, ARTBOARD_V_TICKS, ARTBOARD_ZONES, type WireframeToolId } from './wireframe.types';
 
 	interface Props {
 		cornerMode: CornerKind; entities: readonly RegisteredUiEntity[]; selectedUuid: string | null; hoveredUuid: string | null;
@@ -30,11 +30,11 @@
 		const out: PlacedNode[] = [];
 		for (const z of ARTBOARD_ZONES) {
 			const list = byZone.get(z.id) ?? [];
-			const cols = z.id === 'WORLD_CANVAS' ? Math.max(2, Math.min(3, Math.ceil(Math.sqrt(list.length)))) : Math.max(1, Math.min(2, list.length));
+			const cols = z.id === 'WORLD_CANVAS' ? clamp(Math.ceil(Math.sqrt(list.length)), 2, 3) : clamp(list.length, 1, 2);
 			const rows = Math.max(1, Math.ceil(list.length / cols));
-			const pad = 8;
-			const cellW = Math.max(88, (z.w - pad * (cols + 1)) / cols);
-			const cellH = Math.max(28, Math.min(72, (z.h - 22 - pad * rows) / rows));
+			const pad = ARTBOARD_SPEC.cellPadPx;
+			const cellW = Math.max(ARTBOARD_SPEC.minCellW, (z.w - pad * (cols + 1)) / cols);
+			const cellH = clamp((z.h - 22 - pad * rows) / rows, ARTBOARD_SPEC.minCellH, ARTBOARD_SPEC.maxCellH);
 			list.forEach((ent, i) => {
 				const c = i % cols; const r = Math.floor(i / cols);
 				out.push({ ent, x: z.x + pad + c * (cellW + pad), y: z.y + 18 + r * (cellH + pad), w: cellW, h: cellH });
@@ -60,20 +60,17 @@
 		return arcs;
 	});
 
-	const H_TICKS = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000] as const;
-	const V_TICKS = [0, 100, 200, 300, 400, 500] as const;
-
 	function updatePointer(e: PointerEvent): void {
 		if (!svgEl) return;
 		const r = svgEl.getBoundingClientRect();
 		if (r.width <= 0 || r.height <= 0) return;
-		const sx = Math.max(0, Math.min(1000, Math.round(((e.clientX - r.left) / r.width) * 1000)));
-		const sy = Math.max(0, Math.min(590, Math.round(((e.clientY - r.top) / r.height) * 590)));
+		const sx = clamp(Math.round(((e.clientX - r.left) / r.width) * ARTBOARD_SPEC.w), 0, ARTBOARD_SPEC.w);
+		const sy = clamp(Math.round(((e.clientY - r.top) / r.height) * ARTBOARD_SPEC.h), 0, ARTBOARD_SPEC.h);
 		pointerSvg = { x: sx, y: sy };
 	}
 	function handlePointerDown(e: PointerEvent): void { if (p.activeTool === 'PAN') { dragging = true; lastX = e.clientX; lastY = e.clientY; } }
 	function handlePointerMove(e: PointerEvent): void { updatePointer(e); if (!dragging) return; p.onPanDelta(e.clientX - lastX, e.clientY - lastY); lastX = e.clientX; lastY = e.clientY; }
-	function handleWheel(e: WheelEvent): void { e.preventDefault(); p.onZoomWheel(e.deltaY < 0 ? 0.1 : -0.1); }
+	function handleWheel(e: WheelEvent): void { e.preventDefault(); p.onZoomWheel(e.deltaY < 0 ? ARTBOARD_SPEC.zoomStep : -ARTBOARD_SPEC.zoomStep); }
 </script>
 
 <div role="region" aria-label="Interactive Skeleton Artboard" data-testid="wf-artboard" onpointerdown={handlePointerDown} onpointermove={handlePointerMove} onpointerup={() => { dragging = false; }} onpointerleave={() => { dragging = false; pointerSvg = null; }} onwheel={handleWheel}
@@ -82,20 +79,20 @@
 	<div class="flex h-[1.25rem] shrink-0 border-b" style="background-color: var(--ui-base-200); border-color: var(--ui-border-subtle);" data-testid="wf-ruler-top">
 		<div class="w-[1.25rem] shrink-0 border-r" style="border-color: var(--ui-border-subtle);"></div>
 		<div class="ui-font-mono relative flex flex-1 items-center justify-between px-2 text-[0.55rem]" style="color: var(--ui-muted-content);">
-			{#each H_TICKS as t (t)}<span>{t}</span>{/each}
-			{#if pointerSvg}<span class="pointer-events-none absolute top-0 bottom-0 w-px" style="left: {(pointerSvg.x / 1000) * 100}%; background-color: var(--ui-accent-vivid, var(--ui-primary));"></span>{/if}
+			{#each ARTBOARD_H_TICKS as t (t)}<span>{t}</span>{/each}
+			{#if pointerSvg}<span class="pointer-events-none absolute top-0 bottom-0 w-px" style="left: {(pointerSvg.x / ARTBOARD_SPEC.w) * 100}%; background-color: var(--ui-accent-vivid, var(--ui-primary));"></span>{/if}
 		</div>
 	</div>
 	<div class="relative flex min-h-0 flex-1">
 		<div class="ui-font-mono relative flex w-[1.25rem] shrink-0 flex-col justify-between border-r py-2 text-center text-[0.52rem]" style="background-color: var(--ui-base-200); border-color: var(--ui-border-subtle); color: var(--ui-muted-content);" data-testid="wf-ruler-left">
-			{#each V_TICKS as t (t)}<span>{t}</span>{/each}
-			{#if pointerSvg}<span class="pointer-events-none absolute right-0 left-0 h-px" style="top: {(pointerSvg.y / 590) * 100}%; background-color: var(--ui-accent-vivid, var(--ui-primary));"></span>{/if}
+			{#each ARTBOARD_V_TICKS as t (t)}<span>{t}</span>{/each}
+			{#if pointerSvg}<span class="pointer-events-none absolute right-0 left-0 h-px" style="top: {(pointerSvg.y / ARTBOARD_SPEC.h) * 100}%; background-color: var(--ui-accent-vivid, var(--ui-primary));"></span>{/if}
 		</div>
 		<div class="relative flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden p-2">
 			<div class="ui-font-mono pointer-events-none absolute top-1.5 right-2 z-10 border px-1.5 py-0.5 text-[0.6rem]" data-testid="wf-crosshair-badge" style="background-color: var(--ui-base-200); border-color: var(--ui-border-subtle); color: var(--ui-base-content);">
 				X:{pointerSvg?.x ?? Math.round(selectedPlaced?.x ?? 0)} Y:{pointerSvg?.y ?? Math.round(selectedPlaced?.y ?? 0)} · {Math.round(selectedPlaced?.w ?? 0)}x{Math.round(selectedPlaced?.h ?? 0)}
 			</div>
-			<svg bind:this={svgEl} viewBox="0 0 1000 590" width="1000" height="590" class="ui-dur-micro h-full max-h-full w-full max-w-full transition-transform" style="transform: translate3d({p.panX}px, {p.panY}px, 0) scale({p.zoom}); transform-origin: center;">
+			<svg bind:this={svgEl} viewBox={`0 0 ${ARTBOARD_SPEC.w} ${ARTBOARD_SPEC.h}`} width={ARTBOARD_SPEC.w} height={ARTBOARD_SPEC.h} class="ui-dur-micro h-full max-h-full w-full max-w-full transition-transform" style="transform: translate3d({p.panX}px, {p.panY}px, 0) scale({p.zoom}); transform-origin: center;">
 				<defs>
 					<marker id="wf-arc-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
 						<path d="M 0 1 L 10 5 L 0 9 z" fill="var(--ui-accent-vivid, var(--ui-primary))" />
@@ -123,7 +120,7 @@
 				{#each placed as item (item.ent.uuid)}
 					{@const isSel = item.ent.uuid === p.selectedUuid}
 					{@const isHov = item.ent.uuid === p.hoveredUuid}
-					{@const compact = item.h < 52}
+					{@const compact = item.h < ARTBOARD_SPEC.compactHeightPx}
 					{@const geom = buildShapeGeometry(item.ent.shape, item.w, item.h, p.cornerMode === 'STRAIGHT' ? 0 : 8, item.ent.corners)}
 					{@const meta = `${item.ent.shortId} · ${item.ent.shape}`}
 					<g transform="translate({item.x}, {item.y})" opacity={item.ent.visible ? 1 : 0.32} role="button" tabindex="0" aria-label={`Select entity ${item.ent.label}`} data-testid={`wf-node-${item.ent.shortId}`} data-compact={compact ? 'true' : 'false'} onclick={(e) => { e.stopPropagation(); p.onSelectEntity(item.ent.uuid); }} onkeydown={(e) => { if (e.key === 'Enter') p.onSelectEntity(item.ent.uuid); }} onmouseenter={() => p.onHoverEntity(item.ent.uuid)} onmouseleave={() => p.onHoverEntity(null)}>

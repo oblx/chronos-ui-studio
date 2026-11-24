@@ -11,7 +11,7 @@ import { createStudioProject } from '@studio/server/routes/routes.projects';
 
 describe('v0.0.11 concrete-hex 21-state cursor CSS engine (zero OS fallback)', () => {
 	test('resolves concrete hex colors with zero var(--) tokens and valid 32x32 xmlns across all 21 states & 6 themes', () => {
-		expect(VERSION).toBe('0.0.12');
+		expect(VERSION).toBe('0.1.0');
 		for (const theme of THEME_PACKS) {
 			const palette = resolveThemeCursorPalette(theme);
 			expect(palette.fillHex.startsWith('#')).toBe(true);

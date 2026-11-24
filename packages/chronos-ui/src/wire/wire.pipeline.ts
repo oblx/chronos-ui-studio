@@ -105,6 +105,7 @@ export function createHeadlessWireBroker<S>(initialState: S) {
 		enqueueCoalescedIntent: coalescer.enqueue,
 		flushCoalesced: coalescer.flush,
 		ingestServerTraces(records: readonly WireTraceRecord[]): void { ring.mergeExternal(records); traceList = ring.snapshot(); },
+		clearTraces(): void { ring.clear(); traceList = []; },
 		notifyTokenRotated(): void {},
 		isWithinRefreshGrace(): boolean { return false; },
 		destroy(): void { coalescer.clear(); for (const t of pending.values()) clearTimeout(t); pending.clear(); }

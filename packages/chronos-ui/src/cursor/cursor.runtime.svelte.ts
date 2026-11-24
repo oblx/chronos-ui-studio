@@ -1,4 +1,4 @@
-import { CURSOR_LIMITS, THEME_PACKS } from '../tokens';
+import { clamp, CURSOR_LIMITS, THEME_PACKS } from '../tokens';
 import { buildVectorCursorDataUrl, encodeSvgCursorDataUrl, resolveThemeCursorPalette } from './cursor.presets';
 import {
 	CSS_CURSOR_STATES,
@@ -27,8 +27,8 @@ function resolveAssetUrl(asset: CursorStateAsset | undefined, state: CssCursorSt
 
 function formatCursorValue(asset: CursorStateAsset | undefined, state: CssCursorState, palette?: ResolvedCursorPalette): string {
 	const url = resolveAssetUrl(asset, state, palette);
-	const x = Math.max(0, Math.min(CURSOR_LIMITS.maxHotspot, Math.round(asset?.hotspotX ?? CURSOR_LIMITS.defaultHotspotX)));
-	const y = Math.max(0, Math.min(CURSOR_LIMITS.maxHotspot, Math.round(asset?.hotspotY ?? CURSOR_LIMITS.defaultHotspotY)));
+	const x = clamp(Math.round(asset?.hotspotX ?? CURSOR_LIMITS.defaultHotspotX), 0, CURSOR_LIMITS.maxHotspot);
+	const y = clamp(Math.round(asset?.hotspotY ?? CURSOR_LIMITS.defaultHotspotY), 0, CURSOR_LIMITS.maxHotspot);
 	return `url("${url}") ${x} ${y}, ${state}`;
 }
 
@@ -46,8 +46,8 @@ export function buildCursorPackCss(pack: CursorPackDefinition, resolvedPalette?:
 		`:root, html, body, #app, [data-ui-root], [data-ui-modal-backdrop] { cursor: ${values.get('default')} !important; }`,
 		`a, button:not([data-ui-modal-backdrop]):not(:disabled):not([aria-disabled="true"]), summary, [role="button"]:not([aria-disabled="true"]), [role="tab"], select:not(:disabled), label[for], input[type="range"]:not(:disabled), input[type="checkbox"]:not(:disabled), input[type="radio"]:not(:disabled) { cursor: ${values.get('pointer')} !important; }`,
 		`input[type="text"]:not(:disabled), input:not([type]):not(:disabled), input[type="search"]:not(:disabled), input[type="url"]:not(:disabled), input[type="password"]:not(:disabled), input[type="number"]:not(:disabled), textarea:not(:disabled), [contenteditable="true"] { cursor: ${values.get('text')} !important; }`,
-		`[draggable="true"], [data-ui-drag-grip], [data-ui-pan-stage], [data-testid="world-canvas-stage"] { cursor: ${values.get('grab')} !important; }`,
-		`[data-ui-drag-grip]:active, [data-ui-pan-stage]:active, [data-testid="world-canvas-stage"]:active, [data-ui-dragging="true"], .cursor-grab:active { cursor: ${values.get('grabbing')} !important; }`,
+		`[draggable="true"], [data-ui-drag-grip], [data-ui-pan-stage], [data-ui-stage-viewport] { cursor: ${values.get('grab')} !important; }`,
+		`[data-ui-drag-grip]:active, [data-ui-pan-stage]:active, [data-ui-stage-viewport]:active, [data-ui-dragging="true"], .cursor-grab:active { cursor: ${values.get('grabbing')} !important; }`,
 		`:disabled, [disabled], [aria-disabled="true"] { cursor: ${values.get('not-allowed')} !important; }`,
 		`[aria-busy="true"] { cursor: ${values.get('progress')} !important; }`,
 		`[data-ui-help-trigger="true"] { cursor: ${values.get('help')} !important; }`,

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { VERSION } from '@chronos-ui/svelte';
 
 export interface AuditViolation { readonly rule: string; readonly target: string; readonly detail: string; }
 interface CacheEntry { readonly hash: string; readonly violations: readonly AuditViolation[]; }
@@ -95,11 +96,15 @@ function scanCachedFile(file: string, ext: string, rootDir: string, prevCache: R
 	return found;
 }
 
+const REQUIRED_SUBPATHS = ['./tokens', './wire', './input', './motion', './cursor', './machines', './atoms', './forms', './molecules', './organisms', './modals', './assistant', './canvas'] as const;
+
 function checkPackageAndDocs(rootDir: string, violations: AuditViolation[]): void {
 	const pkg = JSON.parse(readFileSync(join(rootDir, 'packages/chronos-ui/package.json'), 'utf8'));
-	const hasSubpaths = Boolean(pkg.exports?.['./tokens'] && pkg.exports?.['./forms'] && pkg.exports?.['./cursor']) && Array.isArray(pkg.sideEffects) && pkg.sideEffects.includes('*.css');
-	if (pkg.version !== '0.0.12' || Object.keys(pkg.dependencies ?? {}).length > 0 || !hasSubpaths) {
-		violations.push({ rule: 'PACKAGE_LOCK_0_DEPS', target: 'packages/chronos-ui/package.json', detail: 'Invalid version, deps, sideEffects, or subpath exports' });
+	const rootPkg = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8'));
+	const hasSubpaths = REQUIRED_SUBPATHS.every((s) => Boolean(pkg.exports?.[s])) && Boolean(pkg.exports?.['.'] && pkg.exports?.['./manifest'] && pkg.exports?.['./styles.css']) && Array.isArray(pkg.sideEffects) && pkg.sideEffects.includes('*.css');
+	const hasPublicFiles = pkg.license === 'MIT' && existsSync(join(rootDir, 'LICENSE')) && existsSync(join(rootDir, 'packages/chronos-ui/LICENSE')) && existsSync(join(rootDir, 'packages/chronos-ui/README.md')) && existsSync(join(rootDir, 'CHANGELOG.md'));
+	if (pkg.version !== VERSION || rootPkg.version !== VERSION || Object.keys(pkg.dependencies ?? {}).length > 0 || !hasSubpaths || !hasPublicFiles) {
+		violations.push({ rule: 'PACKAGE_LOCK_0_DEPS', target: 'packages/chronos-ui/package.json', detail: `Version parity (${VERSION}), 0 deps, 13 subpaths, MIT license, README, or CHANGELOG failed` });
 	}
 	const sprintsDir = join(rootDir, 'docs/08-sprints');
 	const archiveDir = join(sprintsDir, 'archive');

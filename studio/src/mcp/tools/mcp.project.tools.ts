@@ -6,26 +6,27 @@ import {
 import { eq } from 'drizzle-orm';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { CAPABILITY_BITS, findStarterSample } from '../config';
+import { CAPABILITY_BITS, findStarterSample } from '@studio/config';
 import {
 	applyJsonPatchWithInverse, derivePrototypeFromNode, documentGraphToNodeTree, evaluateGovernanceGate,
 	nodeTreeToDocumentGraph, probeServerEnvironmentCapabilities, STUDIO_ROLE_MASKS, validateUiNode, type JsonPatchOp
-} from '../core';
-import { getStudioDb, uiProjects } from '../lib';
-import { compileStaticClientBuild } from '../plugins';
-import { commitProjectRevision, createStudioProject, loadProjectWithNodes } from '../server/routes/routes.projects';
+} from '@studio/core';
+import { getStudioDb, uiProjects } from '@studio/lib';
+import { compileStaticClientBuild } from '@studio/plugins';
+import { commitProjectRevision, createStudioProject, loadProjectWithNodes } from '@studio/server/routes/routes.projects';
 import { buildWorkspaceCursorMcpTools } from './mcp.cursor.tools';
 import { buildEntityMcpTools, buildWireframeMcpTools } from './mcp.entity.tools';
 import { buildStationMcpTools } from './mcp.station.tools';
 
 export type ProjectMcpToolFn = (args: Record<string, unknown>) => Promise<unknown>;
 
-async function resolveProjectOrThrow(args: Record<string, unknown>) {
+export async function resolveMcpProject(args: Record<string, unknown>) {
 	const key = String(args.projectId ?? args.slug ?? 'proj-genesis');
 	const project = await loadProjectWithNodes(key);
 	if (!project) throw new Error(`Project not found: ${key}`);
 	return project;
 }
+const resolveProjectOrThrow = resolveMcpProject;
 
 async function toolSpawnNode(args: Record<string, unknown>) {
 	const project = await resolveProjectOrThrow(args);

@@ -47,11 +47,15 @@ export function getActiveMotionSensory(): MotionSensoryConfig {
 	return activeMotionSensory;
 }
 
+function isEffectiveReduced(prefersReduced?: boolean): boolean {
+	if (prefersReduced !== undefined) return prefersReduced;
+	return activeMotionConfig.reducedMotionOverride === 'FORCE_OFF'
+		|| (activeMotionConfig.reducedMotionOverride === 'AUTO' && detectReduced());
+}
+
 export function setActiveMotionSensory(patch: Partial<MotionSensoryConfig>): MotionSensoryConfig {
 	activeMotionSensory = { ...activeMotionSensory, ...patch };
-	const reduced = activeMotionConfig.reducedMotionOverride === 'FORCE_OFF'
-		|| (activeMotionConfig.reducedMotionOverride === 'AUTO' && detectReduced());
-	applyMotionTokensToRoot(activeMotionSensory, reduced);
+	applyMotionTokensToRoot(activeMotionSensory, isEffectiveReduced());
 	notifyMotionListeners();
 	return activeMotionSensory;
 }
@@ -63,16 +67,10 @@ export function setActiveMotionProfile(profile: MotionProfileId): MotionSensoryC
 }
 
 export function resolveDurationMs(tier: MotionDurationTier, prefersReduced?: boolean): number {
-	const reduced = prefersReduced ?? (
-		activeMotionConfig.reducedMotionOverride === 'FORCE_OFF'
-		|| (activeMotionConfig.reducedMotionOverride === 'AUTO' && detectReduced())
-	);
-	return resolveMotionTierMs(tier, activeMotionSensory, reduced);
+	return resolveMotionTierMs(tier, activeMotionSensory, isEffectiveReduced(prefersReduced));
 }
 
-export function getActiveCornerRadiusRem(): number {
-	return activeCornerRadiusRem;
-}
+export function getActiveCornerRadiusRem(): number { return activeCornerRadiusRem; }
 
 export function setActiveCornerRadiusRem(value: number): number {
 	activeCornerRadiusRem = clampCornerRadiusRem(value);
@@ -81,9 +79,7 @@ export function setActiveCornerRadiusRem(value: number): number {
 	return activeCornerRadiusRem;
 }
 
-export function getActiveStudioDefaults(): StudioDefaultsConfig {
-	return activeStudioDefaults;
-}
+export function getActiveStudioDefaults(): StudioDefaultsConfig { return activeStudioDefaults; }
 
 export function setActiveStudioDefaults(patch: Partial<StudioDefaultsConfig>): StudioDefaultsConfig {
 	activeStudioDefaults = clampStudioDefaults(patch, activeStudioDefaults);
@@ -101,9 +97,7 @@ export function resetActiveStudioDefaults(): StudioDefaultsConfig {
 	return activeStudioDefaults;
 }
 
-export function getActiveCornerMorph(): boolean {
-	return activeCornerMorph;
-}
+export function getActiveCornerMorph(): boolean { return activeCornerMorph; }
 
 export function setActiveCornerMorph(enabled: boolean): boolean {
 	activeCornerMorph = enabled;
@@ -111,11 +105,17 @@ export function setActiveCornerMorph(enabled: boolean): boolean {
 	return activeCornerMorph;
 }
 
+export function createControlCornerRef() {
+	let cutRem = $state(activeStudioDefaults.controlCornerCutRem);
+	$effect(() => subscribeMotionState(() => { cutRem = activeStudioDefaults.controlCornerCutRem; }));
+	return { get cutRem(): number { return cutRem; } };
+}
+
 export function createMotionStore(initial: MotionConfig = DEFAULT_MOTION_CONFIG) {
 	let config = $state<MotionConfig>(initial);
 	let sensory = $state<MotionSensoryConfig>({ ...DEFAULT_MOTION_SENSORY });
 	activeMotionConfig = initial;
-	applyMotionTokensToRoot(sensory, detectReduced());
+	applyMotionTokensToRoot(DEFAULT_MOTION_SENSORY, detectReduced());
 	return {
 		get config(): MotionConfig { return config; },
 		get sensory(): MotionSensoryConfig { return sensory; },

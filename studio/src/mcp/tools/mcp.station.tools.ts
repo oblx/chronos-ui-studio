@@ -1,18 +1,18 @@
 import {
 	clampCornerRadiusRem, clampStudioDefaults, CORNER_RADIUS_LIMITS, DEFAULT_STUDIO_DEFAULTS,
-	findOppositeZone, HUD_ZONES, mirrorCornerTuple,
-	type CornerKind, type CornerTuple, type HudZoneId, type StudioDefaultsConfig
+	findOppositeZone, HUD_ZONES, mirrorCornerTuple, MOTION_PROFILES,
+	type CornerKind, type CornerTuple, type HudZoneId, type MotionProfileId, type StudioDefaultsConfig
 } from '@chronos-ui/svelte';
 import { eq } from 'drizzle-orm';
-import type { ZoneBlueprintConfig } from '../config';
-import { blueprints, getStudioDb, mapBlueprintRow, uiProjects } from '../lib';
-import { commitProjectRevision, loadProjectWithNodes } from '../server/routes/routes.projects';
-import type { ProjectMcpToolFn } from './mcp.project.tools';
+import type { ZoneBlueprintConfig } from '@studio/config';
+import { blueprints, getStudioDb, mapBlueprintRow, uiProjects } from '@studio/lib';
+import { commitProjectRevision, loadProjectWithNodes } from '@studio/server/routes/routes.projects';
+import { resolveMcpProject, type ProjectMcpToolFn } from './mcp.project.tools';
+
+const requireProject = resolveMcpProject;
 
 async function toolSetCornerRadius(args: Record<string, unknown>) {
-	const key = String(args.projectId ?? 'proj-genesis');
-	const project = await loadProjectWithNodes(key);
-	if (!project) throw new Error(`Project not found: ${key}`);
+	const project = await requireProject(args);
 	const radius = clampCornerRadiusRem(Number(args.cornerRadiusRem ?? CORNER_RADIUS_LIMITS.defaultRem));
 	const cornerStyle = typeof args.cornerMode === 'string' ? (args.cornerMode as CornerKind) : project.cornerMode;
 	const db = await getStudioDb();
@@ -73,9 +73,7 @@ async function toolEditZoneDisposition(args: Record<string, unknown>) {
 }
 
 async function toolMoveEntityToZone(args: Record<string, unknown>) {
-	const key = String(args.projectId ?? 'proj-genesis');
-	const project = await loadProjectWithNodes(key);
-	if (!project) throw new Error(`Project not found: ${key}`);
+	const project = await requireProject(args);
 	const targetZone = String(args.targetZone ?? 'WORLD_CANVAS').toUpperCase() as HudZoneId;
 	if (!HUD_ZONES.includes(targetZone)) throw new Error(`Invalid targetZone: ${targetZone}`);
 	const query = String(args.nodeId ?? args.nodeQuery ?? '').toLowerCase();
@@ -87,9 +85,7 @@ async function toolMoveEntityToZone(args: Record<string, unknown>) {
 }
 
 async function toolConfigureStudioDefaults(args: Record<string, unknown>) {
-	const key = String(args.projectId ?? 'proj-genesis');
-	const project = await loadProjectWithNodes(key);
-	if (!project) throw new Error(`Project not found: ${key}`);
+	const project = await requireProject(args);
 	const nextDefaults = clampStudioDefaults(args as Partial<StudioDefaultsConfig>, project.studioDefaults ?? DEFAULT_STUDIO_DEFAULTS);
 	const cornerStyle = typeof args.cornerMode === 'string' ? (args.cornerMode as CornerKind) : project.cornerMode;
 	const db = await getStudioDb();
@@ -109,16 +105,14 @@ async function toolConfigureStudioDefaults(args: Record<string, unknown>) {
 }
 
 async function toolResetStudioDefaults(args: Record<string, unknown>) {
-	const key = String(args.projectId ?? 'proj-genesis');
-	const project = await loadProjectWithNodes(key);
-	if (!project) throw new Error(`Project not found: ${key}`);
+	const project = await requireProject(args);
 	const db = await getStudioDb();
 	await db.update(uiProjects).set({
 		cornerRadiusRem: DEFAULT_STUDIO_DEFAULTS.baseCornerCutRem,
 		studioDefaultsJson: JSON.stringify(DEFAULT_STUDIO_DEFAULTS), updatedAt: Date.now()
 	}).where(eq(uiProjects.id, project.id));
 	const updated = await loadProjectWithNodes(project.id);
-	return { summary: 'reset studio defaults to v0.0.8 baseline', studioDefaults: DEFAULT_STUDIO_DEFAULTS, project: updated, clientIntents: [{ kind: 'UI_RESET_STUDIO_DEFAULTS', payload: {} }] };
+	return { summary: 'reset studio defaults to canonical baseline', studioDefaults: DEFAULT_STUDIO_DEFAULTS, project: updated, clientIntents: [{ kind: 'UI_RESET_STUDIO_DEFAULTS', payload: {} }] };
 }
 
 export function buildStationMcpTools(): readonly [string, ProjectMcpToolFn][] {
@@ -138,7 +132,9 @@ export function buildStationMcpTools(): readonly [string, ProjectMcpToolFn][] {
 			clientIntents: [{ kind: 'UI_OPEN_MODAL', payload: { id: 'zone-edition', zoneId: String(args.zoneId ?? 'TOP_RIGHT').toUpperCase() } }]
 		})],
 		['ui_set_motion_profile', async (args) => {
-			const sensory = { profile: typeof args.profile === 'string' ? args.profile.toUpperCase() : 'CALM_SLOW', ...(args.ambientPulsesEnabled !== undefined ? { ambientPulsesEnabled: Boolean(args.ambientPulsesEnabled) } : {}), ...(typeof args.signalFlowSpeed === 'number' ? { signalFlowSpeed: args.signalFlowSpeed } : {}), ...(args.modalMorphEnabled !== undefined ? { modalMorphEnabled: Boolean(args.modalMorphEnabled) } : {}), ...(args.microDetentsEnabled !== undefined ? { microDetentsEnabled: Boolean(args.microDetentsEnabled) } : {}) };
+			const raw = typeof args.profile === 'string' ? args.profile.toUpperCase() : 'CALM_SLOW';
+			const profile: MotionProfileId = (MOTION_PROFILES as readonly string[]).includes(raw) ? (raw as MotionProfileId) : 'CALM_SLOW';
+			const sensory = { profile, ...(args.ambientPulsesEnabled !== undefined ? { ambientPulsesEnabled: Boolean(args.ambientPulsesEnabled) } : {}), ...(typeof args.signalFlowSpeed === 'number' ? { signalFlowSpeed: args.signalFlowSpeed } : {}), ...(args.modalMorphEnabled !== undefined ? { modalMorphEnabled: Boolean(args.modalMorphEnabled) } : {}), ...(args.microDetentsEnabled !== undefined ? { microDetentsEnabled: Boolean(args.microDetentsEnabled) } : {}) };
 			return { summary: `motion profile ${sensory.profile}`, sensory, clientIntents: [{ kind: 'UI_SET_MOTION_PROFILE', payload: sensory }] };
 		}],
 		['ui_modal_toggle_expand', async (args) => ({ summary: `modal expand=${String(args.expanded ?? 'toggle')}`, expanded: typeof args.expanded === 'boolean' ? args.expanded : true, clientIntents: [{ kind: 'UI_MODAL_TOGGLE_EXPAND', payload: typeof args.expanded === 'boolean' ? { expanded: args.expanded } : {} }] })]

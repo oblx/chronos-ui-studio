@@ -20,7 +20,7 @@ export const STUDIO_SPOTLIGHT_STEPS: readonly SpotlightStep[] = [
 		id: 'step-top-left',
 		targetIds: ['spot-top-left'],
 		title: 'System Crest & Save Actions',
-		body: 'TOP_LEFT anchors the active blueprint grade, perimeter coverage gauge, Save trigger, and Clean recovery control.'
+		body: 'TOP_LEFT anchors the active blueprint grade, perimeter coverage gauge, Save trigger, and Reset recovery control.'
 	},
 	{
 		id: 'step-top-center',

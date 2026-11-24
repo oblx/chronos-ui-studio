@@ -1,9 +1,16 @@
-import { HUD_METRICS, pxToRem, ROOT_FONT_PX, SAFE_CORRIDOR_REM } from '../tokens';
+import { BREAKPOINT_REM, clamp, HUD_METRICS, pxToRem, ROOT_FONT_PX, SAFE_CORRIDOR_REM, STAGE_LIMITS } from '../tokens';
 
 export type LayoutDensity = 'CALM' | 'BALANCED' | 'TACTICAL';
 export type CorridorBreakpointTier = 'COMPACT' | 'MEDIUM' | 'WIDE' | 'ULTRA';
-
 export const LAYOUT_DENSITIES: readonly LayoutDensity[] = ['CALM', 'BALANCED', 'TACTICAL'] as const;
+
+export interface DrawerOccupancyState {
+	readonly leftOpen: boolean;
+	readonly leftFloating: boolean;
+	readonly rightOpen: boolean;
+	readonly rightFloating: boolean;
+	readonly assistantExpanded?: boolean;
+}
 
 export interface SafeCorridorBounds {
 	readonly topRem: number;
@@ -12,17 +19,14 @@ export interface SafeCorridorBounds {
 	readonly topPx: number;
 	readonly bottomPx: number;
 	readonly sidePx: number;
+	readonly leftPx: number;
+	readonly rightPx: number;
+	readonly stageFreeWidthPx: number;
 	readonly usableWidthPx: number;
 	readonly usableHeightPx: number;
 }
 
-export interface SlotRect {
-	readonly slot: string;
-	readonly left: number;
-	readonly top: number;
-	readonly right: number;
-	readonly bottom: number;
-}
+export interface SlotRect { readonly slot: string; readonly left: number; readonly top: number; readonly right: number; readonly bottom: number; }
 
 export interface ViewportOccupancyReport {
 	readonly viewport: { readonly width: number; readonly height: number };
@@ -34,12 +38,10 @@ export interface ViewportOccupancyReport {
 	readonly collisionCount: number;
 }
 
-
-
 export function classifyCorridorTier(viewportW: number): CorridorBreakpointTier {
-	if (viewportW < 640) return 'COMPACT';
-	if (viewportW < 1024) return 'MEDIUM';
-	if (viewportW < 1920) return 'WIDE';
+	if (viewportW < BREAKPOINT_REM.phoneMax * ROOT_FONT_PX - 128) return 'COMPACT';
+	if (viewportW < BREAKPOINT_REM.tabletPortraitMax * ROOT_FONT_PX) return 'MEDIUM';
+	if (viewportW < BREAKPOINT_REM.desktopMax * ROOT_FONT_PX) return 'WIDE';
 	return 'ULTRA';
 }
 
@@ -59,35 +61,33 @@ export function computeSafeCorridorFromRects(
 	viewportH: number,
 	chromeVisible: boolean,
 	perimeterRects: readonly SlotRect[] = [],
-	rootFontPx = ROOT_FONT_PX
+	rootFontPx = ROOT_FONT_PX,
+	drawers?: DrawerOccupancyState
 ): SafeCorridorBounds {
-	const safeScale = Math.max(12, Math.min(24, rootFontPx));
+	const safeScale = clamp(rootFontPx, 12, 24), gap = HUD_METRICS.perimeterGapPx;
 	let topPx = Math.round((chromeVisible ? SAFE_CORRIDOR_REM.hudTop : SAFE_CORRIDOR_REM.calmTop) * safeScale);
 	let bottomPx = Math.round((chromeVisible ? SAFE_CORRIDOR_REM.hudBottom : SAFE_CORRIDOR_REM.calmBottom) * safeScale);
-	let leftPx = Math.round((chromeVisible ? SAFE_CORRIDOR_REM.hudSide : SAFE_CORRIDOR_REM.calmSide) * safeScale);
-	let rightPx = leftPx;
-	const midY = viewportH * 0.5;
-	const midX = viewportW * 0.5;
+	if (drawers?.assistantExpanded) bottomPx = Math.max(bottomPx, Math.min(Math.round(viewportH * 0.55), Math.round(HUD_METRICS.assistantExpandedReserveRem * safeScale)));
+	const desktop = viewportW >= STAGE_LIMITS.desktopMinPx;
+	const edgeInset = drawers ? (desktop ? STAGE_LIMITS.railOccupiedPx : STAGE_LIMITS.mobileEdgePx) : Math.round((chromeVisible ? SAFE_CORRIDOR_REM.hudSide : SAFE_CORRIDOR_REM.calmSide) * safeScale);
+	let leftPx = edgeInset;
+	let rightPx = edgeInset;
+	const midY = viewportH * 0.5, midX = viewportW * 0.5;
 	for (const rect of perimeterRects) {
-		const w = rect.right - rect.left;
-		const h = rect.bottom - rect.top;
+		const w = rect.right - rect.left, h = rect.bottom - rect.top;
 		if (w <= 0 || h <= 0) continue;
-		if (rect.slot === 'ASSISTANT_DOCK') { bottomPx = Math.max(bottomPx, Math.min(Math.round(viewportH * 0.66), Math.ceil(viewportH - rect.top + 8))); continue; }
-		if (rect.bottom < midY && w > viewportW * 0.28) topPx = Math.max(topPx, Math.ceil(rect.bottom + 8));
-		else if (rect.top > midY && w > viewportW * 0.28) bottomPx = Math.max(bottomPx, Math.ceil(viewportH - rect.top + 8));
-		else if (rect.right < midX && h > viewportH * 0.25) leftPx = Math.max(leftPx, Math.ceil(rect.right + 8));
-		else if (rect.left > midX && h > viewportH * 0.25) rightPx = Math.max(rightPx, Math.ceil(viewportW - rect.left + 8));
+		if (rect.slot === 'ASSISTANT_DOCK') { bottomPx = Math.max(bottomPx, Math.min(Math.round(viewportH * 0.66), Math.ceil(viewportH - rect.top + gap))); continue; }
+		if (rect.bottom < midY && w > viewportW * 0.28) topPx = Math.max(topPx, Math.ceil(rect.bottom + gap));
+		else if (rect.top > midY && w > viewportW * 0.28) bottomPx = Math.max(bottomPx, Math.ceil(viewportH - rect.top + gap));
+		else if (rect.right < midX && h > viewportH * 0.25) leftPx = Math.max(leftPx, Math.ceil(rect.right + gap));
+		else if (rect.left > midX && h > viewportH * 0.25) rightPx = Math.max(rightPx, Math.ceil(viewportW - rect.left + gap));
 	}
 	const sidePx = Math.max(leftPx, rightPx);
-	return { topRem: pxToRem(topPx), bottomRem: pxToRem(bottomPx), sideRem: pxToRem(sidePx), topPx, bottomPx, sidePx, usableWidthPx: Math.max(0, viewportW - sidePx * 2), usableHeightPx: Math.max(0, viewportH - topPx - bottomPx) };
+	const stageFreeWidthPx = Math.max(STAGE_LIMITS.minFreeWidthPx, Math.min(viewportW - STAGE_LIMITS.freeWidthGutterPx, viewportW - leftPx - rightPx - STAGE_LIMITS.freeWidthGutterPx));
+	return { topRem: pxToRem(topPx), bottomRem: pxToRem(bottomPx), sideRem: pxToRem(sidePx), topPx, bottomPx, sidePx, leftPx, rightPx, stageFreeWidthPx, usableWidthPx: Math.max(0, viewportW - leftPx - rightPx), usableHeightPx: Math.max(0, viewportH - topPx - bottomPx) };
 }
 
-export function computeSafeCorridor(
-	chromeVisible: boolean,
-	viewportW: number,
-	viewportH: number,
-	rootFontPx = ROOT_FONT_PX
-): SafeCorridorBounds {
+export function computeSafeCorridor(chromeVisible: boolean, viewportW: number, viewportH: number, rootFontPx = ROOT_FONT_PX): SafeCorridorBounds {
 	return computeSafeCorridorFromRects(viewportW, viewportH, chromeVisible, [], rootFontPx);
 }
 
@@ -99,8 +99,9 @@ export function applySafeCorridorCssVars(
 	target.style.setProperty('--ui-safe-top', `${bounds.topRem}rem`);
 	target.style.setProperty('--ui-safe-bottom', `${bounds.bottomRem}rem`);
 	target.style.setProperty('--ui-safe-side', `${bounds.sideRem}rem`);
-	target.style.setProperty('--ui-safe-left', `${bounds.sideRem}rem`);
-	target.style.setProperty('--ui-safe-right', `${bounds.sideRem}rem`);
+	target.style.setProperty('--ui-safe-left', `${bounds.leftPx}px`);
+	target.style.setProperty('--ui-safe-right', `${bounds.rightPx}px`);
+	target.style.setProperty('--ui-stage-free-w', `${bounds.stageFreeWidthPx}px`);
 }
 
 export function rectsIntersect(a: SlotRect, b: SlotRect): boolean {

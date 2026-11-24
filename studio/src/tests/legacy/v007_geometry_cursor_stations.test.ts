@@ -4,15 +4,15 @@ import {
 	BUILTIN_CURSOR_PACKS, clampCornerRadiusRem, CORNER_RADIUS_LIMITS, CSS_CURSOR_STATES, encodeSvgCursorDataUrl,
 	findOppositeZone, generateUuidV7, mirrorCornerTuple, pxToRem, remToPx, THEME_PACKS, VERSION, type CornerTuple
 } from '@chronos-ui/svelte';
-import { findStarterSample, STARTER_BLUEPRINTS } from '../config';
-import { DEFAULT_BUILD_CONFIG, planLocalAssistantPrompt, STUDIO_TOOL_REGISTRY, validateBlueprint } from '../core';
-import { handleBuilderMcpRpc } from '../mcp';
-import { emitProjectCssTokens } from '../plugins';
-import { createStudioProject, listCursorPacks, updateCursorStateAsset } from '../server/routes';
+import { findStarterSample, STARTER_BLUEPRINTS } from '@studio/config';
+import { DEFAULT_BUILD_CONFIG, planLocalAssistantPrompt, STUDIO_TOOL_REGISTRY, validateBlueprint } from '@studio/core';
+import { handleBuilderMcpRpc } from '@studio/mcp';
+import { emitProjectCssTokens } from '@studio/plugins';
+import { createStudioProject, listCursorPacks, updateCursorStateAsset } from '@studio/server/routes';
 
 describe('v0.0.7 true-stroke geometry, concentric ROUND arcs & configurable cornerRadiusRem', () => {
 	test('clampCornerRadiusRem enforces 0.25rem-1.5rem bounds and emits --ui-corner-cut CSS token', () => {
-		expect(VERSION).toBe('0.0.12');
+		expect(VERSION).toBe('0.1.0');
 		expect(CORNER_RADIUS_LIMITS.minRem).toBe(0.25);
 		expect(CORNER_RADIUS_LIMITS.maxRem).toBe(1.5);
 		expect(clampCornerRadiusRem(0.05)).toBe(0.25);

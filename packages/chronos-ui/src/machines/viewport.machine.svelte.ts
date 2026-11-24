@@ -1,12 +1,12 @@
 import type { Action } from 'svelte/action';
-import { BREAKPOINT_REM, HUD_METRICS, ROOT_FONT_PX, STAGE_LIMITS, type ViewportTier } from '../tokens';
+import { BREAKPOINT_REM, clamp, HUD_METRICS, ROOT_FONT_PX, STAGE_LIMITS, type ViewportTier } from '../tokens';
 
 export interface StageCamera { readonly panX: number; readonly panY: number; readonly zoom: number; }
 export interface StageGestureCommit extends StageCamera { readonly coalescedFrames: number; readonly durationMs: number; }
 export interface BoundingRect2D { readonly left: number; readonly top: number; readonly width: number; readonly height: number; }
 export interface DragPanParams { readonly onPanDelta: (dx: number, dy: number) => void; readonly onZoomDelta: (delta: number) => void; readonly onPanEnd?: () => void; }
 
-const BLOCKED_ANCESTORS = '[data-ui-interactive], [data-testid="ui-assistant-dock"], [data-testid^="edge-rail"], [data-testid^="edge-drawer"], [role="dialog"]';
+const BLOCKED_ANCESTORS = '[data-ui-interactive], [data-testid="ui-assistant-dock"], [data-testid^="edge-rail"], [data-testid^="edge-drawer"], [role="dialog"], [role="button"], button, a, input, select, textarea';
 
 export function classifyViewportTier(widthPx: number, rootFontPx = ROOT_FONT_PX): ViewportTier {
 	const remWidth = widthPx / Math.max(10, rootFontPx);
@@ -28,7 +28,7 @@ export function fitNodesToSafeCorridor(
 	const availH = Math.max(64, viewportRect.height - padPx * 2);
 	if (contentRect.width <= 0 || contentRect.height <= 0) return { panX: 0, panY: 0, zoom: 1 };
 	const fitScale = Math.min(1, availW / contentRect.width, availH / contentRect.height);
-	const zoom = Number(Math.max(STAGE_LIMITS.zoomMin, Math.min(STAGE_LIMITS.zoomMax, fitScale)).toFixed(2));
+	const zoom = Number(clamp(fitScale, STAGE_LIMITS.zoomMin, STAGE_LIMITS.zoomMax).toFixed(2));
 	return { panX: 0, panY: 0, zoom };
 }
 
@@ -36,11 +36,11 @@ export function isPointerInsideRect(clientX: number, clientY: number, rect: DOMR
 	return clientX >= rect.left && clientX <= rect.left + rect.width && clientY >= rect.top && clientY <= rect.top + rect.height;
 }
 
-function clampStageCamera(next: StageCamera): StageCamera {
+export function clampStageCamera(next: StageCamera): StageCamera {
 	return {
-		panX: Math.max(-STAGE_LIMITS.panMaxX, Math.min(STAGE_LIMITS.panMaxX, next.panX)),
-		panY: Math.max(-STAGE_LIMITS.panMaxY, Math.min(STAGE_LIMITS.panMaxY, next.panY)),
-		zoom: Number(Math.max(STAGE_LIMITS.zoomMin, Math.min(STAGE_LIMITS.zoomMax, next.zoom)).toFixed(2))
+		panX: clamp(next.panX, -STAGE_LIMITS.panMaxX, STAGE_LIMITS.panMaxX),
+		panY: clamp(next.panY, -STAGE_LIMITS.panMaxY, STAGE_LIMITS.panMaxY),
+		zoom: Number(clamp(next.zoom, STAGE_LIMITS.zoomMin, STAGE_LIMITS.zoomMax).toFixed(2))
 	};
 }
 
@@ -117,7 +117,7 @@ function makePanHandlers(node: HTMLElement, getParams: () => DragPanParams) {
 		if (!isPointerInsideRect(e.clientX, e.clientY, node.getBoundingClientRect())) return;
 		if (!e.ctrlKey && !e.metaKey) return;
 		e.preventDefault();
-		getParams().onZoomDelta(e.deltaY > 0 ? -0.06 : 0.06);
+		getParams().onZoomDelta(e.deltaY > 0 ? -HUD_METRICS.wheelZoomStep : HUD_METRICS.wheelZoomStep);
 	};
 	return { onDown, onMove, onUp, onWheel };
 }

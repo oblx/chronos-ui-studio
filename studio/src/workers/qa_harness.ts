@@ -1,6 +1,8 @@
 import { ALL_HARNESS_SCENARIOS, SCENARIO_SCRIPTS, type HarnessScenarioId } from './qa_harness_scenarios';
 import { formatClockBanner } from './qa_timer';
 
+export const DEFAULT_DELTA_SCENARIOS: readonly HarnessScenarioId[] = ['calm-density'] as const;
+
 export interface HarnessOptions {
 	readonly scenarios: readonly HarnessScenarioId[];
 	readonly viewports: readonly { readonly width: number; readonly height: number }[];
@@ -8,6 +10,7 @@ export interface HarnessOptions {
 	readonly failFast: boolean;
 	readonly json: boolean;
 	readonly debugCapture: boolean;
+	readonly fullBattery: boolean;
 }
 
 export interface HarnessScenarioResult {
@@ -30,22 +33,26 @@ export interface HarnessReport {
 
 export function parseHarnessArgs(argv: readonly string[]): HarnessOptions {
 	const getFlag = (prefix: string): string | undefined => argv.find((a) => a.startsWith(prefix))?.slice(prefix.length);
-	const rawScenarios = getFlag('--scenario=') ?? 'all';
+	const fullBattery = argv.includes('--full-battery');
+	const rawScenarios = getFlag('--scenario=') ?? (fullBattery ? 'all' : 'delta');
 	const scenarios: HarnessScenarioId[] = rawScenarios === 'all'
 		? [...ALL_HARNESS_SCENARIOS]
-		: (rawScenarios.split(',').filter((s): s is HarnessScenarioId => ALL_HARNESS_SCENARIOS.includes(s as HarnessScenarioId)));
-	const rawVps = (getFlag('--viewports=') ?? '1440x900,390x844').split(',');
-	const viewports = rawVps.map((vp) => {
+		: rawScenarios === 'delta'
+			? [...DEFAULT_DELTA_SCENARIOS]
+			: rawScenarios.split(',').filter((s): s is HarnessScenarioId => ALL_HARNESS_SCENARIOS.includes(s as HarnessScenarioId));
+	const defaultVp = fullBattery || rawScenarios === 'all' ? '1440x900,390x844' : '1440x900';
+	const viewports = (getFlag('--viewports=') ?? defaultVp).split(',').map((vp) => {
 		const [w, h] = vp.split('x').map((n) => Number(n));
 		return { width: Number.isFinite(w) && w >= 320 ? w : 1440, height: Number.isFinite(h) && h >= 480 ? h : 900 };
 	});
 	return {
-		scenarios: scenarios.length > 0 ? scenarios : [...ALL_HARNESS_SCENARIOS],
+		scenarios: scenarios.length > 0 ? scenarios : [...DEFAULT_DELTA_SCENARIOS],
 		viewports,
 		url: getFlag('--url=') ?? 'http://localhost:3000',
 		failFast: argv.includes('--fail-fast'),
 		json: argv.includes('--json'),
-		debugCapture: argv.includes('--debug-capture')
+		debugCapture: argv.includes('--debug-capture'),
+		fullBattery
 	};
 }
 
@@ -65,7 +72,7 @@ function resetHarnessGenesis(reloadAfter: boolean): boolean {
 			await fetch('/api/projects/proj-genesis/clean', { method: 'POST' });
 			try { localStorage.clear(); sessionStorage.clear(); } catch {}
 		});
-		${reloadAfter ? `await page.reload({ waitUntil: 'domcontentloaded' }); await page.locator('[data-layout-density]').first().waitFor({ state: 'visible', timeout: 10000 }); await page.waitForTimeout(350);` : ''}
+		${reloadAfter ? `await page.reload({ waitUntil: 'domcontentloaded' }); await page.locator('[data-layout-density]').first().waitFor({ state: 'visible', timeout: 10000 }); await page.waitForTimeout(250);` : ''}
 		const check = await page.evaluate(async () => {
 			const res = await fetch('/api/projects');
 			const data = await res.json();

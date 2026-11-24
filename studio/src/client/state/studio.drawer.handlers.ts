@@ -1,14 +1,10 @@
 import {
-	applyAccessibilityPrefs, applySafeCorridorCssVars, computeSafeCorridorFromRects, DEFAULT_VIEWPORT,
-	HUD_METRICS, measureActivePerimeterRects, setActiveMotionConfig, setActiveMotionProfile,
-	setActiveMotionSensory, STAGE_LIMITS, type CornerKind, type LayoutDensity, type MotionConfig,
-	type MotionProfileId, type MotionSensoryConfig, type ToastItem, type UiWireBroker
+	applyAccessibilityPrefs, clamp, clampStageCamera, HUD_METRICS, setActiveMotionConfig,
+	setActiveMotionProfile, setActiveMotionSensory, STAGE_LIMITS, type CornerKind, type LayoutDensity,
+	type MotionConfig, type MotionProfileId, type MotionSensoryConfig, type ToastItem, type UiWireBroker
 } from '@chronos-ui/svelte';
+import { syncCorridorForState } from './lifecycle';
 import type { StudioState } from './studio.types';
-
-function clamp(val: number, min: number, max: number): number {
-	return Math.max(min, Math.min(max, val));
-}
 
 function drawerKey(side: 'LEFT' | 'RIGHT'): 'leftDrawer' | 'rightDrawer' {
 	return side === 'LEFT' ? 'leftDrawer' : 'rightDrawer';
@@ -54,7 +50,8 @@ function registerStageHandlers(broker: UiWireBroker<StudioState>): void {
 			const nextX = typeof env.payload.panX === 'number' ? env.payload.panX : s.panX + (env.payload.dx ?? 0);
 			const nextY = typeof env.payload.panY === 'number' ? env.payload.panY : s.panY + (env.payload.dy ?? 0);
 			const nextZ = typeof env.payload.zoom === 'number' ? env.payload.zoom : s.zoom + (env.payload.dz ?? 0);
-			return { ...s, panX: clamp(nextX, -STAGE_LIMITS.panMaxX, STAGE_LIMITS.panMaxX), panY: clamp(nextY, -STAGE_LIMITS.panMaxY, STAGE_LIMITS.panMaxY), zoom: Number(clamp(nextZ, STAGE_LIMITS.zoomMin, STAGE_LIMITS.zoomMax).toFixed(2)) };
+			const cam = clampStageCamera({ panX: nextX, panY: nextY, zoom: nextZ });
+			return { ...s, ...cam };
 		},
 		summarize: (env) => env.payload.coalescedFrames ? `Camera coalesced (${env.payload.coalescedFrames}f / ${env.payload.durationMs ?? 0}ms)` : 'Camera pan/zoom'
 	});
@@ -94,11 +91,7 @@ function registerV004VisualAndDensityHandlers(broker: UiWireBroker<StudioState>)
 	broker.register<{ density: LayoutDensity }>('UI_SET_LAYOUT_DENSITY', {
 		tier: 'TIER_0_LOCAL_UI',
 		reduce: (s, env) => applyDensityState(s, env.payload.density),
-		effect: (s) => {
-			const w = typeof window !== 'undefined' ? window.innerWidth : DEFAULT_VIEWPORT.width;
-			const h = typeof window !== 'undefined' ? window.innerHeight : DEFAULT_VIEWPORT.height;
-			applySafeCorridorCssVars(computeSafeCorridorFromRects(w, h, s.studioChromeVisible, measureActivePerimeterRects()));
-		},
+		effect: syncCorridorForState,
 		summarize: (env) => `Density -> ${env.payload.density}`
 	});
 	broker.register<Partial<MotionConfig>>('UI_SET_MOTION_CONFIG', { tier: 'TIER_0_LOCAL_UI', reduce: (s, env) => ({ ...s, motionConfig: setActiveMotionConfig(env.payload) }), summarize: (env) => `Motion -> ${env.payload.preset ?? env.payload.speed ?? 'updated'}` });

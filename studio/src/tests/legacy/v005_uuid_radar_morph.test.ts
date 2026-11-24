@@ -6,18 +6,18 @@ import {
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { findStarterSample } from '../config';
+import { findStarterSample } from '@studio/config';
 import {
 	DEFAULT_BUILD_CONFIG, derivePrototypeFromNode, documentGraphToNodeTree, instantiateFromPrototype,
 	nodeTreeToDocumentGraph, patchWithTargetTag, planLocalAssistantPrompt, scoreToolsForPrompt, STUDIO_TOOL_REGISTRY
-} from '../core';
-import { handleBuilderMcpRpc } from '../mcp';
-import { compileStaticClientBuild } from '../plugins';
-import { createStudioProject, handleProjectRoutes } from '../server/routes';
+} from '@studio/core';
+import { handleBuilderMcpRpc } from '@studio/mcp';
+import { compileStaticClientBuild } from '@studio/plugins';
+import { createStudioProject, handleProjectRoutes } from '@studio/server/routes';
 
 describe('v0.0.5 UUID v7 registry, DB/REST/MCP parity, and sparse overrides', () => {
 	test('RFC 9562 UUID v7 generator is strictly monotonic and formats 8-char short prefixes', () => {
-		expect(VERSION).toBe('0.0.12');
+		expect(VERSION).toBe('0.1.0');
 		const ids = Array.from({ length: 16 }, () => generateUuidV7());
 		for (let i = 0; i < ids.length; i += 1) {
 			expect(isUuidV7(ids[i])).toBe(true);

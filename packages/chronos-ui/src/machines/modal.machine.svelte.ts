@@ -1,4 +1,4 @@
-import { HUD_METRICS } from '../tokens';
+import { clamp, HUD_METRICS } from '../tokens';
 
 export interface ModalOpenOptions { readonly id: string; readonly lockSeconds?: number; }
 export interface ModalGeometrySnapshot { readonly widthPx: number; readonly heightPx: number; readonly leftPx: number; readonly topPx: number; }
@@ -34,7 +34,7 @@ export function createModalMachine() {
 		get isExpanded(): boolean { return expanded; },
 		get restoreSnapshot(): ModalGeometrySnapshot | null { return restoreSnapshot; },
 		get remainingSeconds(): number { return Math.ceil(remainingMs / 1000); },
-		get progressRatio(): number { return totalSec <= 0 ? 0 : Math.max(0, Math.min(1, remainingMs / (totalSec * 1000))); },
+		get progressRatio(): number { return totalSec <= 0 ? 0 : clamp(remainingMs / (totalSec * 1000), 0, 1); },
 		open(options: ModalOpenOptions): void {
 			activeId = options.id; totalSec = Math.max(0, options.lockSeconds ?? 0);
 			expanded = false; restoreSnapshot = null; timer.start(totalSec);

@@ -18,7 +18,7 @@
 	<div
 		data-testid="staging-build-layer"
 		class="ui-scroll-deck pointer-events-auto fixed flex flex-col gap-3 overflow-x-hidden overflow-y-auto px-3 pb-4"
-		style={`z-index: ${Z_LAYERS.stagingBuildOverlay}; top: var(--ui-safe-top, 4.5rem); bottom: var(--ui-safe-bottom, 5.25rem); left: var(--ui-safe-left, 4.25rem); right: var(--ui-safe-right, 4.25rem); contain: layout style;`}
+		style={`z-index: ${Z_LAYERS.stagingBuildOverlay}; top: var(--ui-safe-top, 4.5rem); bottom: calc(var(--ui-safe-bottom, 5.25rem) + 0.5rem); left: var(--ui-safe-left, 4.25rem); right: var(--ui-safe-right, 4.25rem); contain: layout style;`}
 	>
 		<div
 			in:uiTransition={{ offsetPx: -8 }}

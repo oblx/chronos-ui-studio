@@ -1,11 +1,12 @@
 {
 	"name": "@chronos-ui/svelte",
-	"version": "0.0.12",
+	"version": "0.1.0",
 	"description": "Zero-dependency Svelte 5 Runes perimeter HUD presentation framework with true-stroke chamfer/round vector borders, configurable corner radius, 21-state hardened CSS cursor engine, 14 parametric shapes, UUID v7 entity registry, and acyclic DAG wire broker.",
 	"author": "Oblx <code@oblx.dev>",
 	"license": "MIT",
 	"type": "module",
 	"sideEffects": ["*.css"],
+	"files": ["src", "dist", "README.md", "LICENSE"],
 	"exports": {
 		".": { "svelte": "./src/index.ts", "types": "./src/index.ts", "default": "./src/index.ts" },
 		"./manifest": { "types": "./src/manifest.ts", "default": "./src/manifest.ts" },

@@ -32,7 +32,6 @@
 
 	let isRight = $derived(side === 'RIGHT');
 	let topCorners = $derived(isRight ? mirrorCornerTuple(ZONE_CORNER_PRESETS.EDGE_TOP_CAP_LEFT) : ZONE_CORNER_PRESETS.EDGE_TOP_CAP_LEFT);
-	let botCorners = $derived(isRight ? mirrorCornerTuple(ZONE_CORNER_PRESETS.EDGE_BOT_CAP_LEFT) : ZONE_CORNER_PRESETS.EDGE_BOT_CAP_LEFT);
 	let bodyCorners = $derived(isRight ? ZONE_CORNER_PRESETS.RIGHT_EDGE : ZONE_CORNER_PRESETS.LEFT_EDGE);
 	let railStyle = $derived(
 		`top: 50%; ${isRight ? 'right: 0.75rem;' : 'left: 0.75rem;'} transform: translate3d(0, calc(-50% + ${railOffsetY}px), 0);`
@@ -40,7 +39,7 @@
 	let panelStyle = $derived(
 		floating
 			? `left: ${floatX}px; top: ${floatY}px; width: 22rem; height: calc(100vh - var(--ui-safe-top, 4.5rem) - var(--ui-safe-bottom, 5.25rem));`
-			: `top: var(--ui-safe-top, 4.5rem); ${isRight ? 'right: var(--ui-safe-side, 4.5rem);' : 'left: var(--ui-safe-side, 4.5rem);'} width: 21rem; max-height: calc(100vh - var(--ui-safe-top, 4.5rem) - var(--ui-safe-bottom, 5.25rem));`
+			: `top: var(--ui-safe-top, 4.5rem); ${isRight ? 'right: var(--ui-safe-right, 4.5rem);' : 'left: var(--ui-safe-left, 4.5rem);'} width: 21rem; max-height: calc(100vh - var(--ui-safe-top, 4.5rem) - var(--ui-safe-bottom, 5.25rem));`
 	);
 </script>
 
@@ -52,7 +51,7 @@
 	class="ui-dur-micro fixed z-[35] hidden transition-opacity md:block {open ? 'opacity-100' : 'opacity-85 hover:opacity-100 focus-within:opacity-100'}"
 	style="width: 3.25rem; {railStyle}"
 >
-	<UiChamferFrame corners={bodyCorners} {cornerMode} cutTier="control" bezel={false} carets={false} outerClass="w-full" className="flex flex-col items-center gap-1 p-1.5">
+	<UiChamferFrame corners={bodyCorners} {cornerMode} cutTier="base" bezel={false} carets={false} outerClass="w-full" className="flex flex-col items-center gap-1 p-1.5">
 		<UiChamferButton
 			corners={topCorners}
 			{cornerMode}
@@ -75,26 +74,23 @@
 				className="w-full px-0"
 			/>
 		{/each}
+		<hr
+			data-testid="edge-rail-divider-{side.toLowerCase()}"
+			class="my-0.5 w-full border-0 border-t"
+			style="border-color: var(--ui-border-subtle);"
+		/>
 		<button
 			type="button"
-			aria-label="Drag to reposition or click to toggle floating drawer"
-			data-ui-tip="Click: float toggle | Drag: reposition"
+			aria-label={floating ? 'Dock drawer to edge or drag to move' : 'Click to detach drawer or drag to reposition'}
+			data-ui-tip={floating ? 'Click: dock to edge | Drag: move' : 'Click: float drawer | Drag: reposition'}
 			data-testid="edge-grip-{side.toLowerCase()}"
+			data-ui-floating={floating ? 'true' : 'false'}
 			use:uiDrawerGrip={{ isFloating: floating, onToggleFloat, onMoveRail, onMoveFloat }}
 			class="flex h-7 w-full cursor-grab items-center justify-center active:cursor-grabbing"
-			style="background-color: var(--ui-base-200); color: var(--ui-accent); border: var(--ui-hairline) solid var(--ui-border-subtle);"
+			style="background-color: {floating ? 'var(--ui-primary)' : 'var(--ui-base-200)'}; color: {floating ? 'var(--ui-primary-content)' : 'var(--ui-accent)'}; border: var(--ui-hairline) solid {floating ? 'var(--ui-primary)' : 'var(--ui-border-subtle)'};"
 		>
 			<UiIcon name="grip" sizeRem={0.9} />
 		</button>
-		<UiChamferButton
-			corners={botCorners}
-			{cornerMode}
-			icon={floating ? 'lock' : 'layers'}
-			tip={floating ? 'Dock drawer to edge' : 'Detach drawer to float'}
-			active={floating}
-			onclick={onToggleFloat}
-			className="w-full px-0"
-		/>
 	</UiChamferFrame>
 </aside>
 
@@ -105,7 +101,7 @@
 		data-ui-interactive="true"
 		in:uiTransition={{ axis: 'x', offsetPx: isRight ? 14 : -14 }}
 		out:uiTransition={{ axis: 'x', offsetPx: isRight ? 14 : -14 }}
-		class="fixed z-[36] flex flex-col"
+		class="fixed z-[36] flex flex-col shadow-xl"
 		style={panelStyle}
 	>
 		<UiChamferFrame corners={bodyCorners} {cornerMode} carets={true} bezel={true} outerClass="flex min-h-0 max-h-full w-full flex-col" className="flex min-h-0 max-h-full flex-col overflow-hidden">

@@ -1,8 +1,8 @@
 import { buildCursorPackCssSheet } from '@chronos-ui/svelte';
 import { eq } from 'drizzle-orm';
-import { getStudioDb, uiProjects } from '../lib';
-import { deriveCursorStatesForPack, listCursorPacks, loadCursorPackById } from '../server/routes/routes.cursors';
-import { cleanProjectWorkspace, saveProjectSnapshot } from '../server/routes/routes.lifecycle';
+import { getStudioDb, uiProjects } from '@studio/lib';
+import { deriveCursorStatesForPack, listCursorPacks, loadCursorPackById } from '@studio/server/routes/routes.cursors';
+import { cleanProjectWorkspace, saveProjectSnapshot } from '@studio/server/routes/routes.lifecycle';
 import type { EntityMcpToolFn } from './mcp.entity.tools';
 
 export function buildWorkspaceCursorMcpTools(): readonly [string, EntityMcpToolFn][] {
