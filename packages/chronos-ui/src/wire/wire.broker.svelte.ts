@@ -1,7 +1,6 @@
 import { createMultiTabChannel } from './wire.channel';
-import { createMicrotaskCoalescer, executeMiddlewareChain, makeEnvelope, recordTrace, runBatchReduction, scheduleEffect, type TimerMap } from './wire.pipeline';
+import { createMicrotaskCoalescer, executeMiddlewareChain, makeEnvelope, recordTrace, runBatchReduction, scheduleEffect, type BatchIntentInput, type DagEnvelope, type IntentHandler, type IntentKind, type TimerMap, type WireMiddleware, type WireTraceRecord } from './core';
 import { WireTelemetryRing } from './wire.ring';
-import type { BatchIntentInput, DagEnvelope, IntentHandler, IntentKind, WireMiddleware, WireTraceRecord } from './wire.types';
 
 export interface UiWireBroker<S> {
 	readonly state: S;

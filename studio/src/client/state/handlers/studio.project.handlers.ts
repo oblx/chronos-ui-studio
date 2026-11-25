@@ -1,10 +1,10 @@
 import type { UiNode, UiNodeTree, UiWireBroker } from '@chronos-ui/svelte';
 import { patchNodeInTreeByUuid } from '@studio/core/engine';
-import { syncCorridorForState, syncThemeAndCursor } from './lifecycle';
-import { apiCommitRevision } from './studio.project.api';
-import type { StudioState } from './studio.types';
+import { syncCorridorForState, syncThemeAndCursor } from '../lifecycle';
+import { apiCommitRevision } from '../studio.project.api';
+import type { StudioState } from '../studio.types';
 
-export { createInitialStudioState, GENESIS_FALLBACK, STUDIO_INITIAL_LAYOUT } from './lifecycle';
+export { createInitialStudioState, GENESIS_FALLBACK, STUDIO_INITIAL_LAYOUT } from '../lifecycle';
 
 function activeProj(state: StudioState) {
 	return state.projects.find((p) => p.id === state.activeProjectId) ?? state.projects[0];
@@ -23,8 +23,9 @@ function replaceActiveNodes(state: StudioState, nextNodes: UiNodeTree, pushUndo 
 }
 
 function syncRevision(state: StudioState, origin: string): void {
+	if (typeof window === 'undefined') return;
 	const cur = activeProj(state);
-	if (cur) void apiCommitRevision(cur.id, cur.nodes, origin);
+	if (cur) void apiCommitRevision(cur.id, cur.nodes, origin).catch(() => {});
 }
 
 function findNodeRecursive(nodes: readonly UiNode[], id: string): UiNode | null {

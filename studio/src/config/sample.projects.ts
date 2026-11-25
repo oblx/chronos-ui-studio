@@ -24,7 +24,7 @@ const uid = deterministicUuidV7Seed;
 export const STARTER_SAMPLE_PROJECTS: readonly StarterSampleProject[] = [
 	{
 		id: 'sample-neon-ops', title: 'Neon Ops Command Deck',
-		tagline: 'Obsidian Brass perimeter HUD with live telemetry KPIs & tactical radar',
+		tagline: 'Neon Ops Command Deck\n\nObsidian Brass perimeter HUD with live telemetry KPIs & tactical radar.',
 		themeId: 'obsidian-brass', cornerMode: 'CHAMFER',
 		nodes: [
 			{ id: uid('ops-nav'), type: 'UiHeaderBar', zone: 'TOP_CENTER', label: 'Ops Crown', lifecycle: 'COMMITTED', props: { title: 'NEON OPS', tabs: 'Overview,Fleet,Alerts,Topology', showThemeToggle: true } },
@@ -38,7 +38,7 @@ export const STARTER_SAMPLE_PROJECTS: readonly StarterSampleProject[] = [
 	},
 	{
 		id: 'sample-bio-lab', title: 'Bio-Telemetry Lab',
-		tagline: 'Alabaster Lab light cockpit with assay gauges & mathematical readouts',
+		tagline: 'Bio-Telemetry Lab\n\nAlabaster Lab light cockpit with assay gauges & mathematical readouts.',
 		themeId: 'alabaster-lab', cornerMode: 'CHAMFER',
 		nodes: [
 			{ id: uid('bio-nav'), type: 'UiHeaderBar', zone: 'TOP_CENTER', label: 'Lab Header', lifecycle: 'COMMITTED', props: { title: 'BIO-LAB OS', tabs: 'Assays,Spectra,Protocols', showThemeToggle: true } },
@@ -51,7 +51,7 @@ export const STARTER_SAMPLE_PROJECTS: readonly StarterSampleProject[] = [
 	},
 	{
 		id: 'sample-synth-console', title: 'Synth Audio Console',
-		tagline: 'Tokyo Phosphor studio desk with harmonic meters & patch triggers',
+		tagline: 'Synth Audio Console\n\nTokyo Phosphor studio desk with harmonic meters & patch triggers.',
 		themeId: 'tokyo-phosphor', cornerMode: 'CHAMFER',
 		nodes: [
 			{ id: uid('syn-nav'), type: 'UiHeaderBar', zone: 'TOP_CENTER', label: 'Synth Header', lifecycle: 'COMMITTED', props: { title: 'PHOSPHOR SYNTH', tabs: 'Oscillators,Matrix,Master', showThemeToggle: false } },
@@ -63,7 +63,7 @@ export const STARTER_SAMPLE_PROJECTS: readonly StarterSampleProject[] = [
 	},
 	{
 		id: 'sample-writers-cockpit', title: "Writer's Focus Cockpit",
-		tagline: 'Archival Vellum straight-corner manuscript & chapter outline workspace',
+		tagline: "Writer's Focus Cockpit\n\nArchival Vellum straight-corner manuscript & chapter outline workspace.",
 		themeId: 'archival-vellum', cornerMode: 'STRAIGHT',
 		nodes: [
 			{ id: uid('wri-nav'), type: 'UiHeaderBar', zone: 'TOP_CENTER', label: 'Manuscript Header', lifecycle: 'COMMITTED', props: { title: 'ARCHIVAL DRAFT', tabs: 'Outline,Manuscript,Notes', showThemeToggle: true } },
@@ -75,7 +75,7 @@ export const STARTER_SAMPLE_PROJECTS: readonly StarterSampleProject[] = [
 	},
 	{
 		id: 'sample-shape-matrix', title: 'Shape Matrix Lab',
-		tagline: 'All 14 true-contour UML & diagram hulls nested inside UUID v7 packages with diagonal drift',
+		tagline: 'Shape Matrix Lab\n\nAll 14 true-contour UML & diagram hulls nested inside UUID v7 packages with diagonal drift.',
 		themeId: 'midnight-carbon', cornerMode: 'CHAMFER',
 		nodes: SHAPE_MATRIX_NODES
 	}

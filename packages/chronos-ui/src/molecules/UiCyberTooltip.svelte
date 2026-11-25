@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { uiClampTooltipRect, type TooltipState } from '../machines';
+	import { UiChamferFrame } from '../atoms';
+	import { parseTooltipContent, uiClampTooltipRect, type TooltipState } from '../machines';
 	import { uiTransition } from '../motion';
-	import { Z_LAYERS } from '../tokens';
+	import { DEFAULT_CHAMFER_TUPLE, Z_LAYERS } from '../tokens';
 
 	interface Props {
 		tooltip: TooltipState;
@@ -9,6 +10,7 @@
 
 	let { tooltip }: Props = $props();
 
+	let parsed = $derived(parseTooltipContent(tooltip.text));
 	let transformOrigin = $derived(
 		tooltip.placement === 'top'
 			? 'translate(-50%, -100%)'
@@ -24,17 +26,42 @@
 	<div
 		role="tooltip"
 		data-testid="ui-cyber-tooltip"
-		use:uiClampTooltipRect={{ x: tooltip.x, y: tooltip.y, placement: tooltip.placement }}
-		class="pointer-events-none fixed max-w-xs"
-		style="z-index: {Z_LAYERS.overlays}; left: {tooltip.x}px; top: {tooltip.y}px; transform: {transformOrigin};"
+		use:uiClampTooltipRect={{ x: tooltip.x, y: tooltip.y, placement: tooltip.placement, text: tooltip.text }}
+		class="pointer-events-none fixed"
+		style="z-index: {Z_LAYERS.overlays}; left: {tooltip.x}px; top: {tooltip.y}px; transform: {transformOrigin}; width: fit-content; max-width: min(20rem, calc(100vw - 1rem));"
 	>
-		<div
-			in:uiTransition={{ offsetPx: 6 }}
-			out:uiTransition={{ offsetPx: 6 }}
-			class="whitespace-nowrap px-2.5 py-1 text-xs font-medium shadow-md"
-			style="background-color: var(--ui-base-300); color: var(--ui-base-content); border: var(--ui-hairline) solid var(--ui-accent-vivid, var(--ui-accent));"
-		>
-			{tooltip.text}
+		<div in:uiTransition={{ offsetPx: 6 }} out:uiTransition={{ offsetPx: 6 }} class="w-fit max-w-full shadow-lg">
+			<UiChamferFrame
+				corners={DEFAULT_CHAMFER_TUPLE}
+				cutPx={6}
+				carets={false}
+				bezel={false}
+				surfaceVar="var(--ui-base-300)"
+				strokeVar="var(--ui-accent-vivid, var(--ui-accent))"
+				outerClass="w-fit max-w-full"
+				className="min-w-[8rem] max-w-[min(20rem,calc(100vw-1rem))] whitespace-normal break-words px-3 py-2 text-left text-xs leading-[1.45]"
+			>
+				<div data-testid="ui-cyber-tooltip-body" class="space-y-1.5" style="color: var(--ui-base-content);">
+					{#if parsed.title}
+						<div class="flex items-center justify-between gap-2">
+							<span class="font-semibold tracking-tight" style="color: var(--ui-base-content);">{parsed.title}</span>
+							{#if parsed.shortcut}
+								<kbd class="ui-font-mono shrink-0 border px-1 py-0.25 text-[0.65rem] font-semibold" style="border-color: var(--ui-border-subtle); background-color: var(--ui-base-200); color: var(--ui-accent-vivid, var(--ui-accent));">{parsed.shortcut}</kbd>
+							{/if}
+						</div>
+					{/if}
+					{#each parsed.paragraphs as lines, pIdx (pIdx)}
+						<p class="m-0 font-medium" style="color: {parsed.title ? 'var(--ui-muted-content)' : 'var(--ui-base-content)'};">
+							{#each lines as line, lIdx (lIdx)}
+								{#if lIdx > 0}<br />{/if}{line}
+							{/each}
+							{#if !parsed.title && parsed.shortcut && pIdx === parsed.paragraphs.length - 1}
+								<kbd class="ui-font-mono ml-1.5 inline-block border px-1 py-0.25 text-[0.65rem] font-semibold" style="border-color: var(--ui-border-subtle); background-color: var(--ui-base-200); color: var(--ui-accent-vivid, var(--ui-accent));">{parsed.shortcut}</kbd>
+							{/if}
+						</p>
+					{/each}
+				</div>
+			</UiChamferFrame>
 		</div>
 	</div>
 {/if}

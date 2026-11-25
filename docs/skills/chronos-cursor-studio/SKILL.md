@@ -1,26 +1,20 @@
 ---
 name: chronos-cursor-studio
-description: Implement, synthesize, validate, and apply 21-state hardened CSS UI Level 4 pointer packs via @chronos-ui/svelte/cursor, CursorStudioModal, Drizzle cursor_packs/cursor_state_assets, PNG <= 128 KB magic-byte checks, and AI/procedural 20-state derivation. Use when customizing cursors, hotspots, or cursor CSS exports.
+description: Authoring and verifying 21-state concrete-hex CSS UI Level 4 cursor packs, hotspot calibration, and polarity-reactive SVG synthesis for @chronos-ui/svelte.
 license: MIT
-compatibility: Svelte 5 Runes, Drizzle Bun SQLite WAL, Zero Runtime Dependencies
 metadata:
   author: Oblx <code@oblx.dev>
-  version: "0.0.12"
-allowed-tools: view_file replace_file_content run_command
+  version: "0.1.0"
 ---
 
-# Full-State CSS Cursor Studio (`@chronos-ui/svelte/cursor`)
+# Chronos 21-State Cursor Studio (`v0.1.0`)
 
-Orchestrate all 21 `CSS_CURSOR_STATES` across live DOM selectors (`--ui-cursor-default` through `--ui-cursor-zoom-out`) with `!important` backdrop/grip coverage and zero external asset binaries.
+Use this skill when modifying `@chronos-ui/svelte/cursor`, built-in cursor packs, or the Cursor Studio workbench modal.
 
-## Runtime & Schema Architecture
+## Concrete-Hex & Browser Invariants
 
-1. **Zero-Dep Package Runtime (`packages/chronos-ui/src/cursor/`)**: Manage a single `<style data-ui-cursor-sheet="true">` stylesheet via `resolveThemeCursorPalette()` + `buildCursorPackCss()` + `applyCursorPackToDocument()`, emitting concrete `%23rrggbb` hex colors (zero `var(--)` tokens inside SVG data URIs), explicit `xmlns` & `32x32` dimensions, full `html, body, #app, [data-ui-root]` coverage, all 21 `.cursor-*` overrides, and live re-emit on theme/polarity switch.
-2. **Curated Builtins**: Ship 4 crisp vector packs (`Cyber Reticle`, `Archival Nib`, `Tactical Brass`, `Minimal Precision`) plus one-click fork/re-derivation into custom packs.
-3. **Drizzle Persistence (`db.cursor.schema.ts`)**: Store `cursor_packs` (RFC 9562 UUID v7 PK, `derivedFromUuid` chain, base hotspot) and 21 linked `cursor_state_assets` rows via atomic `db.transaction` mirrored to IndexedDB and bundled into `static-site-build` exports.
-
-## PNG Upload & 20-State Derivation Rules
-
-1. Enforce `CURSOR_LIMITS` (`maxBytes = 131072` / `maxKb = 128`, magic bytes `89 50 4E 47 0D 0A 1A 0A`, dimensions `4..256`, browser auto-downscale `> 48px -> 32x32`).
-2. Default synthesis palette binds directly to `THEME_PACKS[0].tokens` (`--ui-accent-vivid`, `--ui-base-100`, `--ui-primary`, `--ui-base-content`) with a declarative 21-state `Map` and zero hardcoded hex colors in synthesizer code.
-3. Expose full parity on REST (`GET/POST /api/cursors`, `POST /api/cursors/:uuid/derive-states`, `PATCH /api/cursors/:uuid/states/:state`) and MCP (`ui_list_cursor_packs`, `ui_apply_cursor_pack`, `ui_derive_cursor_states`).
+1. **21-State CSS UI Level 4 Coverage**: Every pack provides complete rules for all 21 pointer states (`default`, `pointer`, `text`, `move`, `grab`, `grabbing`, `not-allowed`, `wait`, `progress`, `help`, `crosshair`, `cell`, `copy`, `alias`, `context-menu`, `col-resize`, `row-resize`, `ew-resize`, `ns-resize`, `nesw-resize`, `nwse-resize`).
+2. **Concrete-Hex SVG Data URIs**: Never embed CSS `var(--ui-*)` inside `data:image/svg+xml,...` cursor URIs (browsers ignore CSS variables inside external image data URIs). Always resolve active theme polarity via `resolveThemeCursorPalette(theme)` before calling `applyCursorPackToDocument(pack, palette)`.
+3. **Normalized Dimensions & Hotspot Bounds**: Built-in and uploaded PNG assets normalize to $32\text{px} \times 32\text{px}$ (`<= 128 KB`), with integer hotspot coordinates clamped to `[0, 31]`.
+4. **Live Polarity Cascade**: Toggling `dark <-> light` polarity (`UI_TOGGLE_POLARITY`) or switching theme packs immediately re-emits the concrete-hex cursor stylesheet via `syncThemeAndCursor`.
+5. **Export Fidelity**: Static and full-stack exports emit the active 21-state cursor CSS alongside `--ui-corner-cut` and `CALM_SLOW` motion tokens.

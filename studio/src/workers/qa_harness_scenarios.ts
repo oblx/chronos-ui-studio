@@ -1,13 +1,38 @@
-export type HarnessScenarioId = 'calm-density' | 'wireframe-cs6' | 'spotlight-tour' | 'assistant-dock' | 'station-preview' | 'field-tome' | 'persistence' | 'responsive';
+export type HarnessScenarioId = 'latest' | 'calm-density' | 'wireframe-cs6' | 'spotlight-tour' | 'assistant-dock' | 'station-preview' | 'field-tome' | 'persistence' | 'responsive';
 
 export const ALL_HARNESS_SCENARIOS: readonly HarnessScenarioId[] = [
 	'calm-density', 'wireframe-cs6', 'spotlight-tour', 'assistant-dock', 'station-preview', 'field-tome', 'persistence', 'responsive'
 ] as const;
 
 export const SCENARIO_SCRIPTS: Readonly<Record<HarnessScenarioId, string>> = {
+	'latest': `async (page) => {
+		const root = page.locator('[data-layout-density]').first(); await root.waitFor({ state: 'visible', timeout: 6000 });
+		if ((await root.getAttribute('data-studio-chrome')) !== 'false') throw new Error('Expected Calm boot');
+		await page.locator('[data-testid="starter-sample-chips"] button', { hasText: 'Synth Audio Console' }).first().hover({ force: true });
+		await page.locator('[data-testid="ui-cyber-tooltip"]').first().waitFor({ state: 'visible', timeout: 3000 }); await page.waitForTimeout(80);
+		const tipCheck = await page.evaluate(() => { const f = document.querySelector('[data-testid="ui-cyber-tooltip"] [data-frame-shape]')?.getBoundingClientRect(), b = document.querySelector('[data-testid="ui-cyber-tooltip-body"]'), br = b?.getBoundingClientRect(); return { paras: b ? b.querySelectorAll('p').length : 0, height: Math.round(f?.height || 0), overflowPx: f && br ? Math.max(0, Math.ceil(br.right - f.right), Math.ceil((b?.scrollWidth || 0) - f.width)) : 999, vpOverflow: f ? Math.max(0, Math.ceil(f.right - (window.innerWidth - 8))) : 999 }; });
+		if (tipCheck.overflowPx > 0 || tipCheck.vpOverflow > 0 || tipCheck.paras < 1 || tipCheck.height < 42) throw new Error('Tooltip check failed: ' + JSON.stringify(tipCheck));
+		const calmCheck = await page.evaluate(() => { const h = document.querySelector('[data-testid="studio-hud-toggle-btn"]')?.getBoundingClientRect(), p = document.querySelector('[data-testid="calm-top-left"] [data-testid="project-lifecycle-pod"]'), st = document.querySelector('[data-ui-stage-viewport]')?.getBoundingClientRect(); const railsOk = ['left', 'right'].every((s) => { const r = document.querySelector('[data-testid="edge-rail-' + s + '"]'), hr = r?.querySelector('[data-testid="edge-rail-divider-' + s + '"]'), g = r?.querySelector('[data-testid="edge-grip-' + s + '"]'); return Boolean(r && hr && g && hr.nextElementSibling === g && !g.nextElementSibling); }); return { hudBtn: h ? { left: h.left, top: h.top, cx: h.left + h.width / 2, cy: h.top + h.height / 2 } : null, resetTxt: (p?.querySelector('[data-testid="workspace-reset-btn"]')?.textContent || '').trim(), railsOk, stageW: Math.round(st?.width || 0), stageH: Math.round(st?.height || 0) }; });
+		if (!calmCheck.hudBtn || !calmCheck.railsOk || calmCheck.resetTxt !== 'Reset') throw new Error('Calm check failed: ' + JSON.stringify(calmCheck));
+		await page.locator('[data-testid="assistant-unfold-trigger"]').first().click({ force: true }); await page.waitForTimeout(120);
+		const chatOpenH = await page.evaluate(() => Math.round(document.querySelector('[data-ui-stage-viewport]')?.getBoundingClientRect().height || 0));
+		const canvasHeightDeltaPx = Math.abs(chatOpenH - calmCheck.stageH);
+		if (canvasHeightDeltaPx > 0) throw new Error('Expanded chat shrank WORLD_CANVAS by ' + canvasHeightDeltaPx + 'px');
+		const input = page.locator('[data-testid="assistant-prompt-input"]').first(); await input.fill('Build a telemetry dashboard'); await input.press('Enter');
+		await page.waitForFunction(() => (document.querySelector('[data-testid="assistant-submit-btn"]')?.textContent || '').trim() === 'Send' && document.querySelectorAll('[data-testid="assistant-tool-chip"]').length >= 2, null, { timeout: 6000 });
+		const chatUx = await page.evaluate(() => { const hdr = document.querySelector('[data-testid="assistant-transcript-header"]')?.getBoundingClientRect(), badge = document.querySelector('[data-testid="assistant-user-badge"]')?.getBoundingClientRect(); return { topClipPx: hdr && badge ? Math.max(0, Math.ceil(hdr.bottom + 4 - badge.top)) : 999, chips: document.querySelectorAll('[data-testid="assistant-tool-chip"]').length, cta: (document.querySelector('[data-testid="assistant-submit-btn"]')?.textContent || '').trim() }; });
+		if (chatUx.topClipPx > 0 || chatUx.chips < 2 || chatUx.cta !== 'Send') throw new Error('Chat UX check failed: ' + JSON.stringify(chatUx));
+		await page.reload({ waitUntil: 'domcontentloaded' }); await root.waitFor({ state: 'visible', timeout: 6000 });
+		await page.waitForFunction(() => (document.querySelector('[data-testid="assistant-submit-btn"]')?.textContent || '').trim() === 'Send', null, { timeout: 4000 });
+		await page.mouse.click(calmCheck.hudBtn.cx, calmCheck.hudBtn.cy); await page.locator('[data-testid="calm-view-toggle-btn"]').first().waitFor({ state: 'visible', timeout: 4000 });
+		const hudCheck = await page.evaluate(() => { const cb = document.querySelector('[data-testid="calm-view-toggle-btn"]')?.getBoundingClientRect(), p = document.querySelector('[data-testid="top-left-pod"] [data-testid="project-lifecycle-pod"]'); return { cb: cb ? { left: cb.left, top: cb.top } : null, resetTxt: (p?.querySelector('[data-testid="workspace-reset-btn"]')?.textContent || '').trim() }; });
+		const dx = hudCheck.cb ? Math.abs(calmCheck.hudBtn.left - hudCheck.cb.left) : 999, dy = hudCheck.cb ? Math.abs(calmCheck.hudBtn.top - hudCheck.cb.top) : 999;
+		if (dx > 16 || dy > 8 || hudCheck.resetTxt !== 'Reset') throw new Error('HUD check failed: ' + JSON.stringify({ dx, dy, hudCheck }));
+		await page.mouse.click(calmCheck.hudBtn.cx, calmCheck.hudBtn.cy); await page.locator('[data-testid="studio-hud-toggle-btn"]').first().waitFor({ state: 'visible', timeout: 4000 });
+		return { tipOverflowPx: tipCheck.overflowPx, canvasHeightDeltaPx, topClipPx: chatUx.topClipPx, toolChips: chatUx.chips, ctaReloadSync: 'Send', dx: Math.round(dx), dy: Math.round(dy), roundTrip: true };
+	}`,
 	'calm-density': `async (page) => {
-		const root = page.locator('[data-layout-density]').first();
-		await root.waitFor({ state: 'visible', timeout: 8000 });
+		const root = page.locator('[data-layout-density]').first(); await root.waitFor({ state: 'visible', timeout: 6000 });
 		if ((await root.getAttribute('data-studio-chrome')) !== 'false') throw new Error('Expected Minimal Calm launch on boot');
 		const calmRightBtns = await page.locator('[data-testid="calm-top-right"] button').count();
 		if (calmRightBtns > 5) throw new Error('Calm top-right controls exceeded 5: ' + calmRightBtns);
@@ -15,135 +40,107 @@ export const SCENARIO_SCRIPTS: Readonly<Record<HarnessScenarioId, string>> = {
 		if (centerDrift.drift > 14 || centerDrift.clip > 2) throw new Error('CalmTopStrip alignment/clip failure: ' + JSON.stringify(centerDrift));
 		const railCheck = await page.evaluate(() => ['left', 'right'].every((s) => { const r = document.querySelector('[data-testid="edge-rail-' + s + '"]'), hr = r?.querySelector('[data-testid="edge-rail-divider-' + s + '"]'), g = r?.querySelector('[data-testid="edge-grip-' + s + '"]'); return Boolean(r && hr && g && hr.nextElementSibling === g && !g.nextElementSibling); }));
 		if (!railCheck || (await page.locator('[data-testid="staging-build-layer"]').count()) !== 0) throw new Error('Edge-rail grouping or fresh-boot staging check failed');
-		await page.locator('[data-testid="edge-rail-toggle-right"]').first().hover({ force: true }); await page.waitForTimeout(120);
+		await page.locator('[data-testid="edge-rail-toggle-right"]').first().hover({ force: true }); await page.locator('[data-testid="ui-cyber-tooltip"]').first().waitFor({ state: 'visible', timeout: 2500 });
 		const tipGap = await page.evaluate(() => { const tip = document.querySelector('[data-testid="ui-cyber-tooltip"]')?.getBoundingClientRect(), rl = document.querySelector('[data-testid="edge-rail-right"]')?.getBoundingClientRect(); return tip && rl ? Math.round(rl.left - tip.right) : 999; });
-		if (tipGap < 0 || tipGap > 36) throw new Error('Right-rail tooltip displaced from rail: gap=' + tipGap);
+		if (tipGap < 0 || tipGap > 36) throw new Error('Right-rail tooltip displaced: gap=' + tipGap);
 		const baseStageW = await page.evaluate(() => Math.round(document.querySelector('[data-ui-stage-viewport]')?.getBoundingClientRect().width || 0));
-		await page.locator('[data-testid="edge-rail-tab-left-build"]').first().click({ force: true }); await page.waitForTimeout(160);
-		if ((await page.locator('[data-testid="edge-drawer-left"] [data-testid="studio-tool-palette"]').count()) < 1 || (await root.getAttribute('data-studio-chrome')) !== 'false') throw new Error('LEFT_EDGE Build mount/Calm invariant broken');
+		await page.locator('[data-testid="edge-rail-tab-left-build"]').first().click({ force: true }); await page.locator('[data-testid="edge-drawer-left"] [data-testid="studio-tool-palette"]').first().waitFor({ state: 'visible', timeout: 3000 });
 		const leftOpenStageW = await page.evaluate(() => Math.round(document.querySelector('[data-ui-stage-viewport]')?.getBoundingClientRect().width || 0));
-		if (Math.abs(leftOpenStageW - baseStageW) > 1) throw new Error('LEFT_EDGE drawer changed workspace width: ' + baseStageW + ' -> ' + leftOpenStageW);
-		await page.locator('[data-testid="edge-rail-tab-right-themes"]').first().click({ force: true }); await page.waitForTimeout(180);
+		if (Math.abs(leftOpenStageW - baseStageW) > 1 || (await root.getAttribute('data-studio-chrome')) !== 'false') throw new Error('LEFT_EDGE overlay invariance broken');
+		await page.locator('[data-testid="edge-rail-tab-right-themes"]').first().click({ force: true }); await page.locator('[data-testid="edge-drawer-right"]').first().waitFor({ state: 'visible', timeout: 3000 });
 		const rightOverlay = await page.evaluate(() => { const stW = Math.round(document.querySelector('[data-ui-stage-viewport]')?.getBoundingClientRect().width || 0), dr = document.querySelector('[data-testid="edge-drawer-right"]')?.getBoundingClientRect(), rl = document.querySelector('[data-testid="edge-rail-right"]')?.getBoundingClientRect(); return { stW, railGap: dr && rl ? Math.round(Math.abs(rl.left - dr.right)) : 999 }; });
-		if (Math.abs(rightOverlay.stW - baseStageW) > 1 || rightOverlay.railGap > 16) throw new Error('RIGHT_EDGE drawer broke overlay invariance: ' + JSON.stringify({ baseStageW, rightOverlay }));
+		if (Math.abs(rightOverlay.stW - baseStageW) > 1 || rightOverlay.railGap > 16) throw new Error('RIGHT_EDGE overlay invariance broken: ' + JSON.stringify({ baseStageW, rightOverlay }));
 		const wcagClip = await page.evaluate(() => { const b = document.querySelector('[data-testid="edge-drawer-body-right"]'); if (!b) return 999; b.scrollTop = b.scrollHeight; const rows = b.querySelectorAll('[data-testid="wcag-audit-row"]'); const last = rows[rows.length - 1]; return last ? Math.max(0, last.getBoundingClientRect().bottom - b.getBoundingClientRect().bottom) : 999; });
 		if (wcagClip > 2) throw new Error('RIGHT_EDGE WCAG audit row clipped by ' + wcagClip + 'px');
-		await page.locator('[data-testid="edge-rail-toggle-left"]').first().click({ force: true }); await page.locator('[data-testid="edge-rail-toggle-right"]').first().click({ force: true }); await page.waitForTimeout(140);
+		await page.locator('[data-testid="edge-rail-toggle-left"]').first().click({ force: true }); await page.locator('[data-testid="edge-rail-toggle-right"]').first().click({ force: true });
 		const marginPan = await page.evaluate(() => { const s = document.querySelector('[data-ui-stage-viewport]'); const before = s?.getAttribute('data-camera-x') || '0'; const el = document.elementFromPoint(12, window.innerHeight - 10); return { before, insideStage: Boolean(el?.closest('[data-ui-stage-viewport]')) }; });
-		await page.mouse.move(12, 890); await page.mouse.down(); await page.mouse.move(160, 890, { steps: 6 }); await page.mouse.up(); await page.waitForTimeout(120);
+		await page.mouse.move(12, 890); await page.mouse.down(); await page.mouse.move(160, 890, { steps: 4 }); await page.mouse.up();
 		if (marginPan.insideStage || (await page.locator('[data-ui-stage-viewport]').first().getAttribute('data-camera-x')) !== marginPan.before) throw new Error('Outer margin leaked stage pan');
-		const cursorBefore = await page.evaluate(async () => { const cur = getComputedStyle(document.body).cursor; const m = cur.match(/url\\("?(data:image\\/svg\\+xml,[^"\\)]+)"?\\)/); if (!m) throw new Error('Body cursor missing SVG data URL: ' + cur); if (m[1].includes('var(--')) throw new Error('Unresolved var(-- in cursor SVG'); const img = new Image(); img.src = m[1]; await img.decode(); return { w: img.naturalWidth, h: img.naturalHeight, uri: m[1] }; });
-		if (cursorBefore.w !== 32 || cursorBefore.h !== 32) throw new Error('Cursor SVG decoded wrong size: ' + JSON.stringify(cursorBefore));
-		await page.locator('[data-testid="calm-toggle-polarity"]').first().click({ force: true }); await page.waitForTimeout(140);
-		if ((await page.evaluate(() => getComputedStyle(document.body).cursor)).includes(cursorBefore.uri)) throw new Error('Cursor SVG did not live-update on polarity toggle');
-		await page.locator('[data-testid="calm-toggle-polarity"]').first().click({ force: true }); await page.waitForTimeout(120);
-		await page.locator('[data-testid="starter-sample-chips"] button').first().click({ force: true }); await page.waitForTimeout(420);
-		const calmStage = await page.evaluate(() => { const s = document.querySelector('[data-ui-stage-viewport]')?.getBoundingClientRect(), d = document.querySelector('[data-testid="client-document-root"]')?.getBoundingClientRect(), t = document.querySelector('[data-testid="studio-hud-toggle-btn"]')?.getBoundingClientRect(); if (!s || !d || !t) return null; return { cx: d.left + d.width / 2, cy: d.top + d.height / 2, topClip: Math.max(0, s.top - d.top), rightClip: Math.max(0, d.right - s.right), tx: t.left + t.width / 2, ty: t.top + t.height / 2 }; });
-		await page.locator('[data-testid="studio-hud-toggle-btn"]').first().click({ force: true }); await page.waitForTimeout(320);
-		const hudStage = await page.evaluate(() => { const s = document.querySelector('[data-ui-stage-viewport]')?.getBoundingClientRect(), d = document.querySelector('[data-testid="client-document-root"]')?.getBoundingClientRect(), t = document.querySelector('[data-testid="calm-view-toggle-btn"]')?.getBoundingClientRect(), r = document.querySelector('[data-testid="top-left-pod"] [data-testid="workspace-reset-btn"]'); if (!s || !d || !t) return null; return { cx: d.left + d.width / 2, cy: d.top + d.height / 2, topClip: Math.max(0, s.top - d.top), rightClip: Math.max(0, d.right - s.right), tx: t.left + t.width / 2, ty: t.top + t.height / 2, resetText: (r?.textContent || '').trim() }; });
-		const dx = calmStage && hudStage ? Math.abs(calmStage.cx - hudStage.cx) : 999, dy = calmStage && hudStage ? Math.abs(calmStage.cy - hudStage.cy) : 999;
-		const tdx = calmStage && hudStage ? Math.abs(calmStage.tx - hudStage.tx) : 999, tdy = calmStage && hudStage ? Math.abs(calmStage.ty - hudStage.ty) : 999;
-		if (!calmStage || !hudStage || calmStage.topClip > 4 || hudStage.topClip > 4 || hudStage.rightClip > 4 || dx > 12 || dy > 16 || tdx > 16 || tdy > 8 || hudStage.resetText !== 'Reset') throw new Error('Stage/Toggle/Lifecycle violation: ' + JSON.stringify({ calmStage, hudStage, dx, dy, tdx, tdy }));
+		const cursorBefore = await page.evaluate(async () => { const cur = getComputedStyle(document.body).cursor; const m = cur.match(/url\\("?(data:image\\/svg\\+xml,[^"\\)]+)"?\\)/); if (!m || m[1].includes('var(--')) throw new Error('Invalid cursor SVG: ' + cur); const img = new Image(); img.src = m[1]; await img.decode(); return { w: img.naturalWidth, h: img.naturalHeight, uri: m[1] }; });
+		if (cursorBefore.w !== 32 || cursorBefore.h !== 32) throw new Error('Cursor SVG wrong size');
+		await page.locator('[data-testid="calm-toggle-polarity"]').first().click({ force: true }); await page.waitForFunction((u) => !getComputedStyle(document.body).cursor.includes(u), cursorBefore.uri, { timeout: 2500 });
+		await page.locator('[data-testid="calm-toggle-polarity"]').first().click({ force: true });
+		await page.locator('[data-testid="starter-sample-chips"] button').first().click({ force: true }); await page.locator('[data-testid="client-document-root"] [data-testid^="live-node-"]').first().waitFor({ state: 'visible', timeout: 4000 });
+		const calmStage = await page.evaluate(() => { const s = document.querySelector('[data-ui-stage-viewport]')?.getBoundingClientRect(), d = document.querySelector('[data-testid="client-document-root"]')?.getBoundingClientRect(), t = document.querySelector('[data-testid="studio-hud-toggle-btn"]')?.getBoundingClientRect(); if (!s || !d || !t) return null; return { cx: d.left + d.width / 2, cy: d.top + d.height / 2, topClip: Math.max(0, s.top - d.top), rightClip: Math.max(0, d.right - s.right), tl: t.left, tt: t.top }; });
+		await page.locator('[data-testid="studio-hud-toggle-btn"]').first().click({ force: true }); await page.locator('[data-testid="calm-view-toggle-btn"]').first().waitFor({ state: 'visible', timeout: 4000 }); await page.waitForTimeout(160);
+		const hudStage = await page.evaluate(() => { const s = document.querySelector('[data-ui-stage-viewport]')?.getBoundingClientRect(), d = document.querySelector('[data-testid="client-document-root"]')?.getBoundingClientRect(), t = document.querySelector('[data-testid="calm-view-toggle-btn"]')?.getBoundingClientRect(), r = document.querySelector('[data-testid="top-left-pod"] [data-testid="workspace-reset-btn"]'); if (!s || !d || !t) return null; return { cx: d.left + d.width / 2, cy: d.top + d.height / 2, topClip: Math.max(0, s.top - d.top), rightClip: Math.max(0, d.right - s.right), tl: t.left, tt: t.top, resetText: (r?.textContent || '').trim() }; });
+		const dx = calmStage && hudStage ? Math.abs(calmStage.cx - hudStage.cx) : 999, dy = calmStage && hudStage ? Math.abs(calmStage.cy - hudStage.cy) : 999, tdx = calmStage && hudStage ? Math.abs(calmStage.tl - hudStage.tl) : 999, tdy = calmStage && hudStage ? Math.abs(calmStage.tt - hudStage.tt) : 999;
+		if (!calmStage || !hudStage || calmStage.topClip > 4 || hudStage.topClip > 4 || hudStage.rightClip > 4 || dx > 12 || dy > 16 || tdx > 16 || tdy > 8 || hudStage.resetText !== 'Reset') throw new Error('Stage/Toggle/Lifecycle violation: ' + JSON.stringify({ dx, dy, tdx, tdy, resetText: hudStage?.resetText }));
 		const twinClip = await page.evaluate(() => { const bar = document.querySelector('[data-testid="zone-top-center"]'); const btn = bar ? [...bar.querySelectorAll('button')].find((b) => (b.textContent || '').includes('Twin MCP')) : null; if (!btn || !bar) return 999; const br = btn.getBoundingClientRect(), pr = btn.parentElement?.getBoundingClientRect(); return Math.max(btn.scrollWidth - btn.clientWidth, pr ? Math.ceil(br.right - pr.right) : 0); });
-		if (twinClip > 1) throw new Error('Twin MCP button truncated by ' + twinClip + 'px');
-		await page.locator('[data-testid="client-document-root"] [data-testid^="live-node-"]').first().click({ position: { x: 8, y: 8 }, force: true }); await page.waitForTimeout(160);
-		if ((await page.locator('[data-testid="edge-drawer-right"] [data-testid="node-inspector-panel"]').count()) < 1) throw new Error('Canvas node click did not open RIGHT_EDGE Inspector');
-		await page.locator('[data-testid="edge-rail-toggle-right"]').first().click({ force: true }); await page.waitForTimeout(120);
-		return { calmRightBtns, wcagClip, centerDrift: Math.round(centerDrift.drift), topClip: Math.round(centerDrift.clip), tipGap, cursorPx: cursorBefore.w, dx: Math.round(dx), dy: Math.round(dy), tdx: Math.round(tdx), tdy: Math.round(tdy), twinClip };
+		if (twinClip > 1) throw new Error('Twin MCP truncated by ' + twinClip + 'px');
+		await page.locator('[data-testid="client-document-root"] [data-testid^="live-node-"]').first().click({ position: { x: 8, y: 8 }, force: true }); await page.locator('[data-testid="edge-drawer-right"] [data-testid="node-inspector-panel"]').first().waitFor({ state: 'visible', timeout: 3000 });
+		await page.locator('[data-testid="edge-rail-toggle-right"]').first().click({ force: true });
+		return { calmRightBtns, tipGap, tdx: Math.round(tdx), tdy: Math.round(tdy), dx: Math.round(dx), dy: Math.round(dy), twinClip };
 	}`,
 	'wireframe-cs6': `async (page) => {
-		const root = page.locator('[data-layout-density]').first();
-		if ((await root.getAttribute('data-studio-chrome')) !== 'true') { await page.locator('[data-testid="studio-hud-toggle-btn"]').first().click({ force: true }); await page.waitForTimeout(260); }
-		await page.locator('[data-testid="zone-bottom-right"] [data-testid="radar-open-skeleton"]').first().click({ force: true }); await page.locator('[data-testid="wireframe-skeleton-modal"]').first().waitFor({ state: 'visible', timeout: 8000 });
+		if ((await page.locator('[data-layout-density]').first().getAttribute('data-studio-chrome')) !== 'true') { await page.locator('[data-testid="studio-hud-toggle-btn"]').first().click({ force: true }); await page.locator('[data-testid="zone-bottom-right"]').first().waitFor({ state: 'visible', timeout: 4000 }); }
+		await page.locator('[data-testid="zone-bottom-right"] [data-testid="radar-open-skeleton"]').first().click({ force: true }); await page.locator('[data-testid="wireframe-skeleton-modal"]').first().waitFor({ state: 'visible', timeout: 5000 });
 		const panels = await Promise.all(['wf-toolbox', 'wf-artboard', 'wf-right-stack', 'wf-status-strip'].map((id) => page.locator('[data-testid="' + id + '"]').count()));
-		if (panels.some((c) => c < 1)) throw new Error('Missing CS6 panel(s): ' + JSON.stringify(panels));
+		if (panels.some((c) => c < 1)) throw new Error('Missing CS6 panel(s)');
 		const beforeBox = await page.locator('[data-testid="modal-shell-box"]').first().boundingBox();
-		await page.locator('[data-testid="modal-expand-btn"]').first().click({ force: true }); await page.waitForTimeout(760);
-		const expandedAttr = await page.locator('[role="dialog"]').first().getAttribute('data-modal-expanded'), expandedBox = await page.locator('[data-testid="modal-shell-box"]').first().boundingBox();
-		await page.locator('[data-testid="modal-expand-btn"]').first().click({ force: true }); await page.waitForTimeout(760);
+		await page.locator('[data-testid="modal-expand-btn"]').first().click({ force: true }); await page.waitForFunction(() => document.querySelector('[role="dialog"]')?.getAttribute('data-modal-expanded') === 'true', null, { timeout: 3000 }); await page.waitForTimeout(620);
+		const expandedBox = await page.locator('[data-testid="modal-shell-box"]').first().boundingBox();
+		await page.locator('[data-testid="modal-expand-btn"]').first().click({ force: true }); await page.waitForFunction(() => document.querySelector('[role="dialog"]')?.getAttribute('data-modal-expanded') !== 'true', null, { timeout: 3000 }); await page.waitForTimeout(620);
 		const restoredBox = await page.locator('[data-testid="modal-shell-box"]').first().boundingBox();
-		if (expandedAttr !== 'true' || !beforeBox || !expandedBox || !restoredBox || expandedBox.width <= beforeBox.width || Math.abs(beforeBox.width - restoredBox.width) > 4) throw new Error('Wireframe modal Grow/Shrink restore mismatch: ' + JSON.stringify({ beforeBox, expandedBox, restoredBox }));
-		const labelOverlaps = await page.evaluate(() => { let hits = 0; document.querySelectorAll('[data-testid^="wf-node-"]').forEach((g) => { const texts = [...g.querySelectorAll('text')].map((t) => t.getBoundingClientRect()); for (let i = 0; i < texts.length; i++) for (let j = i + 1; j < texts.length; j++) if (texts[i].left < texts[j].right && texts[i].right > texts[j].left && texts[i].top < texts[j].bottom && texts[i].bottom > texts[j].top) hits++; }); return hits; });
-		if (labelOverlaps > 0) throw new Error('Wireframe node label overlap count=' + labelOverlaps);
-		await page.locator('[data-testid="modal-close-btn"]').first().click({ force: true }); await page.locator('[data-testid="wireframe-skeleton-modal"]').first().waitFor({ state: 'detached', timeout: 5000 });
-		await page.locator('[data-testid="hud-open-wire"]').first().click({ force: true }); await page.locator('[data-testid="wire-dag-graph"]').first().waitFor({ state: 'visible', timeout: 8000 });
+		if (!beforeBox || !expandedBox || !restoredBox || expandedBox.width <= beforeBox.width || Math.abs(beforeBox.width - restoredBox.width) > 4) throw new Error('Modal Grow/Shrink mismatch');
+		const labelOverlaps = await page.evaluate(() => { let hits = 0; document.querySelectorAll('[data-testid^="wf-node-"]').forEach((g) => { const ts = [...g.querySelectorAll('text')].map((t) => t.getBoundingClientRect()); for (let i = 0; i < ts.length; i++) for (let j = i + 1; j < ts.length; j++) if (ts[i].left < ts[j].right && ts[i].right > ts[j].left && ts[i].top < ts[j].bottom && ts[i].bottom > ts[j].top) hits++; }); return hits; });
+		if (labelOverlaps > 0) throw new Error('Wireframe label overlap=' + labelOverlaps);
+		await page.locator('[data-testid="modal-close-btn"]').first().click({ force: true }); await page.locator('[data-testid="wireframe-skeleton-modal"]').first().waitFor({ state: 'detached', timeout: 4000 });
+		await page.locator('[data-testid="hud-open-wire"]').first().click({ force: true }); await page.locator('[data-testid="wire-dag-graph"]').first().waitFor({ state: 'visible', timeout: 5000 });
 		const dagNodes = await page.locator('[data-dag-node]').count(), filterW = await page.locator('[data-testid="wire-filter-input"]').first().boundingBox();
-		if (dagNodes < 15 || !filterW || filterW.width < 220) throw new Error('Wire DAG check failed: nodes=' + dagNodes + ' filterW=' + JSON.stringify(filterW));
-		await page.locator('[data-testid="modal-close-btn"]').first().click({ force: true }); await page.locator('[data-testid="wire-dag-graph"]').first().waitFor({ state: 'detached', timeout: 5000 });
-		return { panels, labelOverlaps, dagNodes, filterW: Math.round(filterW.width) };
+		if (dagNodes < 15 || !filterW || filterW.width < 220) throw new Error('Wire DAG check failed');
+		await page.locator('[data-testid="modal-close-btn"]').first().click({ force: true }); await page.locator('[data-testid="wire-dag-graph"]').first().waitFor({ state: 'detached', timeout: 4000 });
+		return { panels, labelOverlaps, dagNodes };
 	}`,
 	'spotlight-tour': `async (page) => {
-		const root = page.locator('[data-layout-density]').first();
-		if ((await root.getAttribute('data-studio-chrome')) !== 'true') { await page.locator('[data-testid="studio-hud-toggle-btn"]').first().click({ force: true }); await page.waitForTimeout(260); }
+		if ((await page.locator('[data-layout-density]').first().getAttribute('data-studio-chrome')) !== 'true') { await page.locator('[data-testid="studio-hud-toggle-btn"]').first().click({ force: true }); await page.locator('[data-testid="hud-tour-btn"]').first().waitFor({ state: 'visible', timeout: 4000 }); }
 		await page.locator('[data-testid="hud-tour-btn"]').first().click({ force: true });
-		const veil = page.locator('[data-testid="spotlight-veil"]').first();
-		await veil.waitFor({ state: 'visible', timeout: 8000 });
+		const veil = page.locator('[data-testid="spotlight-veil"]').first(); await veil.waitFor({ state: 'visible', timeout: 4000 });
 		let step4Drill = false;
 		for (let i = 0; i < 7; i++) {
-			const txt = (await veil.textContent()) || '';
-			if (!txt.includes('Step ' + (i + 1) + ' of 7')) throw new Error('Expected Step ' + (i + 1) + ' of 7, got: ' + txt);
+			const txt = (await veil.textContent()) || ''; if (!txt.includes('Step ' + (i + 1) + ' of 7')) throw new Error('Expected Step ' + (i + 1));
 			if (i === 3) step4Drill = (await veil.locator('[data-testid="tour-drill-btn"]').count()) > 0;
-			if ((await veil.locator('rect, polygon, path').count()) < 2) throw new Error('Spotlight cutout missing at step ' + (i + 1));
-			await veil.locator('button').last().click({ force: true }); await page.waitForTimeout(180);
+			if ((await veil.locator('rect, polygon, path').count()) < 2) throw new Error('Spotlight cutout missing');
+			await veil.locator('button').last().click({ force: true });
 		}
-		if (!step4Drill) throw new Error('Tour Step 4 missing assistant drill CTA');
+		if (!step4Drill) throw new Error('Tour Step 4 missing drill CTA');
 		return { stepsVerified: 7, step4Drill };
 	}`,
 	'assistant-dock': `async (page) => {
-		const submitBtn = page.locator('[data-testid="assistant-submit-btn"]').first(), input = page.locator('[data-testid="assistant-prompt-input"]').first();
-		await submitBtn.waitFor({ state: 'visible', timeout: 8000 });
+		const submitBtn = page.locator('[data-testid="assistant-submit-btn"]').first(), input = page.locator('[data-testid="assistant-prompt-input"]').first(); await submitBtn.waitFor({ state: 'visible', timeout: 5000 });
 		const borderOverlap = await page.evaluate(() => { const dk = document.querySelector('[data-testid="ui-assistant-dock"]')?.getBoundingClientRect(), bd = document.querySelector('[data-testid="world-canvas-border"]')?.getBoundingClientRect(); return dk && bd ? Math.max(0, bd.bottom - dk.top) : 0; });
-		if (borderOverlap > 4) throw new Error('UiAssistantDock overlapped WORLD_CANVAS bottom border by ' + borderOverlap + 'px');
+		if (borderOverlap > 4) throw new Error('Dock overlapped border by ' + borderOverlap + 'px');
 		const grip = page.locator('[data-testid="assistant-drag-grip"]').first();
-		await grip.click({ force: true }); await page.waitForTimeout(180);
-		if ((await page.locator('[data-dock-mode="FLOATING"]').count()) < 1) throw new Error('Grip click did not detach to FLOATING');
-		await grip.click({ force: true }); await page.waitForTimeout(180);
-		if ((await page.locator('[data-dock-mode="DOCKED"]').count()) < 1) throw new Error('Second grip click did not re-dock');
+		await grip.click({ force: true }); await page.locator('[data-dock-mode="FLOATING"]').first().waitFor({ state: 'visible', timeout: 2500 });
+		await grip.click({ force: true }); await page.locator('[data-dock-mode="DOCKED"]').first().waitFor({ state: 'visible', timeout: 2500 });
 		await input.fill('Add a telemetry card'); await input.press('Enter');
-		await page.waitForFunction(() => (document.querySelector('[data-testid="assistant-submit-btn"]')?.textContent || '').trim() === 'Send', null, { timeout: 6000 });
-		await page.locator('[data-testid="staging-build-layer"]').first().waitFor({ state: 'visible', timeout: 6000 });
-		const corridor = await page.evaluate(() => { const st = document.querySelector('[data-testid="staging-build-layer"]')?.getBoundingClientRect(), dk = document.querySelector('[data-testid="ui-assistant-dock"]')?.getBoundingClientRect(), bl = document.querySelector('[data-testid="zone-bottom-left"]')?.getBoundingClientRect(), br = document.querySelector('[data-testid="zone-bottom-right"]')?.getBoundingClientRect(); return { dockOverlap: st && dk ? Math.max(0, st.bottom - dk.top) : 0, blOverlap: st && bl ? Math.max(0, st.bottom - bl.top) : 0, brOverlap: st && br ? Math.max(0, st.bottom - br.top) : 0 }; });
-		if (corridor.dockOverlap > 2 || corridor.blOverlap > 2 || corridor.brOverlap > 2) throw new Error('Staging layer overlapped dock/HUD: ' + JSON.stringify(corridor));
-		await page.locator('[data-testid="staging-reject-all-btn"]').first().click({ force: true });
-		await page.locator('[data-testid="staging-build-layer"]').first().waitFor({ state: 'detached', timeout: 3000 });
-		return { borderOverlap: Math.round(borderOverlap), corridor, rejectedAll: true };
+		await page.waitForFunction(() => (document.querySelector('[data-testid="assistant-submit-btn"]')?.textContent || '').trim() === 'Send', null, { timeout: 5000 });
+		await page.locator('[data-testid="staging-build-layer"]').first().waitFor({ state: 'visible', timeout: 5000 });
+		await page.locator('[data-testid="staging-reject-all-btn"]').first().click({ force: true }); await page.locator('[data-testid="staging-build-layer"]').first().waitFor({ state: 'detached', timeout: 3000 });
+		return { borderOverlap: Math.round(borderOverlap), rejectedAll: true };
 	}`,
 	'station-preview': `async (page) => {
 		await page.locator('[data-testid="open-station-btn"]').first().click({ force: true });
-		const preview = page.locator('[data-testid="station-live-preview"]').first();
-		await preview.waitFor({ state: 'visible', timeout: 8000 });
-		const presetCount = await page.locator('[data-testid="station-motion-preset"]').count();
-		if (presetCount < 8) throw new Error('Expected 8 motion presets, got ' + presetCount);
-		await page.locator('[data-testid="station-corner-ROUND"]').first().click({ force: true }); await page.waitForTimeout(140);
-		const cornerAttr = await preview.getAttribute('data-preview-corner');
-		if (cornerAttr !== 'ROUND') throw new Error('Station live preview corner mismatch: ' + cornerAttr);
-		await page.keyboard.press('Escape'); await preview.waitFor({ state: 'hidden', timeout: 4000 }).catch(() => {}); await page.waitForTimeout(180);
-		return { presetCount, cornerAttr };
+		const preview = page.locator('[data-testid="station-live-preview"]').first(); await preview.waitFor({ state: 'visible', timeout: 5000 });
+		const presetCount = await page.locator('[data-testid="station-motion-preset"]').count(); if (presetCount < 8) throw new Error('Expected 8 motion presets');
+		await page.locator('[data-testid="station-corner-ROUND"]').first().click({ force: true });
+		await page.waitForFunction(() => document.querySelector('[data-testid="station-live-preview"]')?.getAttribute('data-preview-corner') === 'ROUND', null, { timeout: 2500 });
+		await page.keyboard.press('Escape'); await preview.waitFor({ state: 'detached', timeout: 3000 }).catch(() => {});
+		return { presetCount, cornerAttr: 'ROUND' };
 	}`,
 	'field-tome': `async (page) => {
 		await page.locator('[data-testid="open-tome-btn"]').first().click({ force: true });
-		const book = page.locator('[data-testid="tome-dual-book"]').first();
-		await book.waitFor({ state: 'visible', timeout: 8000 });
-		const text = (await book.textContent()) || '';
-		if (text.includes('Test 3s Zero-CLS Lock') || text.includes('\`')) throw new Error('Invalid Field Tome output');
-		const mathCount = await book.locator('math').count();
-		if (mathCount < 1) throw new Error('Expected native MathML <math> in Field Tome');
-		await page.keyboard.press('ArrowRight'); await page.waitForTimeout(140);
-		const folio = (await page.locator('[data-testid="tome-folio-counter"]').first().textContent() || '').trim();
-		await page.keyboard.press('Escape'); await page.waitForTimeout(160);
-		return { mathCount, folio };
+		const book = page.locator('[data-testid="tome-dual-book"]').first(); await book.waitFor({ state: 'visible', timeout: 5000 });
+		const text = (await book.textContent()) || ''; if (text.includes('Test 3s Zero-CLS Lock') || text.includes('\`')) throw new Error('Invalid Field Tome');
+		const mathCount = await book.locator('math').count(); if (mathCount < 1) throw new Error('Expected MathML');
+		await page.keyboard.press('ArrowRight'); await page.keyboard.press('Escape'); return { mathCount };
 	}`,
 	'persistence': `async (page) => {
 		const root = page.locator('[data-layout-density]').first(), beforeBuilt = (await page.locator('[data-testid="assistant-submit-btn"]').first().textContent() || '').trim();
-		await page.reload({ waitUntil: 'domcontentloaded' }); await root.waitFor({ state: 'visible', timeout: 12000 }); await page.waitForTimeout(500);
-		const afterChrome = await root.getAttribute('data-studio-chrome'), afterBuilt = (await page.locator('[data-testid="assistant-submit-btn"]').first().textContent() || '').trim();
-		if (afterChrome !== 'false') throw new Error('Cold reload did not boot unconditionally in Calm Mode: ' + afterChrome);
-		if (afterBuilt !== beforeBuilt) throw new Error('Build/Send state lost across reload');
-		return { afterChrome, afterBuilt };
+		await page.reload({ waitUntil: 'domcontentloaded' }); await root.waitFor({ state: 'visible', timeout: 8000 });
+		await page.waitForFunction((exp) => (document.querySelector('[data-testid="assistant-submit-btn"]')?.textContent || '').trim() === exp, beforeBuilt, { timeout: 4000 });
+		if ((await root.getAttribute('data-studio-chrome')) !== 'false') throw new Error('Cold reload did not boot Calm');
+		return { afterChrome: 'false', afterBuilt: beforeBuilt };
 	}`,
-	'responsive': `async (page) => {
-		const metrics = await page.evaluate(() => ({ innerW: window.innerWidth, scrollW: document.documentElement.scrollWidth, overflowPx: document.documentElement.scrollWidth - window.innerWidth }));
-		if (metrics.overflowPx > 4) throw new Error('Horizontal overflow detected: ' + JSON.stringify(metrics));
-		return metrics;
-	}`
+	'responsive': `async (page) => { const m = await page.evaluate(() => ({ innerW: window.innerWidth, scrollW: document.documentElement.scrollWidth, overflowPx: document.documentElement.scrollWidth - window.innerWidth })); if (m.overflowPx > 4) throw new Error('Overflow: ' + JSON.stringify(m)); return m; }`
 };

@@ -1,29 +1,30 @@
 ---
 name: chronos-clean-onion-audit
-description: Execute deep recursive audits across packages/chronos-ui/ and studio/src/ to eradicate hardcoded hex/numeral literals, duplicate/triplicate/quadruplicate helpers, dead exports, and Clean Onion boundary violations sorted by S0->S1->S2 blast radius. Use during sprint reviews, refactoring passes, or static debt cleanup.
+description: Enforces Clean Onion Architecture, package firewall, decongested folder ceilings, and static quality invariants for @chronos-ui/svelte and Companion Builder Studio.
 license: MIT
-compatibility: Bun >= 1.4, TypeScript >= 5.8, Svelte 5
 metadata:
   author: Oblx <code@oblx.dev>
-  version: "0.0.12"
-allowed-tools: view_file replace_file_content multi_replace_file_content run_command
+  version: "0.1.0"
 ---
 
-# Clean Onion & Debt Eradication Audit
+# Chronos Clean Onion & Firewall Audit
 
-Review recent sprints skeptically, hunt structural shortcuts, and eliminate technical debt at the root before leaf UI edits.
+Use this skill whenever adding, refactoring, or relocating modules across `packages/chronos-ui/` or `studio/`.
 
-## Hard Static Invariants (`studio/src/workers/qa_audit.ts`)
+## Hard Structural Invariants
 
-1. **Tabs & Size Limits**: Tabs (`\t`) only everywhere; functions $\le 42\text{ LoC}$; code files $\le 150\text{ LoC}$; docs $\le 100\text{ LoC}$ (zero fenced blocks); folders $\le 10$ files; `100%` `index.ts` barrelled.
-2. **Zero-`../..` Canonical Aliases (`NO_DEEP_RELATIVE_IMPORTS`)**: Ban every multi-level `../..` relative import across `packages/chronos-ui/src/` and `studio/src/`; always import via `@chronos-ui/svelte/*`, `@ui/*`, or `@studio/*`.
-3. **SSOT Tokens Over Magic Literals**: Ban non-palette hex colors outside `theme.palettes.ts` and `cursor.presets.ts`; bind viewports to `DEFAULT_VIEWPORT`, limits to `CURSOR_LIMITS`, cuts to `DEFAULT_CORNER_CUT_REM`/`DEFAULT_STATION_CORNER_CUT_REM`/`DEFAULT_CONTROL_CORNER_CUT_REM`, and clamping to `clampControlCutPx`.
-4. **Single-Owner Helpers**: Never duplicate `fetch`/JSON wrappers (`http.client.ts`) or manual `Response.json`/`req.json` handling (`http.helpers.ts`).
+1. **Bounded Context Firewall**: `packages/chronos-ui/` carries `0` runtime dependencies and never imports from `studio/`.
+2. **File & Function Caps**: Tabs (`\t`) only; functions $\le 42\text{ LoC}$; code files $\le 150\text{ LoC}$; docs and skills $\le 100\text{ LoC}$ with zero fenced code blocks in `docs/**/*.md`.
+3. **Decongested Folder Hygiene**: Hard cap $\le 10$ files per directory (target $\le 8$, near-cap warning emitted at `9–10` files by `qa_audit.ts`). Every code folder in `packages/chronos-ui/src/` and `studio/src/` requires an `index.ts` barrel.
+4. **Zero Deep Relative Imports**: Never write `../..` imports. Inside `packages/chronos-ui/src/` use single-level `../` or `@ui/*`; inside `studio/src/` use `@chronos-ui/svelte`, `@chronos-ui/svelte/*`, or `@studio/*`.
+5. **Humble Svelte 5 Views**: `.svelte` files perform zero `fetch()`, `localStorage`, or `indexedDB` calls, use zero `<svelte:component>`, zero Unicode emojis, and zero hardcoded non-palette hex colors.
+6. **Docs & Skill Freshness**: `qa_audit.ts` enforces `DOCS_AND_SKILL_FRESHNESS` across all 13 declared subpath exports in `packages/chronos-ui/README.md` and `version: "0.1.0"` parity across all 5 domain skills.
 
-## Recursive Audit Protocol (Blast-Radius Order)
+## Decongested Barrel Topology (`v0.1.0`)
 
-1. **Scan**: Sweep `packages/` and `studio/` for `../..` imports, non-palette hex literals, repeated response/fetch boilerplate, magic fallback viewports, duplicated clamp math, and unreferenced exports.
-2. **Triage S0 -> S1 -> S2**:
-   - **S0 (Core & Tokens)**: Consolidate geometry/token/constant SSOT first (`packages/chronos-ui/src/tokens/`).
-   - **S1 (APIs, Routes & Engines)**: Collapse client `http.client.ts`, server `http.helpers.ts`, Drizzle mappers, and synthesizer defaults.
-   - **S2 (Leaf Views & Docs)**: Rewire Svelte modals/panels onto tokens, sync `README.md` / `docs/**/*.md` (without deleting `docs/08-sprints/`), and run `bun run qa:fast` + `bun run qa:release`.
+- `packages/chronos-ui/src/tokens/geometry/` — `corners.geometry.ts`, `shapes.paths.ts`, `shapes.geometry.ts`.
+- `packages/chronos-ui/src/wire/core/` — `wire.types.ts`, `wire.pipeline.ts`, `uuid.ts`.
+- `packages/chronos-ui/src/organisms/{overlays,wire-observatory}/` — `UiToastStack`, `UiVirtualCursors`, `UiWireDagGraph`, `UiWireInspector`.
+- `studio/src/client/panels/perimeter/` — `BentoRadarConsole`, `TopPerimeterPods`, `WireTelemetryStrip`.
+- `studio/src/client/state/{handlers,lifecycle}/` — modular wire intent handlers and persistence lifecycle ops.
+- `studio/src/core/{assistant,engine}/` — local/provider AI planners and 42-tool studio engine.

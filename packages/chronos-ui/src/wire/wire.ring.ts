@@ -1,5 +1,5 @@
 import { HUD_METRICS } from '../tokens';
-import type { WireTraceRecord } from './wire.types';
+import type { WireTraceRecord } from './core';
 
 export class WireTelemetryRing {
 	private readonly capacity: number;

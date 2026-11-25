@@ -2,11 +2,11 @@ import {
 	applyAccessibilityPrefs, findThemePack, type AccessibilityPrefs, type CornerKind, type UiWireBroker
 } from '@chronos-ui/svelte';
 import type { UiBlueprint } from '@studio/config';
-import { registerLifecycleAndCursorHandlers, syncThemeAndCursor } from './lifecycle';
-import { apiSaveBlueprint } from './studio.api';
+import { registerLifecycleAndCursorHandlers, syncThemeAndCursor } from '../lifecycle';
+import { apiSaveBlueprint } from '../studio.api';
 import { registerDrawerAndStageHandlers } from './studio.drawer.handlers';
 import { registerProjectHandlers } from './studio.project.handlers';
-import type { StudioState, StudioViewId, ZoneCornerPayload, ZoneTogglePayload } from './studio.types';
+import type { StudioState, StudioViewId, ZoneCornerPayload, ZoneTogglePayload } from '../studio.types';
 import { registerV003Handlers } from './studio.v003.handlers';
 
 function updateActiveBlueprint(state: StudioState, updater: (bp: UiBlueprint) => UiBlueprint): StudioState {

@@ -1,5 +1,5 @@
 import { clampCornerCut, type CornerTuple } from './corners.geometry';
-import { ORNAMENT_LIMITS, pxToRem } from './hud.constants';
+import { ORNAMENT_LIMITS, pxToRem } from '../hud.constants';
 import {
 	buildCurvedOrBoxPaths, buildPolygonFlowPaths, buildUmlPaths,
 	type InscribedContentBox, type ShapeAnchorVertex, type UiFrameShape

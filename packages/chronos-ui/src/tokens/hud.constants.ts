@@ -23,7 +23,7 @@ export const Z_LAYERS = {
 	paintedClientCanvas: 10,
 	stagingBuildOverlay: 20,
 	studioChrome: 40,
-	assistantDock: 45,
+	assistantDock: 38,
 	modals: 70,
 	overlays: 90
 } as const;

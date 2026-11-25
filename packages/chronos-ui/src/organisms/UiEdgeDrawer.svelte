@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { UiChamferButton, UiChamferFrame, UiIcon } from '../atoms';
-	import { uiDrawerGrip, uiSpotlight } from '../machines';
+	import { uiFoldGrip, uiSpotlight } from '../machines';
 	import { uiTransition } from '../motion';
 	import { mirrorCornerTuple, STRAIGHT_TUPLE, ZONE_CORNER_PRESETS, type CornerKind } from '../tokens';
 	import type { DrawerTabDef } from './organisms.types';
@@ -47,6 +47,8 @@
 	use:uiSpotlight={side === 'LEFT' ? 'spot-edge-rails' : 'spot-edge-rail-right'}
 	aria-label="{side} mini rail"
 	data-testid="edge-rail-{side.toLowerCase()}"
+	data-fold-axis="HORIZONTAL"
+	data-fold-behavior="OVERLAY_HOVER"
 	data-ui-interactive="true"
 	class="ui-dur-micro fixed z-[35] hidden transition-opacity md:block {open ? 'opacity-100' : 'opacity-85 hover:opacity-100 focus-within:opacity-100'}"
 	style="width: 3.25rem; {railStyle}"
@@ -82,10 +84,10 @@
 		<button
 			type="button"
 			aria-label={floating ? 'Dock drawer to edge or drag to move' : 'Click to detach drawer or drag to reposition'}
-			data-ui-tip={floating ? 'Click: dock to edge | Drag: move' : 'Click: float drawer | Drag: reposition'}
+			data-ui-tip={floating ? 'Click: dock to edge\nDrag: reposition drawer' : 'Click: float drawer\nDrag: slide along rail'}
 			data-testid="edge-grip-{side.toLowerCase()}"
 			data-ui-floating={floating ? 'true' : 'false'}
-			use:uiDrawerGrip={{ isFloating: floating, onToggleFloat, onMoveRail, onMoveFloat }}
+			use:uiFoldGrip={{ axis: 'HORIZONTAL', isFloating: floating, onToggleFloat, onMoveRail, onMoveFloat }}
 			class="flex h-7 w-full cursor-grab items-center justify-center active:cursor-grabbing"
 			style="background-color: {floating ? 'var(--ui-primary)' : 'var(--ui-base-200)'}; color: {floating ? 'var(--ui-primary-content)' : 'var(--ui-accent)'}; border: var(--ui-hairline) solid {floating ? 'var(--ui-primary)' : 'var(--ui-border-subtle)'};"
 		>
@@ -98,6 +100,8 @@
 	<section
 		aria-label="{side} overlay drawer"
 		data-testid="edge-drawer-{side.toLowerCase()}"
+		data-fold-axis="HORIZONTAL"
+		data-fold-behavior="OVERLAY_HOVER"
 		data-ui-interactive="true"
 		in:uiTransition={{ axis: 'x', offsetPx: isRight ? 14 : -14 }}
 		out:uiTransition={{ axis: 'x', offsetPx: isRight ? 14 : -14 }}
@@ -124,7 +128,7 @@
 				<button
 					type="button"
 					aria-label="Drag floating drawer"
-					use:uiDrawerGrip={{ isFloating: floating, onToggleFloat, onMoveRail, onMoveFloat }}
+					use:uiFoldGrip={{ axis: 'HORIZONTAL', isFloating: floating, onToggleFloat, onMoveRail, onMoveFloat }}
 					class="inline-flex h-6 w-6 shrink-0 cursor-grab items-center justify-center active:cursor-grabbing"
 					style="color: var(--ui-accent);"
 				>

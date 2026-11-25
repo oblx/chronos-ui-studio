@@ -30,6 +30,6 @@ export function syncCorridorForState(s: StudioState): void {
 		leftFloating: s.leftDrawer.floating,
 		rightOpen: s.rightDrawer.open,
 		rightFloating: s.rightDrawer.floating,
-		assistantExpanded: s.assistantDock.expanded && s.assistantDock.mode === 'DOCKED'
+		assistantExpanded: false
 	}));
 }

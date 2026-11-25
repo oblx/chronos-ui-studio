@@ -1,29 +1,22 @@
 ---
 name: chronos-ui-builder
-description: Compose, theme, animate, and drive @chronos-ui/svelte v0.0.12 11-zone perimeter interfaces, unconditional Calm boot with mirrored chamfered LEFT_EDGE/RIGHT_EDGE icon rails, safe-corridor auto-framing, CALM_SLOW ADHD-friendly motion tokens, universal modal Grow/Shrink, 2D Wire DAG Observatory, CS6 Wireframe Workbench, and 42-tool Dual-Spine MCP canvases. Use when building UI layouts, samples, shapes, or motion flows in packages/chronos-ui or studio/src/client.
+description: Builds and refines @chronos-ui/svelte components, unified HORIZONTAL/VERTICAL OVERLAY_HOVER fold panels, multi-paragraph vector tooltips, and Studio perimeter HUD shells.
 license: MIT
-compatibility: Svelte 5 Runes, Tailwind CSS v4, Zero Runtime Dependencies
 metadata:
   author: Oblx <code@oblx.dev>
-  version: "0.0.12"
-allowed-tools: view_file replace_file_content write_to_file run_command
+  version: "0.1.0"
 ---
 
-# Chronos UI Builder (`@chronos-ui/svelte` v0.0.12)
+# Chronos UI Builder (`@chronos-ui/svelte` `v0.1.0`)
 
-Compose sovereign Svelte 5 Runes interfaces inside `studio/src/client/` using primitives imported strictly from `@chronos-ui/svelte`.
+Use this skill when building or modifying `@chronos-ui/svelte` primitives, perimeter HUD zones, edge drawers, assistant dock, or tooltip overlays.
 
-## Architectural Rules
+## Core Design & Layout Invariants
 
-1. **Strict Package Firewall & Canonical Aliases**: Never import `studio/` modules inside `packages/chronos-ui/`; use `@ui/*` / `@studio/*` / `@chronos-ui/svelte/*` instead of `../..`.
-2. **Humble Svelte Views**: `.svelte` views perform zero `fetch()`, storage I/O, or domain math; dispatch typed `DagEnvelope` intents through `createUiWireBroker`.
-3. **3-Tier Parametric Geometry**: Assign `cutTier="station"` (`0.75rem`) to perimeter pods & modals, default `0.5rem` to base frames, and `0.3125rem` (`CONTROL_MAX_CUT_RATIO = 0.28`) to compact buttons, icon triggers, badges, inputs, and selects.
-4. **14 Contour-Locked Shapes & 5x3 Embellishments**: Plot all `9` `CORNER_EMBELLISHMENTS` (`+DIAMOND`, `DOUBLE_LINE`, `CROSSHAIR`) on `anchorVertices` or concentric `ROUND` `A` arcs, and pair `6` `CORNER_ANIMATIONS` (`+ORBIT_TRACE`, `SCAN_GLINT` on `pathLength="100"` perimeter trace).
-5. **High-Scale Indexing & Spatial Constancy**: Use O(1) indexed `createUiEntityRegistry`, batched `dispatchBatch`, invariant `--ui-safe-left`/`--ui-safe-right` (`72px` desktop) overlay-only `UiEdgeDrawer` panels (`0px` workspace width shift), and reciprocal `Studio HUD <-> Calm View` alignment.
-
-## Workspace Workflow
-
-1. Inspect capabilities and primitives via `GET /api/mcp/manifest` or `ui_list_primitives`.
-2. Verify custom color palettes with `ui_validate_theme_wcag` ($C \ge 4.5$) and compose across the 11 zones via the CS6 Wireframe Skeleton Workbench (`ui_open_wireframe_skeleton`).
-3. Persist explicit workspace state via `[ Save ]` (`UI_PROJECT_SAVE`) or recover via `[ Reset ]` (`UI_WORKSPACE_RESET_DEFAULT` / `UI_PROJECT_CLEAN`), preserving undo history (`Cmd/Ctrl+Z`).
-4. Compile standalone static clients (`ui_export_static`) or self-contained Bun/Drizzle full-stack bundles (`ui_export_fullstack_bundle`).
+1. **Unified Fold-Overlay Engine (`fold.overlay.svelte.ts`)**: Both `UiEdgeDrawer` (`axis: 'HORIZONTAL'`, `LEFT`/`RIGHT`) and `UiAssistantDock` (`axis: 'VERTICAL'`, `BOTTOM`) consume `createFoldOverlayMachine` and `use:uiFoldGrip` (`< 5px` click toggles `DOCKED <-> FLOATING`; `>= 5px` drag clamps rail slide or floating reposition with click suppression).
+2. **Permanent `OVERLAY_HOVER` Corridor Lock**: Expanding `LEFT_EDGE`, `RIGHT_EDGE`, or `UiAssistantDock` (`position: fixed`, `z-[36]` / `z-[38]`, `shadow-xl`) produces strictly `0px` displacement on `--ui-safe-top/bottom/left/right` and `WORLD_CANVAS` width/height in both Calm and Studio HUD modes.
+3. **Bounded Multi-Paragraph Tooltips (`UiCyberTooltip`)**: Parse `\n\n` into `<p>` blocks, `\n` into `<br />`, optional bold title header, and `[Key]` shortcut badges inside a `ResizeObserver`-synced `UiChamferFrame` (`max-w-[20rem] min-w-[8rem] whitespace-normal break-words text-left leading-[1.45]`). Post-layout viewport clamping guarantees `0px` text overflow and `>= 8px` viewport edge margin across `390px–2560px`.
+4. **Assistant Transcript & CTA Discipline**: Keep sticky non-scrolling `assistant-transcript-header` cleanly separated from scrollable `assistant-timeline` (`pt-3`, `0px` top badge clip), render every `[OK]`/`[ERR]` tool execution receipt as a discrete `assistant-tool-chip`, and derive primary CTA deterministically from `hasBuiltOnce || messages.length > 0` (`Build` -> `Send`).
+5. **Reciprocal Toggle & Unified Lifecycle Pod**: `CalmTopStrip` and Studio HUD `TOP_CENTER` share a centered $X = 50\text{vw}$ anchor ($\Delta x \le 16\text{px}, \Delta y \le 8\text{px}$) and consume one shared `ProjectLifecyclePod` (`Save` + `Reset` popover).
+6. **Unambiguous Edge Rails**: Separate navigation tabs from `⋮⋮` (`edge-grip-*`) via `edge-rail-divider-*` with zero redundant bottom rail buttons.
+7. **All 16 Package Exports**: Consume `@chronos-ui/svelte` or granular subpaths (`./tokens`, `./wire`, `./input`, `./motion`, `./cursor`, `./machines`, `./atoms`, `./forms`, `./molecules`, `./organisms`, `./modals`, `./assistant`, `./canvas`, `./manifest`, `./styles.css`).

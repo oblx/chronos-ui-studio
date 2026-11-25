@@ -39,12 +39,8 @@
 		return () => { detachTips(); detachInput(); window.removeEventListener('resize', syncCorridors); clearInterval(pollId); studio.destroy(); };
 	});
 	$effect(() => {
-		void [studio.state.studioChromeVisible, studio.state.assistantDock.expanded, studio.state.assistantDock.mode, studio.state.chatMessages.length, project.id, project.nodes.length];
+		void [studio.state.studioChromeVisible, project.id, project.nodes.length];
 		syncCorridors(); requestAnimationFrame(() => { syncCorridors(); fitActiveStage(); });
-		const dock = document.querySelector('[data-testid="ui-assistant-dock"]');
-		if (!dock || typeof ResizeObserver === 'undefined') return;
-		const ro = new ResizeObserver(syncCorridors); ro.observe(dock);
-		return () => ro.disconnect();
 	});
 
 	function handleGlobalKey(e: KeyboardEvent): void {

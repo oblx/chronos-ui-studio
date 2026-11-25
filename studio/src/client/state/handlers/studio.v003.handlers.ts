@@ -8,9 +8,9 @@ import {
 	evaluateGovernanceGate, instantiateFromPrototype, nodeTreeToDocumentGraph, STUDIO_ROLE_MASKS,
 	type JsonPatchOp, type UiComponentPrototype
 } from '@studio/core/engine';
-import { resolveRootFontPx, syncThemeAndCursor } from './lifecycle';
-import { apiCommitRevision } from './studio.project.api';
-import type { StudioModalId, StudioState } from './studio.types';
+import { resolveRootFontPx, syncThemeAndCursor } from '../lifecycle';
+import { apiCommitRevision } from '../studio.project.api';
+import type { StudioModalId, StudioState } from '../studio.types';
 
 export interface ChoreographyEpochGuard { epoch: number; controller: AbortController | null; timers: ReturnType<typeof setTimeout>[]; }
 export function cancelChoreographyEpoch(guard: ChoreographyEpochGuard): number {

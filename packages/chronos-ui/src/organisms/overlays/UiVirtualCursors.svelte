@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { PEER_STALE_MS } from '../tokens';
-	import type { VirtualCursorPeer } from './organisms.types';
+	import { PEER_STALE_MS } from '@ui/tokens';
+	import type { VirtualCursorPeer } from '../organisms.types';
 
 	interface Props {
 		peers: readonly VirtualCursorPeer[];

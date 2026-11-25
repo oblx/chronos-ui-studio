@@ -4,7 +4,5 @@ export * from './hlc.sync';
 export * from './rbac.capabilities';
 export * from './ssrf.guard';
 export * from './project.schema';
-export * from './local.assistant';
-export * from './ai.provider.client';
-export * from './env.capabilities';
+export * from './assistant';
 export * from './engine';

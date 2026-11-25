@@ -48,10 +48,10 @@ export function classifyCorridorTier(viewportW: number): CorridorBreakpointTier 
 export function measureActivePerimeterRects(root?: ParentNode): readonly SlotRect[] {
 	const target = root ?? (typeof document !== 'undefined' ? document : null);
 	if (!target) return [];
-	return [...target.querySelectorAll<HTMLElement>('[data-perimeter-zone], [data-testid="ui-assistant-dock"][data-dock-mode="DOCKED"]')]
+	return [...target.querySelectorAll<HTMLElement>('[data-perimeter-zone]')]
 		.map((el) => {
 			const r = el.getBoundingClientRect();
-			return { slot: el.getAttribute('data-perimeter-zone') ?? 'ASSISTANT_DOCK', left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+			return { slot: el.getAttribute('data-perimeter-zone') ?? 'PERIMETER', left: r.left, top: r.top, right: r.right, bottom: r.bottom };
 		})
 		.filter((r) => r.right - r.left > 0 && r.bottom - r.top > 0);
 }
@@ -67,7 +67,6 @@ export function computeSafeCorridorFromRects(
 	const safeScale = clamp(rootFontPx, 12, 24), gap = HUD_METRICS.perimeterGapPx;
 	let topPx = Math.round((chromeVisible ? SAFE_CORRIDOR_REM.hudTop : SAFE_CORRIDOR_REM.calmTop) * safeScale);
 	let bottomPx = Math.round((chromeVisible ? SAFE_CORRIDOR_REM.hudBottom : SAFE_CORRIDOR_REM.calmBottom) * safeScale);
-	if (drawers?.assistantExpanded) bottomPx = Math.max(bottomPx, Math.min(Math.round(viewportH * 0.55), Math.round(HUD_METRICS.assistantExpandedReserveRem * safeScale)));
 	const desktop = viewportW >= STAGE_LIMITS.desktopMinPx;
 	const edgeInset = drawers ? (desktop ? STAGE_LIMITS.railOccupiedPx : STAGE_LIMITS.mobileEdgePx) : Math.round((chromeVisible ? SAFE_CORRIDOR_REM.hudSide : SAFE_CORRIDOR_REM.calmSide) * safeScale);
 	let leftPx = edgeInset;
@@ -75,8 +74,7 @@ export function computeSafeCorridorFromRects(
 	const midY = viewportH * 0.5, midX = viewportW * 0.5;
 	for (const rect of perimeterRects) {
 		const w = rect.right - rect.left, h = rect.bottom - rect.top;
-		if (w <= 0 || h <= 0) continue;
-		if (rect.slot === 'ASSISTANT_DOCK') { bottomPx = Math.max(bottomPx, Math.min(Math.round(viewportH * 0.66), Math.ceil(viewportH - rect.top + gap))); continue; }
+		if (w <= 0 || h <= 0 || rect.slot === 'ASSISTANT_DOCK') continue;
 		if (rect.bottom < midY && w > viewportW * 0.28) topPx = Math.max(topPx, Math.ceil(rect.bottom + gap));
 		else if (rect.top > midY && w > viewportW * 0.28) bottomPx = Math.max(bottomPx, Math.ceil(viewportH - rect.top + gap));
 		else if (rect.right < midX && h > viewportH * 0.25) leftPx = Math.max(leftPx, Math.ceil(rect.right + gap));

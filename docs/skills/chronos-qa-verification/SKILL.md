@@ -1,27 +1,20 @@
 ---
 name: chronos-qa-verification
-description: Operate the scoped-default QA engine (qa:fast, qa:delta, qa:release / --full-battery), the 25m/32m/38m qa:timer sprint clock guard, :memory: Drizzle SQLite unit suites, and the zero-screenshot scripted qa:harness browser CLI via playwright-cli. Use when verifying builds, timing sprint phases, or running release gates.
+description: Operates the scoped-latest-by-default QA engine, sub-2.5s warm qa:fast incremental check, batched single-session Playwright harness, and strict 85/15 sprint clock budget.
 license: MIT
-compatibility: Bun test, svelte-check, tsc, Vite, playwright-cli
 metadata:
   author: Oblx <code@oblx.dev>
   version: "0.1.0"
-allowed-tools: run_command view_file compile_applet lint_applet
 ---
 
-# Scoped-Default QA Engine, 25m Clock Guard & Zero-Screenshot `qa:harness`
+# Chronos Scoped-Default QA & Sprint Clock Budget (`v0.1.0`)
 
-Validate every change inside the `25m` soft target / `32m` scope-freeze / `38m` hard stop budget while keeping QA time under `20%` of sprint duration by running scoped deltas during iteration and reserving `--full-battery` for one single pre-signoff pass.
+Use this skill to verify changes rapidly while enforcing the `>= 85%` implementation / `<= 15%` QA budget split (`25m` target, `32m` freeze, `38m` hard stop).
 
-## Phase-Gated Sprint Timer (`studio/src/workers/qa_timer.ts`)
+## Verification Tiers & Hard Invocation Caps
 
-1. Start budget clock: `bun run qa:timer -- start 25`.
-2. Check phase boundaries: `bun run qa:timer -- check --phase="<phase>"` reporting `GREEN <= 25m`, `AMBER 25-32m`, `FREEZE_SCOPE 32-38m`, and `HARD_STOP >= 38m`.
-3. **Edge Hook**: `qa:fast`, `qa:harness`, `qa:delta`, and `qa:release` automatically print `formatClockBanner()` and append timed laps.
-
-## 4-Stage Scoped-Default Verification Pipeline
-
-1. **Stage 1 (`qa_audit.ts`)**: Incremental SHA-256 cached audit in `qa:fast`; uncached full scan in `qa:delta`/`qa:release` enforcing tabs, LoC caps (`<= 150` code, `<= 42` fn, `<= 100` doc), `<= 10` files/dir, 100% barrels, all `13` package subpath exports, MIT licensing, and AgentSkills frontmatter.
-2. **Stage 2 (`bun run qa:fast` — Scoped Default `< 8s`)**: Cached `qa_audit` + `tsc --noEmit` + `v0_1_0_release_seal.test.ts` (including external-consumer subpath import smoke test and `.d.ts` emit verification).
-3. **Stage 3 (`bun run qa:release` / `--full-battery` — Single Pre-Signoff Pass)**: Full uncached `qa_audit`, all `15` `:memory:` SQLite test suites, AST `compile_tome_ssg.ts`, package `.d.ts` emit check, and production `vite build`.
-4. **Stage 4 (`bun run qa:harness`)**: Defaults to scoped delta (`calm-density @ 1440x900`, `< 8s`) verifying reciprocal toggle anchor constancy ($\Delta x \le 16\text{px}, \Delta y \le 8\text{px}$), unified `ProjectLifecyclePod`, edge-rail grouping, overlay drawer width invariance, and `32x32` cursor decode; pass `--full-battery --json` once before signoff for all `8` scenarios across `1440x900,390x844` with `0` console errors, `0` screenshots, and clean `proj-genesis` teardown.
+1. **Inner-Loop Gate (`bun run qa:fast`, target `<= 2.5s` warm)**: Runs cached `qa_audit` + direct local `tsc --noEmit --incremental --tsBuildInfoFile studio/data/.tsbuildinfo` + scoped `v0100_public_release.test.ts`. Cap at `<= 2` invocations during active implementation.
+2. **Scoped Live Browser Harness (`bun run qa:harness --json`)**: Defaults to `--scenario=latest` at `1440x900` inside a single Chromium session with inline `console`/`pageerror` capture, zero agent screenshots (`screenshotsTaken === 0`), and verified `cleanTeardown === true`. Asserts tooltip `overflowPx === 0`, expanded chat `canvasHeightDeltaPx === 0`, unclipped transcript `topClipPx === 0`, discrete `[OK]` tool chips, `Build -> Send` reload persistence, and reciprocal toggle constancy ($\Delta x \le 16\text{px}, \Delta y \le 8\text{px}$).
+3. **Single Pre-Signoff Full Pass**: Run `bun run qa:release` (full uncached `qa_audit` including `DOCS_AND_SKILL_FRESHNESS`, all `15` test suites, AST SSG Tome, `.d.ts` emit check, and Vite build) ONCE at final sign-off, followed by `compile_applet` + `lint_applet` co-executed together.
+4. **Full 8-Scenario Harness (`--scenario=all --json`)**: Reserve for major release sign-off only (`1440x900,390x844`). Never run mid-sprint.
+5. **Sprint Clock Discipline**: Start with `bun run qa:timer -- start 25`; record phase laps via `bun run qa:timer -- check --phase="..."`.

@@ -1,5 +1,5 @@
 import { planLocalAssistantPrompt, type AssistantPlan } from './local.assistant';
-import { assertSafeWebhookUrl } from './ssrf.guard';
+import { assertSafeWebhookUrl } from '../ssrf.guard';
 
 export type AiProviderKind = 'local' | 'openai' | 'anthropic' | 'gemini' | 'google_ai_studio' | 'ollama';
 

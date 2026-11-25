@@ -1,4 +1,4 @@
-import { WireTelemetryRing } from './wire.ring';
+import { WireTelemetryRing } from '../wire.ring';
 import type { BatchIntentInput, DagEnvelope, IntentHandler, IntentKind, RoutingTier, WireMiddleware, WireTraceRecord } from './wire.types';
 
 export type TimerMap = Map<IntentKind, ReturnType<typeof setTimeout>>;

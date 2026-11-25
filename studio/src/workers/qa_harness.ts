@@ -1,7 +1,7 @@
 import { ALL_HARNESS_SCENARIOS, SCENARIO_SCRIPTS, type HarnessScenarioId } from './qa_harness_scenarios';
 import { formatClockBanner } from './qa_timer';
 
-export const DEFAULT_DELTA_SCENARIOS: readonly HarnessScenarioId[] = ['calm-density'] as const;
+export const DEFAULT_LATEST_SCENARIO: HarnessScenarioId = 'latest';
 
 export interface HarnessOptions {
 	readonly scenarios: readonly HarnessScenarioId[];
@@ -31,22 +31,22 @@ export interface HarnessReport {
 	readonly totalDurationMs: number;
 }
 
+const VALID_SCENARIOS: readonly HarnessScenarioId[] = ['latest', ...ALL_HARNESS_SCENARIOS];
+
 export function parseHarnessArgs(argv: readonly string[]): HarnessOptions {
 	const getFlag = (prefix: string): string | undefined => argv.find((a) => a.startsWith(prefix))?.slice(prefix.length);
-	const fullBattery = argv.includes('--full-battery');
-	const rawScenarios = getFlag('--scenario=') ?? (fullBattery ? 'all' : 'delta');
+	const fullBattery = argv.includes('--full-battery') || argv.includes('--all') || getFlag('--scenario=') === 'all';
+	const rawScenarios = getFlag('--scenario=') ?? (fullBattery ? 'all' : DEFAULT_LATEST_SCENARIO);
 	const scenarios: HarnessScenarioId[] = rawScenarios === 'all'
 		? [...ALL_HARNESS_SCENARIOS]
-		: rawScenarios === 'delta'
-			? [...DEFAULT_DELTA_SCENARIOS]
-			: rawScenarios.split(',').filter((s): s is HarnessScenarioId => ALL_HARNESS_SCENARIOS.includes(s as HarnessScenarioId));
-	const defaultVp = fullBattery || rawScenarios === 'all' ? '1440x900,390x844' : '1440x900';
+		: rawScenarios.split(',').filter((s): s is HarnessScenarioId => VALID_SCENARIOS.includes(s as HarnessScenarioId));
+	const defaultVp = fullBattery ? '1440x900,390x844' : '1440x900';
 	const viewports = (getFlag('--viewports=') ?? defaultVp).split(',').map((vp) => {
 		const [w, h] = vp.split('x').map((n) => Number(n));
 		return { width: Number.isFinite(w) && w >= 320 ? w : 1440, height: Number.isFinite(h) && h >= 480 ? h : 900 };
 	});
 	return {
-		scenarios: scenarios.length > 0 ? scenarios : [...DEFAULT_DELTA_SCENARIOS],
+		scenarios: scenarios.length > 0 ? scenarios : [DEFAULT_LATEST_SCENARIO],
 		viewports,
 		url: getFlag('--url=') ?? 'http://localhost:3000',
 		failFast: argv.includes('--fail-fast'),
@@ -62,61 +62,64 @@ function runPlaywrightCli(args: readonly string[]): { readonly ok: boolean; read
 	return { ok: proc.exitCode === 0 && !output.includes('### Error'), output };
 }
 
-function countConsoleErrors(raw: string): number {
-	return raw.split('\n').filter((line) => /\[error\]|Uncaught|PageError/i.test(line) && !/WebSocket|hmr/i.test(line)).length;
+function buildBatchRunnerScript(opts: HarnessOptions): string {
+	const plan = opts.viewports.map((vp) => ({
+		width: vp.width, height: vp.height, label: `${vp.width}x${vp.height}`,
+		targets: vp.width < 640 ? opts.scenarios.filter((s) => s === 'responsive') : [...opts.scenarios]
+	})).filter((p) => p.targets.length > 0);
+	const scriptEntries = [...new Set(plan.flatMap((p) => p.targets))]
+		.map((id) => `${JSON.stringify(id)}: (${SCENARIO_SCRIPTS[id]})`).join(',\n');
+	return `async (page) => {
+		const scripts = {\n${scriptEntries}\n};
+		const plan = ${JSON.stringify(plan)}, failFast = ${opts.failFast}, consoleErrs = [];
+		const onCon = (m) => { const txt = m.text(); if (m.type() === 'error' && !/WebSocket|hmr/i.test(txt)) consoleErrs.push(txt.slice(0, 160)); };
+		const onErr = (e) => { const txt = String(e?.message || e); if (!/WebSocket|hmr/i.test(txt)) consoleErrs.push(txt.slice(0, 160)); };
+		page.on('console', onCon); page.on('pageerror', onErr);
+		const cleanGenesis = async (reload) => {
+			await page.evaluate(async () => { await fetch('/api/projects/proj-genesis/clean', { method: 'POST' }); try { localStorage.clear(); sessionStorage.clear(); } catch {} });
+			if (reload) { await page.reload({ waitUntil: 'domcontentloaded' }); await page.locator('[data-layout-density]').first().waitFor({ state: 'visible', timeout: 8000 }); }
+			return page.evaluate(async () => { const d = await (await fetch('/api/projects')).json(); const p = Array.isArray(d.projects) ? d.projects.find((x) => x.id === 'proj-genesis') : null; return Array.isArray(p?.nodes) ? p.nodes.length : -1; });
+		};
+		const results = [];
+		await cleanGenesis(true);
+		for (const vp of plan) {
+			await page.setViewportSize({ width: vp.width, height: vp.height });
+			for (const sc of vp.targets) {
+				const t0 = Date.now();
+				try { const out = await scripts[sc](page); results.push({ scenario: sc, viewport: vp.label, pass: true, durationMs: Date.now() - t0, detail: JSON.stringify(out ?? 'PASS') }); }
+				catch (err) { results.push({ scenario: sc, viewport: vp.label, pass: false, durationMs: Date.now() - t0, detail: String(err?.message || err).slice(0, 260) }); if (failFast) break; }
+			}
+		}
+		const remaining = await cleanGenesis(false);
+		page.off('console', onCon); page.off('pageerror', onErr);
+		return { results, cleanTeardown: remaining === 0, remaining, consoleErrors: consoleErrs.length };
+	}`;
 }
 
-function resetHarnessGenesis(reloadAfter: boolean): boolean {
-	const script = `async (page) => {
-		await page.evaluate(async () => {
-			await fetch('/api/projects/proj-genesis/clean', { method: 'POST' });
-			try { localStorage.clear(); sessionStorage.clear(); } catch {}
-		});
-		${reloadAfter ? `await page.reload({ waitUntil: 'domcontentloaded' }); await page.locator('[data-layout-density]').first().waitFor({ state: 'visible', timeout: 10000 }); await page.waitForTimeout(250);` : ''}
-		const check = await page.evaluate(async () => {
-			const res = await fetch('/api/projects');
-			const data = await res.json();
-			const proj = Array.isArray(data.projects) ? data.projects.find((p) => p.id === 'proj-genesis') : null;
-			return Array.isArray(proj?.nodes) ? proj.nodes.length : -1;
-		});
-		if (check !== 0) throw new Error('proj-genesis not clean: remaining nodes=' + check);
-		return { remainingNodes: check };
-	}`;
-	return runPlaywrightCli(['run-code', script]).ok;
+function parseBatchPayload(raw: string): { results: HarnessScenarioResult[]; cleanTeardown: boolean; consoleErrors: number } | null {
+	const m = raw.match(/### Result\s*\n([\s\S]*?)(?:\n### |\s*$)/);
+	if (!m) return null;
+	try { return JSON.parse(m[1].trim()) as { results: HarnessScenarioResult[]; cleanTeardown: boolean; consoleErrors: number }; } catch { return null; }
 }
 
 export function runQaHarness(opts: HarnessOptions): HarnessReport {
 	const t0 = performance.now();
-	const results: HarnessScenarioResult[] = [];
-	let screenshotsTaken = 0;
-	let consoleErrors = 0;
-	let cleanTeardown = false;
+	let consoleErrors = 0, results: HarnessScenarioResult[] = [], cleanTeardown = false;
 	if (!opts.json) console.log(formatClockBanner('qa:harness'));
 	try {
 		const open = runPlaywrightCli(['open', '--browser=chromium', opts.url]);
 		if (!open.ok) {
 			return { ok: false, url: opts.url, screenshotsTaken: 0, consoleErrors: 1, cleanTeardown: false, results: [{ scenario: opts.scenarios[0], viewport: 'init', pass: false, durationMs: Math.round(performance.now() - t0), detail: open.output.slice(0, 260) }], totalDurationMs: Math.round(performance.now() - t0) };
 		}
-		resetHarnessGenesis(true);
-		for (const vp of opts.viewports) {
-			const vpLabel = `${vp.width}x${vp.height}`;
-			runPlaywrightCli(['resize', String(vp.width), String(vp.height)]);
-			const targets = vp.width < 640 ? opts.scenarios.filter((s) => s === 'responsive') : opts.scenarios;
-			for (const scenario of targets) {
-				const st = performance.now();
-				const res = runPlaywrightCli(['run-code', SCENARIO_SCRIPTS[scenario]]);
-				results.push({ scenario, viewport: vpLabel, pass: res.ok, durationMs: Math.round(performance.now() - st), detail: res.ok ? 'PASS' : res.output.slice(0, 260) });
-				if (!res.ok && opts.debugCapture) { runPlaywrightCli(['screenshot', `--filename=.playwright-cli/debug-${scenario}-${vpLabel}.png`]); screenshotsTaken += 1; }
-				if (!res.ok && opts.failFast) break;
-			}
-		}
-		consoleErrors = countConsoleErrors(runPlaywrightCli(['console']).output);
+		const batch = runPlaywrightCli(['run-code', buildBatchRunnerScript(opts)]);
+		const parsed = parseBatchPayload(batch.output);
+		if (parsed) { results = parsed.results; cleanTeardown = parsed.cleanTeardown; consoleErrors = parsed.consoleErrors ?? 0; }
+		else results = [{ scenario: opts.scenarios[0], viewport: 'batch', pass: false, durationMs: Math.round(performance.now() - t0), detail: batch.output.slice(0, 260) }];
 	} finally {
-		cleanTeardown = resetHarnessGenesis(false);
 		runPlaywrightCli(['close']);
 	}
 	const ok = results.length > 0 && results.every((r) => r.pass) && consoleErrors === 0 && cleanTeardown;
-	return { ok, url: opts.url, screenshotsTaken, consoleErrors, cleanTeardown, results, totalDurationMs: Math.round(performance.now() - t0) };
+	return { ok, url: opts.url, screenshotsTaken: 0, consoleErrors, cleanTeardown, results, totalDurationMs: Math.round(performance.now() - t0) };
 }
 
 if (import.meta.main) {

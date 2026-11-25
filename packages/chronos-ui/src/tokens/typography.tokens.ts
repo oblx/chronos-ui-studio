@@ -1,4 +1,4 @@
-import type { CornerKind } from './corners.geometry';
+import type { CornerKind } from './geometry';
 import {
 	clamp, CONTROL_CUT_LIMITS, CORNER_RADIUS_LIMITS, DEFAULT_CONTROL_CORNER_CUT_REM, DEFAULT_CORNER_CUT_REM,
 	DEFAULT_STATION_CORNER_CUT_REM, ORNAMENT_LIMITS, STUDIO_DEFAULTS_VERSION

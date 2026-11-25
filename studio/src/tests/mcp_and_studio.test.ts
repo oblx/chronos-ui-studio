@@ -20,7 +20,7 @@ describe('Blueprints, Connectors/Adapters, Dual-Spine MCP, and Static Audit', ()
 		const jsonArt = exportBlueprintArtifact(bp, 'json');
 		const svelteArt = exportBlueprintArtifact(bp, 'svelte');
 		const cssArt = exportBlueprintArtifact(bp, 'css');
-		expect(svelteArt.content).toContain("from '@chronos-ui/svelte'");
+		expect(svelteArt.content).toContain("from '@chronos-ui/svelte/");
 		expect(cssArt.content).toContain('--ui-primary');
 		const imported = importBlueprintJson(jsonArt.content);
 		expect(imported.ok).toBe(true);

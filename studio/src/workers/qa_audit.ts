@@ -13,6 +13,7 @@ const FN_HEADER_RE = /^\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)|^\s*const\
 const CACHE_REL = 'studio/data/.qa-audit-cache.json';
 const HEX_ALLOW_RE = /(?:theme\.palettes|cursor\.presets|\/tokens\/|\/tests\/|sample\.|starter\.|tome\.ssg)/;
 const DEEP_RELATIVE_RE = /(?:from|import)\s+['"]\.\.\/\.\./;
+const REQUIRED_SUBPATHS = ['./tokens', './wire', './input', './motion', './cursor', './machines', './atoms', './forms', './molecules', './organisms', './modals', './assistant', './canvas'] as const;
 
 function walkTree(dir: string, outFiles: string[], outDirs: string[]): void {
 	outDirs.push(dir);
@@ -29,13 +30,9 @@ function checkFunctionLengths(file: string, lines: readonly string[], violations
 	for (let i = 0; i < lines.length; i += 1) {
 		const m = FN_HEADER_RE.exec(lines[i]);
 		if (!m) continue;
-		let depth = 0;
-		let started = false;
-		let end = i;
+		let depth = 0, started = false, end = i;
 		for (let j = i; j < lines.length; j += 1) {
-			for (const ch of lines[j]) {
-				if (ch === '{') { depth += 1; started = true; } else if (ch === '}') depth -= 1;
-			}
+			for (const ch of lines[j]) { if (ch === '{') { depth += 1; started = true; } else if (ch === '}') depth -= 1; }
 			end = j;
 			if (started && depth === 0) break;
 		}
@@ -64,8 +61,7 @@ function checkSkillFrontmatter(file: string, lines: readonly string[], violation
 	const endIdx = lines[0]?.trim() === '---' ? lines.findIndex((l, idx) => idx > 0 && l.trim() === '---') : -1;
 	if (endIdx < 1) { violations.push({ rule: 'AGENT_SKILLS_SPEC', target: file, detail: 'Missing YAML frontmatter' }); return; }
 	const fm = lines.slice(1, endIdx).join('\n');
-	const nameMatch = /^name:\s*([a-z0-9-]+)\s*$/m.exec(fm);
-	const descMatch = /^description:\s*(.+)$/m.exec(fm);
+	const nameMatch = /^name:\s*([a-z0-9-]+)\s*$/m.exec(fm), descMatch = /^description:\s*(.+)$/m.exec(fm);
 	const folder = file.split('/').slice(-2, -1)[0];
 	if (!nameMatch || nameMatch[1].length > 64 || nameMatch[1] !== folder || nameMatch[1].includes('--')) {
 		violations.push({ rule: 'AGENT_SKILLS_SPEC', target: file, detail: `Frontmatter name must match folder "${folder}"` });
@@ -96,38 +92,39 @@ function scanCachedFile(file: string, ext: string, rootDir: string, prevCache: R
 	return found;
 }
 
-const REQUIRED_SUBPATHS = ['./tokens', './wire', './input', './motion', './cursor', './machines', './atoms', './forms', './molecules', './organisms', './modals', './assistant', './canvas'] as const;
-
 function checkPackageAndDocs(rootDir: string, violations: AuditViolation[]): void {
 	const pkg = JSON.parse(readFileSync(join(rootDir, 'packages/chronos-ui/package.json'), 'utf8'));
 	const rootPkg = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8'));
 	const hasSubpaths = REQUIRED_SUBPATHS.every((s) => Boolean(pkg.exports?.[s])) && Boolean(pkg.exports?.['.'] && pkg.exports?.['./manifest'] && pkg.exports?.['./styles.css']) && Array.isArray(pkg.sideEffects) && pkg.sideEffects.includes('*.css');
-	const hasPublicFiles = pkg.license === 'MIT' && existsSync(join(rootDir, 'LICENSE')) && existsSync(join(rootDir, 'packages/chronos-ui/LICENSE')) && existsSync(join(rootDir, 'packages/chronos-ui/README.md')) && existsSync(join(rootDir, 'CHANGELOG.md'));
+	const pkgReadme = existsSync(join(rootDir, 'packages/chronos-ui/README.md')) ? readFileSync(join(rootDir, 'packages/chronos-ui/README.md'), 'utf8') : '';
+	const hasPublicFiles = pkg.license === 'MIT' && existsSync(join(rootDir, 'LICENSE')) && existsSync(join(rootDir, 'packages/chronos-ui/LICENSE')) && pkgReadme.length > 0 && existsSync(join(rootDir, 'CHANGELOG.md'));
 	if (pkg.version !== VERSION || rootPkg.version !== VERSION || Object.keys(pkg.dependencies ?? {}).length > 0 || !hasSubpaths || !hasPublicFiles) {
 		violations.push({ rule: 'PACKAGE_LOCK_0_DEPS', target: 'packages/chronos-ui/package.json', detail: `Version parity (${VERSION}), 0 deps, 13 subpaths, MIT license, README, or CHANGELOG failed` });
 	}
-	const sprintsDir = join(rootDir, 'docs/08-sprints');
-	const archiveDir = join(sprintsDir, 'archive');
-	const sprintFiles = [
-		...readdirSync(sprintsDir).filter((n) => n.endsWith('.md')),
-		...(existsSync(archiveDir) ? readdirSync(archiveDir).filter((n) => n.endsWith('.md')) : [])
-	];
+	const missingDocs = REQUIRED_SUBPATHS.filter((s) => !pkgReadme.includes(s.slice(1)));
+	if (missingDocs.length > 0) violations.push({ rule: 'DOCS_AND_SKILL_FRESHNESS', target: 'packages/chronos-ui/README.md', detail: `Undocumented subpaths: ${missingDocs.join(', ')}` });
+	const skillsRoot = join(rootDir, 'docs/skills');
+	const skillDirs = existsSync(skillsRoot) ? readdirSync(skillsRoot).filter((n) => statSync(join(skillsRoot, n)).isDirectory()) : [];
+	const staleSkills = skillDirs.filter((d) => { const p = join(skillsRoot, d, 'SKILL.md'); return !existsSync(p) || !readFileSync(p, 'utf8').includes(`version: "${VERSION}"`); });
+	if (skillDirs.length < 5 || staleSkills.length > 0) violations.push({ rule: 'DOCS_AND_SKILL_FRESHNESS', target: 'docs/skills', detail: `Expected >=5 skills at version "${VERSION}", stale: ${staleSkills.join(', ') || 'none'}` });
+	const sprintsDir = join(rootDir, 'docs/08-sprints'), archiveDir = join(sprintsDir, 'archive');
+	const sprintFiles = [...readdirSync(sprintsDir).filter((n) => n.endsWith('.md')), ...(existsSync(archiveDir) ? readdirSync(archiveDir).filter((n) => n.endsWith('.md')) : [])];
 	if (sprintFiles.length < 10) violations.push({ rule: 'SPRINT_ARCHIVE_REQUIRED', target: 'docs/08-sprints', detail: `Found ${sprintFiles.length} sprint logs, expected >= 10` });
 }
 
 export function runStaticAudit(rootDir: string = process.cwd(), opts?: { full?: boolean }): AuditViolation[] {
-	const violations: AuditViolation[] = [];
+	const violations: AuditViolation[] = [], nearCap: string[] = [], files: string[] = [], dirs: string[] = [];
 	checkPackageAndDocs(rootDir, violations);
-	const files: string[] = [];
-	const dirs: string[] = [];
 	for (const sub of ['packages', 'studio', 'docs']) walkTree(join(rootDir, sub), files, dirs);
 	for (const d of dirs) {
 		const children = readdirSync(d).filter((n) => !n.startsWith('.') && statSync(join(d, n)).isFile());
 		if (children.length > 10) violations.push({ rule: 'FOLDER_MAX_10_FILES', target: d, detail: `${children.length} files` });
+		else if (children.length >= 9) nearCap.push(`${relative(rootDir, d)} (${children.length}/10)`);
 		if ((d.includes('/packages/chronos-ui/src/') || d.includes('/studio/src/')) && children.length > 0 && !children.includes('index.ts')) {
 			violations.push({ rule: 'BARREL_INDEX_REQUIRED', target: d, detail: 'Missing index.ts barrel' });
 		}
 	}
+	if (nearCap.length > 0) console.warn(`[audit] NEAR_CAP_WARNING (>=9 files): ${nearCap.join(', ')}`);
 	const cachePath = join(rootDir, CACHE_REL);
 	const prevCache: Record<string, CacheEntry> = existsSync(cachePath) ? JSON.parse(readFileSync(cachePath, 'utf8')) : {};
 	const nextCache: Record<string, CacheEntry> = {};

@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { UiChamferFrame, UiIcon } from '../atoms';
-	import { uiTransition } from '../motion';
-	import { DEFAULT_CHAMFER_TUPLE, type CornerKind, type UiIconName } from '../tokens';
-	import type { ToastItem } from './organisms.types';
+	import { UiChamferFrame, UiIcon } from '@ui/atoms';
+	import { uiTransition } from '@ui/motion';
+	import { DEFAULT_CHAMFER_TUPLE, type CornerKind, type UiIconName } from '@ui/tokens';
+	import type { ToastItem } from '../organisms.types';
 
 	interface Props {
 		toasts: readonly ToastItem[];

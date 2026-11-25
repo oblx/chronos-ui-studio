@@ -1,7 +1,7 @@
 import type { UiComponentKind, UiNode, UiNodeLifecycle, UiNodeTree } from '../canvas';
 import type { CornerAnimation, CornerEmbellishment, CornerTuple, HudZoneId, UiFrameShape } from '../tokens';
 import { DEFAULT_CHAMFER_TUPLE } from '../tokens';
-import { isUuidV7, shortUuid } from './uuid';
+import { isUuidV7, shortUuid } from './core';
 
 export interface EntityMeasuredRect {
 	readonly x: number;

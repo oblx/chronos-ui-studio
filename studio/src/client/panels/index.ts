@@ -3,7 +3,5 @@ export { default as ThemeTunerPanel } from './ThemeTunerPanel.svelte';
 export { default as BlueprintLibraryPanel } from './BlueprintLibraryPanel.svelte';
 export { default as SpotlightStudioPanel } from './SpotlightStudioPanel.svelte';
 export { default as StageWorkbenchCanvas } from './StageWorkbenchCanvas.svelte';
-export { default as BentoRadarConsole } from './BentoRadarConsole.svelte';
 export { default as EdgeRailContent } from './EdgeRailContent.svelte';
-export { default as WireTelemetryStrip } from './WireTelemetryStrip.svelte';
-export { default as TopPerimeterPods } from './TopPerimeterPods.svelte';
+export * from './perimeter';

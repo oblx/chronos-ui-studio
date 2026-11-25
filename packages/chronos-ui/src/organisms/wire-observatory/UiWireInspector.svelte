@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { UiBadge, UiChamferButton } from '../atoms';
-	import type { CornerKind } from '../tokens';
-	import type { WireSpine, WireTraceRecord } from '../wire';
-	import { buildWireTraceKey, coalesceBurstTraces, filterTracesByDagNode, UiWireDagGraph } from './wire-observatory';
+	import { UiBadge, UiChamferButton } from '@ui/atoms';
+	import type { CornerKind } from '@ui/tokens';
+	import type { WireSpine, WireTraceRecord } from '@ui/wire';
+	import UiWireDagGraph from './UiWireDagGraph.svelte';
+	import { buildWireTraceKey, coalesceBurstTraces, filterTracesByDagNode } from './wire.dag.topology';
 
 	interface Props {
 		traces: readonly WireTraceRecord[];

@@ -5,8 +5,8 @@
 	} from '@chronos-ui/svelte';
 	import type { UiBlueprint } from '@studio/config';
 	import { computeBlueprintGrade } from '@studio/core';
-	import { ProjectLifecyclePod } from '../canvas';
-	import type { StudioUser } from '../state';
+	import { ProjectLifecyclePod } from '@studio/client/canvas';
+	import type { StudioUser } from '@studio/client/state';
 
 	interface Props {
 		zone: 'TOP_LEFT' | 'TOP_RIGHT';

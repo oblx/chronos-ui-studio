@@ -5,7 +5,7 @@ license: MIT
 compatibility: Bun >= 1.4, Chronos QA Harness (studio/src/workers/qa_audit.ts)
 metadata:
   author: Oblx <code@oblx.dev>
-  version: "0.0.7"
+  version: "0.1.0"
 allowed-tools: view_file write_to_file replace_file_content run_command
 ---
 
@@ -26,10 +26,11 @@ Use this skill whenever crafting or refactoring a skill directory inside `docs/s
 2. **Zero Fenced Code Blocks**: Never use triple-backtick fences inside `docs/**/*.md`; express commands and identifiers cleanly using inline backticks or ordered lists.
 3. **Zero Unicode Emojis**: Forbid `Extended_Pictographic` glyphs so automated `qa_audit.ts` static gates stay green.
 4. **Zero Dead External Links**: Ground every path, MCP tool name, CLI script (`package.json`), and symbol strictly in files verified on disk inside this workspace.
+5. **Release Freshness**: Keep `metadata.version` synced to `VERSION` (`0.1.0`) so `DOCS_AND_SKILL_FRESHNESS` in `studio/src/workers/qa_audit.ts` stays green.
 
 ## Authoring Workflow
 
 1. Audit neighboring files or modules first to gather exact verified symbol names and CLI commands.
-2. Create `docs/skills/<kebab-case-name>/SKILL.md` with valid frontmatter and structured workflows.
+2. Create or update `docs/skills/<kebab-case-name>/SKILL.md` with valid frontmatter and structured workflows.
 3. Keep instructions imperative, terse, and ordered by blast radius or execution sequence.
-4. Validate every skill automatically by running `bun run qa:report` or `bun run qa:fast` (`checkSkillFile` in `studio/src/workers/qa_audit.ts`).
+4. Validate every skill automatically by running `bun run qa:fast` (`checkSkillFile` + `DOCS_AND_SKILL_FRESHNESS` in `studio/src/workers/qa_audit.ts`).

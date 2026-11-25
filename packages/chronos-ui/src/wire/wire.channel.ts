@@ -1,5 +1,5 @@
 import { HUD_METRICS } from '../tokens';
-import type { DagEnvelope } from './wire.types';
+import type { DagEnvelope } from './core';
 
 export interface MultiTabChannel {
 	readonly postIntent: (envelope: DagEnvelope) => void;

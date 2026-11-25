@@ -10,10 +10,9 @@ import { STARTER_BLUEPRINTS, STUDIO_SPOTLIGHT_STEPS, type UiBlueprint } from '@s
 import { apiFetchCursorPacks, createInitialStudioState, createLifecycleActions, GENESIS_FALLBACK, readSessionSnapshot, STUDIO_INITIAL_LAYOUT, syncCorridorForState, syncThemeAndCursor, writeSessionSnapshot } from './lifecycle';
 import { apiBroadcastCollabEvent, apiCloneBlueprint, apiCreateTheme, apiDeleteBlueprint, apiFetchAuthMe, apiFetchBlueprints, apiFetchServerTraces, apiFetchThemes, apiPollCollab, apiSaveBlueprint, apiToggleThemeStar } from './studio.api';
 import { executeStudioCommand } from './studio.commands';
-import { registerStudioIntentHandlers } from './studio.handlers';
+import { createV003Actions, registerStudioIntentHandlers } from './handlers';
 import { apiCreateProject, apiFetchAiProfiles, apiFetchChat, apiFetchEnvCapabilities, apiFetchProjects, apiSaveAiProfile, apiSendAssistantPrompt } from './studio.project.api';
 import type { StudioModalId, StudioState, StudioUser } from './studio.types';
-import { createV003Actions } from './studio.v003.handlers';
 
 const REALTIME_SYNC_KINDS = new Set<IntentKind>(['UI_SET_LAYOUT_DENSITY', 'UI_ASSISTANT_TOGGLE_FLOAT', 'UI_ASSISTANT_SUBMIT', 'UI_STATION_PREVIEW_UPDATE', 'UI_PROJECT_SAVE']);
 const SESSION_PERSIST_KINDS = new Set<IntentKind>(['UI_SET_LAYOUT_DENSITY', 'UI_TOGGLE_STUDIO_CHROME', 'UI_SWITCH_PROJECT', 'UI_ASSISTANT_TOGGLE_FLOAT', 'UI_ASSISTANT_MOVE', 'UI_ASSISTANT_DROP', 'UI_ASSISTANT_DOCK', 'UI_SET_STUDIO_DEFAULT', 'UI_SET_CORNER_RADIUS', 'UI_SET_CORNER_STYLE', 'UI_APPLY_CURSOR_PACK', 'UI_SET_DRAWER_OPEN']);

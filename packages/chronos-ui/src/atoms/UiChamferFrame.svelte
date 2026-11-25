@@ -45,18 +45,21 @@
 		const el = hostEl;
 		if (!el) return;
 		let raf = 0;
+		const applySize = (w: number, h: number) => {
+			const nextW = Math.max(24, Math.round(w));
+			const nextH = Math.max(24, Math.round(h));
+			untrack(() => {
+				if (Math.abs(nextW - boxW) > 0.5) boxW = nextW;
+				if (Math.abs(nextH - boxH) > 0.5) boxH = nextH;
+			});
+		};
+		const init = el.getBoundingClientRect();
+		if (init.width > 0 && init.height > 0) applySize(init.width, init.height);
 		const ro = new ResizeObserver((entries) => {
 			const rect = entries[0]?.contentRect;
 			if (!rect) return;
 			cancelAnimationFrame(raf);
-			raf = requestAnimationFrame(() => {
-				const nextW = Math.max(24, Math.round(rect.width));
-				const nextH = Math.max(24, Math.round(rect.height));
-				untrack(() => {
-					if (Math.abs(nextW - boxW) > 0.5) boxW = nextW;
-					if (Math.abs(nextH - boxH) > 0.5) boxH = nextH;
-				});
-			});
+			raf = requestAnimationFrame(() => applySize(rect.width, rect.height));
 		});
 		ro.observe(el);
 		return () => { ro.disconnect(); cancelAnimationFrame(raf); };

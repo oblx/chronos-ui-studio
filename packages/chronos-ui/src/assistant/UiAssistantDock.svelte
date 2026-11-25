@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { UiChamferButton, UiChamferFrame, UiIcon } from '../atoms';
 	import type { InputModality } from '../input';
-	import { uiDrawerGrip, uiSpotlight } from '../machines';
+	import { uiFoldGrip, uiSpotlight } from '../machines';
 	import { UiAnimatedResizeBody } from '../molecules';
 	import { HUD_METRICS, ZONE_CORNER_PRESETS, Z_LAYERS, type CornerKind, type UiIconName } from '../tokens';
 	import type { AssistantDockState, AssistantMessage, AssistantOcularState, AssistantQuickAction } from './assistant.types';
@@ -35,8 +35,9 @@
 			? `min(var(--ui-corridor-max-w, ${HUD_METRICS.assistantWidthRem}rem), calc(100vw - 2 * var(--ui-side-track-w) - 3rem))`
 			: `min(${HUD_METRICS.assistantWidthRem}rem, calc(100vw - 2rem))`
 	);
-	let gripTip = $derived(dockState.mode === 'FLOATING' ? 'Click to dock · Drag to move' : 'Click to float · Drag to move');
-	let primaryCtaLabel = $derived(busy ? 'Running' : hasBuiltOnce ? 'Send' : 'Build');
+	let effectiveHasBuilt = $derived(hasBuiltOnce || messages.length > 0);
+	let gripTip = $derived(dockState.mode === 'FLOATING' ? 'Click: dock to bottom\nDrag: reposition panel' : 'Click: float assistant\nDrag: reposition panel');
+	let primaryCtaLabel = $derived(busy ? 'Running' : effectiveHasBuilt ? 'Send' : 'Build');
 	let positionStyle = $derived(
 		dockState.mode === 'FLOATING'
 			? `z-index: ${Z_LAYERS.assistantDock}; left: ${dockState.xRem}rem; top: ${dockState.yRem}rem; width: min(${HUD_METRICS.assistantWidthRem}rem, calc(100vw - 2rem));`
@@ -56,11 +57,24 @@
 	}
 </script>
 
-<section bind:this={sectionEl} use:uiSpotlight={'hud-assistant-dock'} aria-label="Chronos AI Assistant Dock" data-testid="ui-assistant-dock" data-ui-interactive="true" data-dock-mode={dockState.mode} data-expanded={dockState.expanded ? 'true' : 'false'} data-has-built-once={hasBuiltOnce ? 'true' : 'false'} class="fixed select-none" style={positionStyle}>
-	<UiChamferFrame corners={ZONE_CORNER_PRESETS.BOTTOM_CENTER} {cornerMode} carets={true} bezel={true} outerClass="w-full" className="flex flex-col gap-2 px-3 py-2">
+<section
+	bind:this={sectionEl}
+	use:uiSpotlight={'hud-assistant-dock'}
+	aria-label="Chronos AI Assistant Dock"
+	data-testid="ui-assistant-dock"
+	data-fold-axis="VERTICAL"
+	data-fold-behavior="OVERLAY_HOVER"
+	data-ui-interactive="true"
+	data-dock-mode={dockState.mode}
+	data-expanded={dockState.expanded ? 'true' : 'false'}
+	data-has-built-once={effectiveHasBuilt ? 'true' : 'false'}
+	class="fixed select-none {dockState.expanded ? 'shadow-xl' : 'shadow-md'}"
+	style={positionStyle}
+>
+	<UiChamferFrame corners={ZONE_CORNER_PRESETS.BOTTOM_CENTER} {cornerMode} carets={true} bezel={true} outerClass="w-full" className="flex flex-col">
 		<UiAnimatedResizeBody open={dockState.expanded}>
-			<div class="mb-1 flex flex-col gap-2 border-b pb-2" style="border-color: var(--ui-border-subtle); max-height: clamp(14rem, 34vh, 20rem);" inert={!dockState.expanded}>
-				<div class="flex items-center justify-between gap-2 text-xs">
+			<div class="flex flex-col border-b" style="border-color: var(--ui-border-subtle); max-height: clamp(14rem, 36vh, 22rem);" inert={!dockState.expanded}>
+				<div data-testid="assistant-transcript-header" class="flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2 text-xs" style="border-color: var(--ui-border-subtle); background-color: var(--ui-base-300);">
 					<div class="flex min-w-0 items-center gap-2">
 						<span class="font-semibold">Builder Assistant</span>
 						<span class="ui-font-mono truncate px-1.5 py-0.5 text-[0.65rem] font-semibold" data-testid="assistant-adapter-badge" style="background-color: var(--ui-accent-vivid); color: var(--ui-accent-vivid-content);">{modelLabel}</span>
@@ -73,20 +87,26 @@
 						<button type="button" data-testid="assistant-collapse-trigger" aria-label="Collapse assistant deck" data-ui-tip="Collapse assistant deck" onclick={onToggleExpand} class="flex h-6 w-6 items-center justify-center border" style="border-color: var(--ui-border-subtle); background-color: var(--ui-base-200); color: var(--ui-base-content);"><UiIcon name="chevron-down" sizeRem={0.85} /></button>
 					</div>
 				</div>
-				<div class="flex max-h-36 flex-col gap-2 overflow-y-auto pr-1 text-xs select-text" data-testid="assistant-timeline">
+				<div class="ui-scroll-deck min-h-0 flex-1 space-y-2.5 overflow-y-auto px-3 pt-3 pb-2 text-xs select-text" style="max-height: clamp(9.5rem, 24vh, 14.5rem);" data-testid="assistant-timeline">
 					{#if messages.length === 0}
-						<p style="color: var(--ui-muted-content);">Describe an interface, press Build, or tap the microphone to assemble live components.</p>
+						<p class="m-0" style="color: var(--ui-muted-content);">Describe an interface, press Build, or tap the microphone to assemble live components.</p>
 					{:else}
 						{#each messages as msg (msg.id)}
-							<div class="flex flex-col gap-1 border-b pb-1.5 last:border-none" style="border-color: var(--ui-border-subtle);">
-								<div class="flex items-center justify-between gap-2 text-[0.7rem]" style="color: var(--ui-muted-content);">
-									<span class="font-semibold uppercase">{msg.role}</span>
+							<div class="flex flex-col gap-1.5 border-b pb-2 last:border-none" style="border-color: var(--ui-border-subtle);">
+								<div class="flex items-center justify-between gap-2 text-[0.68rem]" style="color: var(--ui-muted-content);">
+									<span data-testid="assistant-user-badge" data-role={msg.role} class="ui-font-mono font-semibold tracking-wider uppercase">{msg.role}</span>
 									{#if msg.revisionId}<span class="ui-font-mono">{msg.revisionId.slice(0, 10)}</span>{/if}
 								</div>
-								<p class="leading-relaxed">{msg.content}</p>
+								<p class="m-0 leading-relaxed">{msg.content}</p>
 								{#if msg.toolCalls && msg.toolCalls.length > 0}
-									<div class="ui-font-mono flex flex-wrap items-center gap-2 pt-0.5 text-[0.7rem]" style="color: var(--ui-secondary);">
-										{#each msg.toolCalls as tc, idx (`${msg.id}-${idx}`)}<span>[{tc.ok ? 'OK' : 'ERR'}] {tc.tool}: {tc.summary}</span>{/each}
+									<div class="ui-font-mono flex flex-wrap items-center gap-1.5 pt-0.5 text-[0.68rem]">
+										{#each msg.toolCalls as tc, idx (`${msg.id}-${idx}`)}
+											<span data-testid="assistant-tool-chip" class="inline-flex max-w-full items-center gap-1.5 border px-1.5 py-0.5 leading-snug" style="border-color: var(--ui-border-subtle); background-color: var(--ui-base-300); color: var(--ui-base-content);">
+												<span class="font-semibold" style="color: {tc.ok ? 'var(--ui-success)' : 'var(--ui-error)'};">[{tc.ok ? 'OK' : 'ERR'}]</span>
+												<span class="font-semibold" style="color: var(--ui-secondary);">{tc.tool}</span>
+												<span class="truncate" style="color: var(--ui-muted-content);">{tc.summary}</span>
+											</span>
+										{/each}
 									</div>
 								{/if}
 							</div>
@@ -94,16 +114,16 @@
 					{/if}
 				</div>
 				{#if quickActions.length > 0}
-					<div class="flex flex-wrap items-center gap-1.5">
+					<div class="flex shrink-0 flex-wrap items-center gap-1.5 border-t px-3 py-1.5" style="border-color: var(--ui-border-subtle);">
 						{#each quickActions as qa (qa.id)}<UiChamferButton {cornerMode} label={qa.label} variant="surface" onclick={() => sendPrompt(qa.prompt)} className="py-0.5 text-[0.7rem]" />{/each}
 					</div>
 				{/if}
 			</div>
 		</UiAnimatedResizeBody>
 
-		<form class="flex items-center gap-1.5" onsubmit={(e) => { e.preventDefault(); sendPrompt(); }}>
+		<form class="flex items-center gap-1.5 px-3 py-2" onsubmit={(e) => { e.preventDefault(); sendPrompt(); }}>
 			<button type="button" data-testid="assistant-drag-grip" data-ui-drag-grip="true" data-ui-tip-placement="top" aria-label={gripTip} data-ui-tip={gripTip}
-				use:uiDrawerGrip={{ isFloating: dockState.mode === 'FLOATING', detachOnDrag: true, onToggleFloat: toggleGripDock, onMoveFloat: (dx, dy) => onMoveFloat(dx, dy, sectionEl?.getBoundingClientRect()), onDropFloat }}
+				use:uiFoldGrip={{ axis: 'VERTICAL', isFloating: dockState.mode === 'FLOATING', detachOnDrag: true, onToggleFloat: toggleGripDock, onMoveFloat: (dx, dy) => onMoveFloat(dx, dy, sectionEl?.getBoundingClientRect()), onDropFloat }}
 				class="flex h-7 w-7 shrink-0 cursor-grab items-center justify-center border active:cursor-grabbing"
 				style="border-color: var(--ui-border-subtle); background-color: var(--ui-base-300); color: var(--ui-accent-vivid, var(--ui-primary));">
 				<UiIcon name="grip" sizeRem={0.9} />
@@ -111,12 +131,12 @@
 			<UiRobotEmblem state={voiceListening ? 'LISTENING' : ocularState} size={24} />
 			<input type="text" value={voiceListening && interimTranscript ? interimTranscript : draft} oninput={(e) => { draft = (e.currentTarget as HTMLInputElement).value; }}
 				aria-label="Assistant prompt input" data-testid="assistant-prompt-input" data-ui-focusable="true"
-				placeholder={voiceListening ? 'Listening... speak your UI idea' : hasBuiltOnce ? 'Refine layout, theme, or components...' : 'Describe a UI, press Build, or tap mic...'}
+				placeholder={voiceListening ? 'Listening... speak your UI idea' : effectiveHasBuilt ? 'Refine layout, theme, or components...' : 'Describe a UI, press Build, or tap mic...'}
 				class="min-w-0 flex-1 bg-transparent px-1.5 py-1 text-xs outline-none" style="color: var(--ui-base-content);" />
 			{#if onToggleVoice && voiceSupported}
 				<UiChamferButton {cornerMode} icon={voiceListening ? 'mic-off' : 'mic'} tip={voiceListening ? 'Stop voice input' : 'Speak UI prompt'} active={voiceListening} variant={voiceListening ? 'danger' : 'ghost'} onclick={onToggleVoice} className="px-2 py-1" />
 			{/if}
-			<UiChamferButton {cornerMode} icon={hasBuiltOnce ? 'send' : 'wrench'} label={primaryCtaLabel} testId="assistant-submit-btn" variant="primary" disabled={busy} type="submit" className="py-1 text-xs" />
+			<UiChamferButton {cornerMode} icon={effectiveHasBuilt ? 'send' : 'wrench'} label={primaryCtaLabel} testId="assistant-submit-btn" variant="primary" disabled={busy} type="submit" className="py-1 text-xs" />
 			{#if !dockState.expanded}
 				<button type="button" data-testid="assistant-unfold-trigger" aria-label="Unfold assistant deck" data-ui-tip="Expand assistant deck" onclick={onToggleExpand} class="flex h-7 w-7 shrink-0 items-center justify-center border" style="border-color: var(--ui-border-subtle); background-color: var(--ui-base-200); color: var(--ui-base-content);"><UiIcon name="chevron-up" sizeRem={0.875} /></button>
 			{/if}

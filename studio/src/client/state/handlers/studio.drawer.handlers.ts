@@ -3,8 +3,8 @@ import {
 	setActiveMotionProfile, setActiveMotionSensory, STAGE_LIMITS, type CornerKind, type LayoutDensity,
 	type MotionConfig, type MotionProfileId, type MotionSensoryConfig, type ToastItem, type UiWireBroker
 } from '@chronos-ui/svelte';
-import { syncCorridorForState } from './lifecycle';
-import type { StudioState } from './studio.types';
+import { syncCorridorForState } from '../lifecycle';
+import type { StudioState } from '../studio.types';
 
 function drawerKey(side: 'LEFT' | 'RIGHT'): 'leftDrawer' | 'rightDrawer' {
 	return side === 'LEFT' ? 'leftDrawer' : 'rightDrawer';

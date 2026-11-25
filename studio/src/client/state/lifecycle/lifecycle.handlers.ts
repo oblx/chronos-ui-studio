@@ -27,9 +27,9 @@ function registerWorkspaceLifecycleHandlers(broker: UiWireBroker<StudioState>): 
 			const cur = s.projects.find((p) => p.id === s.activeProjectId) ?? s.projects[0];
 			if (!cur) return s;
 			return {
-				...s, selectedNodeId: null, undoStack: [...s.undoStack.slice(-19), cur.nodes], redoStack: [],
+				...s, selectedNodeId: null, chatMessages: [], undoStack: [...s.undoStack.slice(-19), cur.nodes], redoStack: [],
 				projectPersistence: { ...s.projectPersistence, isDirty: false, lastSavedAt: Date.now(), status: 'SAVED' },
-				projects: s.projects.map((p) => (p.id === cur.id ? { ...p, nodes: [], updatedAt: Date.now() } : p))
+				projects: s.projects.map((p) => (p.id === cur.id ? { ...p, nodes: [], hasBuiltOnce: false, updatedAt: Date.now() } : p))
 			};
 		},
 		summarize: () => 'Cleaned workspace to Calm Empty Stage'

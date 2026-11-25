@@ -1,6 +1,6 @@
 import { clampCornerRadiusRem, type CornerKind, type UiNodeTree, type UiProjectBuildConfig, type UiProjectDefinition } from '@chronos-ui/svelte';
 import { eq } from 'drizzle-orm';
-import { getStudioDb, uiProjects } from '@studio/lib';
+import { aiChatMessages, getStudioDb, uiProjects } from '@studio/lib';
 import { pushServerTrace } from '../server.telemetry';
 import { HTTP_STATUS, jsonErr, jsonOk, parseJsonSafe, readJsonBody } from './http.helpers';
 import { commitProjectRevision, loadProjectWithNodes } from './routes.projects';
@@ -43,6 +43,7 @@ export async function saveProjectSnapshot(projectId: string, input: SaveProjectI
 
 export async function cleanProjectWorkspace(projectId: string): Promise<{ revisionId: string; project: UiProjectDefinition }> {
 	const db = await getStudioDb();
+	await db.delete(aiChatMessages).where(eq(aiChatMessages.projectId, projectId));
 	await db.update(uiProjects).set({ hasBuiltOnce: 0, updatedAt: Date.now() }).where(eq(uiProjects.id, projectId));
 	const res = await commitProjectRevision(projectId, [], 'USER_CLEAN');
 	pushServerTrace('UI_PROJECT_CLEAN', `Cleaned workspace ${res.project.slug} to Calm Empty Stage`, 0.4, true, 'USER');

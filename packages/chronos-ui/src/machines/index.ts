@@ -1,6 +1,6 @@
 export * from './spotlight.machine.svelte';
 export * from './modal.machine.svelte';
-export * from './drawer.machine.svelte';
+export * from './fold.overlay.svelte';
 export * from './tooltip.machine.svelte';
 export * from './carousel.machine.svelte';
 export * from './viewport.machine.svelte';

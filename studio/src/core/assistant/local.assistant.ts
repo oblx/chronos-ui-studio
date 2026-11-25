@@ -1,5 +1,5 @@
 import { COMPONENT_CATALOG, CORNER_MODES, HUD_ZONES, pxToRem, THEME_PACKS, UI_FRAME_SHAPES, type CornerKind, type HudZoneId, type UiComponentKind, type UiFrameShape } from '@chronos-ui/svelte';
-import { STUDIO_TOOL_REGISTRY, type StudioToolDescriptor } from './engine';
+import { STUDIO_TOOL_REGISTRY, type StudioToolDescriptor } from '../engine';
 export interface AssistantPlannedAction { readonly tool: string; readonly args: Record<string, unknown>; }
 export interface AssistantPlan { readonly reply: string; readonly actions: readonly AssistantPlannedAction[]; }
 const tokenize = (input: string): Set<string> => new Set(input.toLowerCase().split(/[^a-z0-9_-]+/).filter((t) => t.length > 1));
