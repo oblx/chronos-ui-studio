@@ -53,4 +53,5 @@ export interface ResolvedCursorPalette {
 	readonly accentHex: string;
 	readonly strokeHex: string;
 	readonly fillHex: string;
+	readonly errorHex?: string;
 }

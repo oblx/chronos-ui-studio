@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { createControlCornerRef } from '../motion';
+	import { createControlCornerRef } from '@ui/motion';
 	import {
 		CONTROL_MAX_CUT_RATIO,
 		DEFAULT_CHAMFER_TUPLE,
 		resolveControlSurface,
 		type CornerKind,
 		type CornerTuple
-	} from '../tokens';
-	import UiVectorBorder from './UiVectorBorder.svelte';
+	} from '@ui/tokens';
+	import UiVectorBorder from '../UiVectorBorder.svelte';
 
 	interface Props {
 		text: string;

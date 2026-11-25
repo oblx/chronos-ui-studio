@@ -51,7 +51,7 @@ function checkCodeFile(file: string, raw: string, violations: AuditViolation[]):
 	if (file.endsWith('.svelte') && /\b(fetch\(|localStorage|indexedDB)\b/.test(raw)) violations.push({ rule: 'HUMBLE_SVELTE_VIEW', target: file, detail: 'Direct I/O call inside .svelte' });
 	if (file.endsWith('.svelte') && raw.includes('<svelte:component')) violations.push({ rule: 'SVELTE5_NO_LEGACY_COMPONENT', target: file, detail: 'Legacy <svelte:component> forbidden' });
 	if (file.includes('/packages/chronos-ui/') && /from ['"].*studio/.test(raw)) violations.push({ rule: 'PACKAGE_FIREWALL', target: file, detail: 'Upward import into studio/' });
-	if (file.endsWith('/machines/tooltip.machine.svelte.ts') && /\bsetInterval\s*\(/.test(raw)) violations.push({ rule: 'ZERO_TIMER_TOOLTIP', target: file, detail: 'Forbidden setInterval in tooltip machine' });
+	if (file.endsWith('tooltip.machine.svelte.ts') && /\bsetInterval\s*\(/.test(raw)) violations.push({ rule: 'ZERO_TIMER_TOOLTIP', target: file, detail: 'Forbidden setInterval in tooltip machine' });
 	if (!HEX_ALLOW_RE.test(file) && HEX_LITERAL_RE.test(raw)) violations.push({ rule: 'NON_PALETTE_HEX', target: file, detail: 'Hardcoded hex color outside token palettes' });
 	if ((file.endsWith('.ts') || file.endsWith('.svelte')) && DEEP_RELATIVE_RE.test(raw)) violations.push({ rule: 'NO_DEEP_RELATIVE_IMPORTS', target: file, detail: 'Multi-level ../.. import forbidden; use @ui/* or @studio/* alias' });
 }

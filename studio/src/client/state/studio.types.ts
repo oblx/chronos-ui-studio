@@ -108,6 +108,10 @@ export interface StudioState {
 	readonly user: StudioUser | null;
 	readonly peers: readonly VirtualCursorPeer[];
 	readonly toasts: readonly ToastItem[];
+	readonly revealedZones: readonly HudZoneId[];
+	readonly hudBootRunning: boolean;
+	readonly mcpManifestSyncedAt: number | null;
+	readonly mcpToolCount: number;
 	readonly lastCommandOutput: string;
 }
 

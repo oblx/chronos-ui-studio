@@ -5,24 +5,19 @@
 		uiTransition, type AccessibilityPrefs, type CornerAnimation, type CornerEmbellishment, type CornerKind,
 		type MotionConfig, type StudioDefaultsConfig, type ThemePack
 	} from '@chronos-ui/svelte';
+	import SettingsControlsCard from './SettingsControlsCard.svelte';
 	import SettingsGeometryKnobs from './SettingsGeometryKnobs.svelte';
 	import SettingsMotionControls from './SettingsMotionControls.svelte';
 
 	interface Props {
-		prefs: AccessibilityPrefs; motionConfig: MotionConfig; studioDefaults: StudioDefaultsConfig;
-		themes: readonly ThemePack[]; activeThemeId: string; cornerMorphEnabled: boolean;
-		onUpdate: (patch: Partial<AccessibilityPrefs>) => void; onSetCornerStyle: (cornerMode: CornerKind) => void;
-		onSetCornerRadius: (cornerRadiusRem: number) => void; onSetStudioDefaults: (patch: Partial<StudioDefaultsConfig>) => void;
-		onResetStudioDefaults: () => void; onSetMotionConfig: (patch: Partial<MotionConfig>) => void;
-		onSetMotionProfile?: (patch: Record<string, unknown>) => void;
-		onToggleCornerMorph: (enabled: boolean) => void; onSelectTheme: (themeId: string) => void; onOpenCursors?: () => void;
+		prefs: AccessibilityPrefs; motionConfig: MotionConfig; studioDefaults: StudioDefaultsConfig; themes: readonly ThemePack[]; activeThemeId: string; cornerMorphEnabled: boolean;
+		onUpdate: (patch: Partial<AccessibilityPrefs>) => void; onSetCornerStyle: (cornerMode: CornerKind) => void; onSetCornerRadius: (cornerRadiusRem: number) => void;
+		onSetStudioDefaults: (patch: Partial<StudioDefaultsConfig>) => void; onResetStudioDefaults: () => void; onSetMotionConfig: (patch: Partial<MotionConfig>) => void;
+		onSetMotionProfile?: (patch: Record<string, unknown>) => void; onSetControlConfig?: (patch: Record<string, unknown>) => void; onSetTooltipInfoLevel?: (infoLevel: number) => void;
+		onReplayHudSequence?: () => void; onToggleCornerMorph: (enabled: boolean) => void; onSelectTheme: (themeId: string) => void; onOpenCursors?: () => void;
 	}
 
-	let {
-		prefs, motionConfig, studioDefaults, themes, activeThemeId, cornerMorphEnabled,
-		onUpdate, onSetCornerStyle, onSetCornerRadius, onSetStudioDefaults, onResetStudioDefaults,
-		onSetMotionConfig, onSetMotionProfile, onToggleCornerMorph, onSelectTheme, onOpenCursors
-	}: Props = $props();
+	let { prefs, motionConfig, studioDefaults, themes, activeThemeId, cornerMorphEnabled, onUpdate, onSetCornerStyle, onSetCornerRadius, onSetStudioDefaults, onResetStudioDefaults, onSetMotionConfig, onSetMotionProfile, onSetControlConfig, onSetTooltipInfoLevel, onReplayHudSequence, onToggleCornerMorph, onSelectTheme, onOpenCursors }: Props = $props();
 
 	const EMB_ITEMS: readonly { id: CornerEmbellishment; label: string }[] = [
 		{ id: 'NONE', label: 'Orn: None' }, { id: 'CARET', label: 'Caret' }, { id: 'BRACKET', label: 'Bracket' }, { id: 'ARC', label: 'Arc' }, { id: 'DOTS', label: 'Dots' },
@@ -74,6 +69,7 @@
 				{/each}
 			</div>
 		</div>
+		<SettingsControlsCard cornerMode={prefs.cornerMode} {studioDefaults} {onSetControlConfig} {onSetTooltipInfoLevel} {onReplayHudSequence} />
 	</div>
 
 	<div class="h-full" data-testid="visuals-center-cartridge">
@@ -140,7 +136,7 @@
 				<UiChamferButton cornerMode={prefs.cornerMode} label={cornerMorphEnabled ? 'Corner Morph: On' : 'Corner Morph: Off'} active={cornerMorphEnabled} variant={cornerMorphEnabled ? 'secondary' : 'surface'} onclick={() => onToggleCornerMorph(!cornerMorphEnabled)} className="w-full py-1 text-[0.64rem]" />
 			</div>
 		</div>
-		{#if onSetMotionProfile}<SettingsMotionControls cornerMode={prefs.cornerMode} {onSetMotionProfile} />{/if}
+		{#if onSetMotionProfile}<SettingsMotionControls cornerMode={prefs.cornerMode} {studioDefaults} {onSetMotionProfile} {onSetStudioDefaults} />{/if}
 		<SettingsGeometryKnobs cornerMode={prefs.cornerMode} {studioDefaults} {onSetStudioDefaults} {onResetStudioDefaults} />
 	</div>
 </div>

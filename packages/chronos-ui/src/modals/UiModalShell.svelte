@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { getContext, tick, type Snippet } from 'svelte';
 	import { UiChamferFrame } from '../atoms';
-	import type { ModalGeometrySnapshot } from '../machines';
+	import type { ModalGeometrySnapshot, ModalLifecyclePhase } from '../machines';
 	import { getActiveMotionSensory, MOTION_PROFILE_SPECS, resolveDurationMs, uiTransition } from '../motion';
 	import {
 		DEFAULT_CHAMFER_TUPLE, type CornerAnimation, type CornerEmbellishment, type CornerKind,
@@ -15,35 +15,36 @@
 	};
 
 	interface Props {
-		open: boolean; title: string; subtitle?: string; icon?: UiIconName;
+		open: boolean; phase?: ModalLifecyclePhase; title: string; subtitle?: string; icon?: UiIconName;
 		corners?: CornerTuple; cornerMode?: CornerKind; cornerRadiusRem?: number;
 		cornerEmbellishment?: CornerEmbellishment; cornerAnimation?: CornerAnimation; embellishmentConfig?: EmbellishmentConfig;
 		sizeTier?: UiModalSizeTier; maxWidthRem?: number; expandable?: boolean; expanded?: boolean;
 		isLocked?: boolean; remainingSeconds?: number; progressRatio?: number;
 		onToggleExpand?: (expanded: boolean, snapshot: ModalGeometrySnapshot | null) => void;
-		onClose: () => void; footer?: Snippet; children?: Snippet;
+		onIntroEnd?: () => void; onOutroEnd?: () => void; onClose: () => void; footer?: Snippet; children?: Snippet;
 	}
 
 	let {
-		open, title, subtitle, icon = 'layers', corners = DEFAULT_CHAMFER_TUPLE, cornerMode = 'CHAMFER',
+		open, phase, title, subtitle, icon = 'layers', corners = DEFAULT_CHAMFER_TUPLE, cornerMode = 'CHAMFER',
 		cornerRadiusRem, cornerEmbellishment, cornerAnimation, embellishmentConfig,
 		sizeTier, maxWidthRem = 56, expandable = true, expanded, isLocked = false,
-		remainingSeconds = 0, progressRatio = 0, onToggleExpand, onClose, footer, children
+		remainingSeconds = 0, progressRatio = 0, onToggleExpand, onIntroEnd, onOutroEnd, onClose, footer, children
 	}: Props = $props();
 
 	const expansionBridge = getContext<ModalExpansionBridge | undefined>(MODAL_EXPANSION_CTX_KEY);
 	let internalExpanded = $state(false);
 	let restoreSnapshot = $state<ModalGeometrySnapshot | null>(null);
 	let shellEl = $state<HTMLElement | null>(null);
+	let effectivePhase = $derived<ModalLifecyclePhase>(phase ?? expansionBridge?.phase ?? (open ? 'OPEN' : 'CLOSED'));
+	let mounted = $derived(open || effectivePhase === 'OPENING' || effectivePhase === 'OPEN' || effectivePhase === 'CLOSING');
+	let closing = $derived(effectivePhase === 'CLOSING');
 	let isExpanded = $derived(expanded ?? (expansionBridge ? expansionBridge.isExpanded : internalExpanded));
 	let baseWidth = $derived(sizeTier ? SIZE_TIER_WIDTH[sizeTier] : `min(94vw, ${maxWidthRem}rem)`);
 	let activeSnapshot = $derived(restoreSnapshot ?? expansionBridge?.restoreSnapshot ?? null);
 	let boxWidth = $derived(isExpanded ? 'calc(100vw - 1.5rem)' : activeSnapshot ? `${activeSnapshot.widthPx}px` : baseWidth);
 	let boxHeight = $derived(isExpanded ? 'calc(100vh - 1.5rem)' : undefined);
 
-	$effect(() => {
-		if (!open) { internalExpanded = false; restoreSnapshot = null; }
-	});
+	$effect(() => { if (!mounted) { internalExpanded = false; restoreSnapshot = null; } });
 
 	function captureSnapshot(): ModalGeometrySnapshot | null {
 		if (!shellEl) return restoreSnapshot;
@@ -82,7 +83,7 @@
 	}
 
 	function handleKey(e: KeyboardEvent): void {
-		if (!open) return;
+		if (!mounted || closing) return;
 		if (e.key === 'Escape' && !isLocked) onClose();
 		if (e.altKey && e.key.toLowerCase() === 'm' && expandable) { e.preventDefault(); toggleExpand(); }
 	}
@@ -90,16 +91,17 @@
 
 <svelte:window onkeydown={handleKey} />
 
-{#if open}
+{#if mounted}
 	<div
 		role="dialog"
 		aria-modal="true"
 		aria-label={title}
 		data-ui-interactive="true"
+		data-modal-phase={effectivePhase}
 		data-modal-size-tier={sizeTier ?? 'CUSTOM'}
 		data-modal-expanded={isExpanded ? 'true' : 'false'}
-		class="fixed inset-0 z-[70] flex items-center justify-center {isExpanded ? 'p-3' : 'p-4 sm:p-6'}"
-		style="background: var(--ui-backdrop-radial);"
+		class="ui-modal-backdrop fixed inset-0 z-[70] flex items-center justify-center {isExpanded ? 'p-3' : 'p-4 sm:p-6'}"
+		style="background: var(--ui-backdrop-radial); opacity: {closing ? 0 : 1};"
 	>
 		<button
 			type="button"
@@ -107,28 +109,31 @@
 			data-ui-modal-backdrop="true"
 			data-ui-cursor="default"
 			class="absolute inset-0"
-			onclick={() => { if (!isLocked) onClose(); }}
+			onclick={() => { if (!isLocked && !closing) onClose(); }}
 		></button>
 		<div
 			bind:this={shellEl}
 			data-testid="modal-shell-box"
+			data-modal-phase={effectivePhase}
 			data-expanded={isExpanded ? 'true' : 'false'}
 			in:uiTransition={{ offsetPx: 14 }}
 			out:uiTransition={{ offsetPx: 14 }}
+			onintroend={() => { onIntroEnd?.(); expansionBridge?.markOpened?.(); }}
+			onoutroend={() => { onOutroEnd?.(); expansionBridge?.markClosed?.(); }}
 			class="ui-modal-morph relative z-10 flex min-w-0 flex-col"
 			style:width={boxWidth}
 			style:max-width={boxWidth}
 			style:height={boxHeight}
+			style:opacity={closing ? 0 : 1}
+			style:transform={closing ? 'translateY(10px) scale(0.96)' : 'translateY(0) scale(1)'}
 		>
 			<UiChamferFrame {corners} {cornerMode} {cornerRadiusRem} {cornerEmbellishment} {cornerAnimation} {embellishmentConfig} cutTier="station" bezel={true} carets={true} outerClass="w-full min-w-0 {isExpanded ? 'h-full' : ''}" className="min-w-0 {isExpanded ? 'h-full' : ''}">
 				<div class="flex flex-col {isExpanded ? 'h-[calc(100vh-1.5rem)]' : 'max-h-[min(86vh,48rem)]'}">
 					<UiModalHeader {title} {subtitle} {icon} {cornerMode} {isLocked} {isExpanded} {expandable} {remainingSeconds} {progressRatio} onToggleExpand={toggleExpand} {onClose} />
-					<div class="ui-scroll-deck flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
+					<div class="ui-scroll-thin ui-scroll-deck flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
 						{@render children?.()}
 					</div>
-					{#if footer}
-						{@render footer()}
-					{/if}
+					{#if footer}{@render footer()}{/if}
 				</div>
 			</UiChamferFrame>
 		</div>

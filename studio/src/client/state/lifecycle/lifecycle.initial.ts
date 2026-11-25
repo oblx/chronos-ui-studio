@@ -50,6 +50,8 @@ export function createInitialStudioState(): StudioState {
 		leftDrawer: { open: false, floating: false, activeTab: 'build', railOffsetY: 0, floatX: STUDIO_INITIAL_LAYOUT.leftFloatX, floatY: STUDIO_INITIAL_LAYOUT.floatY },
 		rightDrawer: { open: false, floating: false, activeTab: 'inspector', railOffsetY: 0, floatX: STUDIO_INITIAL_LAYOUT.rightFloatX, floatY: STUDIO_INITIAL_LAYOUT.floatY },
 		panX: 0, panY: 0, zoom: 1, helpTopic: 'composer', helpGlitterCount: 0,
-		user: null, peers: [], toasts: [], lastCommandOutput: 'Calm canvas ready. Describe a UI below or press F1.'
+		user: null, peers: [], toasts: [],
+		revealedZones: ['WORLD_CANVAS'], hudBootRunning: false, mcpManifestSyncedAt: null, mcpToolCount: 0,
+		lastCommandOutput: 'Calm canvas ready. Describe a UI below or press F1.'
 	};
 }

@@ -73,7 +73,15 @@ export type IntentKind =
 	| 'UI_SET_MOTION_PROFILE'
 	| 'UI_MODAL_TOGGLE_EXPAND'
 	| 'UI_ASSISTANT_SET_DOCK_MODE'
-	| 'UI_ASSISTANT_SUBMIT_PROMPT';
+	| 'UI_ASSISTANT_SUBMIT_PROMPT'
+	| 'UI_SET_CONTROL_CONFIG'
+	| 'UI_SET_HISTORY_LIMIT'
+	| 'UI_SET_TOOLTIP_INFO_LEVEL'
+	| 'UI_MODAL_OPENED'
+	| 'UI_MODAL_CLOSED'
+	| 'UI_REVEAL_ZONE'
+	| 'UI_REPLAY_HUD_SEQUENCE'
+	| 'SERVER_MANIFEST_SYNCED';
 
 export interface BatchIntentInput<P = Record<string, unknown>> {
 	readonly kind: IntentKind;

@@ -18,6 +18,9 @@
 		cornerMode: CornerKind;
 		prototypes: readonly UiComponentPrototype[];
 		selectedNode: UiNode | null;
+		activeView?: string;
+		mcpToolCount?: number;
+		mcpManifestSyncedAt?: number | null;
 		lastMcpActivity: string | null;
 		canUndo: boolean;
 		onSpawnQuick: (type: UiComponentKind, zone: HudZoneId, label: string, props: Record<string, unknown>) => void;
@@ -27,6 +30,7 @@
 		onOpenStationBuilder: () => void;
 		onOpenZoneEdition: () => void;
 		onOpenCursors: () => void;
+		onOpenWire?: () => void;
 		onPatchNode: (nodeId: string, patch: Partial<UiNode>) => void;
 		onDeriveBlueprint: (nodeId: string, name: string) => void;
 		onCommitNode: (nodeId: string) => void;
@@ -61,20 +65,7 @@
 
 {#if props.side === 'LEFT'}
 	{#if props.activeTab === 'build'}
-		<StudioToolPalettePanel
-			cornerMode={props.cornerMode}
-			prototypes={props.prototypes}
-			lastMcpActivity={props.lastMcpActivity}
-			canUndo={props.canUndo}
-			onSpawnQuick={props.onSpawnQuick}
-			onSpawnPrototype={props.onSpawnPrototype}
-			onLoadSample={props.onLoadSample}
-			onOpenExport={props.onOpenExport}
-			onOpenStationBuilder={props.onOpenStationBuilder}
-			onOpenZoneEdition={props.onOpenZoneEdition}
-			onOpenCursors={props.onOpenCursors}
-			onUndo={props.onUndo}
-		/>
+		<StudioToolPalettePanel cornerMode={props.cornerMode} prototypes={props.prototypes} lastMcpActivity={props.lastMcpActivity} canUndo={props.canUndo} onSpawnQuick={props.onSpawnQuick} onSpawnPrototype={props.onSpawnPrototype} onLoadSample={props.onLoadSample} onOpenExport={props.onOpenExport} onOpenStationBuilder={props.onOpenStationBuilder} onOpenZoneEdition={props.onOpenZoneEdition} onOpenCursors={props.onOpenCursors} onUndo={props.onUndo} />
 	{:else if props.activeTab === 'zones'}
 		<ZoneComposerPanel blueprint={props.blueprint} cornerMode={props.cornerMode} onToggleZone={props.onToggleZone} onCycleCorner={props.onCycleCorner} />
 	{:else if props.activeTab === 'blueprints'}
@@ -88,13 +79,21 @@
 	<ThemeTunerPanel themes={props.themes} activeThemeId={props.activeThemeId} cornerMode={props.cornerMode} onSelectTheme={props.onSelectTheme} onToggleStar={props.onToggleThemeStar} onPublishTheme={props.onPublishTheme} />
 {:else}
 	<div class="flex flex-col gap-3 pb-3 text-xs">
-		<p class="leading-relaxed" style="color: var(--ui-muted-content);">
-			Export standalone @chronos-ui/svelte scaffolds, Lighthouse-100 static bundles, or vendored full-stack Node + SQLite + MCP packages.
-		</p>
+		{#if props.activeView === 'MCP_TWIN' || (props.mcpToolCount ?? 0) > 0}
+			<div data-testid="twin-mcp-telemetry-card" class="flex flex-col gap-2 border p-2.5" style="border-color: var(--ui-accent-vivid, var(--ui-primary)); background-color: var(--ui-base-100);">
+				<div class="flex items-center justify-between gap-2">
+					<span class="ui-font-display font-semibold">Twin MCP Manifest Sync</span>
+					<span class="ui-font-mono text-[0.65rem] font-semibold" style="color: var(--ui-success);">{props.mcpToolCount ?? 0} TOOLS</span>
+				</div>
+				<div class="ui-font-mono text-[0.66rem]" style="color: var(--ui-muted-content);">{props.lastMcpActivity ?? 'Syncing /api/mcp/manifest...'}</div>
+				{#if props.onOpenWire}
+					<UiChamferButton cornerMode={props.cornerMode} icon="wire" label="Inspect Wire Tap Stream" tip="Open full client + server Wire Tap inspector" tipLevel={40} variant="secondary" onclick={props.onOpenWire} className="w-full py-1 text-xs" />
+				{/if}
+			</div>
+		{/if}
+		<p class="leading-relaxed" style="color: var(--ui-muted-content);">Export standalone @chronos-ui/svelte scaffolds, Lighthouse-100 static bundles, or vendored full-stack Node + SQLite + MCP packages.</p>
 		<ul class="flex flex-col gap-1 border p-2.5" style="border-color: var(--ui-border-subtle); background-color: var(--ui-base-100); color: var(--ui-base-content);">
-			{#each EXPORT_FORMATS as fmt (fmt)}
-				<li class="ui-font-mono text-[0.68rem]">· {fmt}</li>
-			{/each}
+			{#each EXPORT_FORMATS as fmt (fmt)}<li class="ui-font-mono text-[0.68rem]">· {fmt}</li>{/each}
 		</ul>
 		<UiChamferButton cornerMode={props.cornerMode} icon="export" label="Open Export Studio" variant="primary" onclick={props.onOpenExport} />
 	</div>

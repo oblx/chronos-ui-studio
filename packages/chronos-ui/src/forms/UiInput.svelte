@@ -36,10 +36,10 @@
 	let surface = $derived(resolveControlSurface(cornerMode, corners, clampControlCutRem(cornerRef.cutRem)));
 </script>
 
-<span class="relative inline-flex w-full" data-corner-mode={cornerMode}>
+<span class="ui-field-wrap relative inline-flex w-full" data-corner-mode={cornerMode}>
 	<span
 		aria-hidden="true"
-		class="pointer-events-none absolute inset-0"
+		class="ui-field-bg pointer-events-none absolute inset-0"
 		style="background-color: var(--ui-base-100); {surface.surfaceStyle}"
 	></span>
 	<UiVectorBorder {corners} {cornerMode} cutPx={surface.cutPx} maxCutRatio={CONTROL_MAX_CUT_RATIO} strokeVar="var(--ui-border-subtle)" strokeWidth={1.15} />
@@ -57,7 +57,7 @@
 			oninput?.(next);
 		}}
 		{onkeydown}
-		class="relative z-10 w-full bg-transparent px-2.5 py-1.5 text-xs outline-none transition-colors disabled:opacity-50 {className}"
+		class="ui-ctl ui-field-input relative z-10 w-full bg-transparent text-xs outline-none transition-colors disabled:opacity-50 {className}"
 		style="color: var(--ui-base-content);"
 	/>
 </span>

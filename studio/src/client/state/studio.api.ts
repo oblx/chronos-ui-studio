@@ -61,6 +61,15 @@ export async function apiFetchServerTraces(): Promise<{ traces?: WireTraceRecord
 	return r.ok && r.data ? r.data : {};
 }
 
+export async function apiFetchMcpManifest(): Promise<{ toolCount: number; version: string } | null> {
+	const r = await requestJson<{ version?: string; spines?: { builder?: { tools?: readonly unknown[] } } }>('/api/mcp/manifest');
+	if (!r.ok || !r.data) return null;
+	return {
+		toolCount: r.data.spines?.builder?.tools?.length ?? 0,
+		version: String(r.data.version ?? '0.1.1')
+	};
+}
+
 export async function apiPollCollab(payload: { sessionId: string; label: string; x: number; y: number }) {
 	try {
 		const r = await requestJson<{

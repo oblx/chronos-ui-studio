@@ -1,3 +1,8 @@
+import {
+	applyControlConfigToRoot, clampControlConfig, clampHistoryLimit, clampTooltipInfoLevel,
+	DEFAULT_CONTROL_CONFIG, HISTORY_LIMIT_BOUNDS, HUD_STAGGER_BOUNDS, TOOLTIP_LEVEL_BOUNDS,
+	type StudioControlConfig
+} from './control.tokens';
 import type { CornerKind } from './geometry';
 import {
 	clamp, CONTROL_CUT_LIMITS, CORNER_RADIUS_LIMITS, DEFAULT_CONTROL_CORNER_CUT_REM, DEFAULT_CORNER_CUT_REM,
@@ -34,28 +39,25 @@ export interface StudioDefaultsConfig {
 	readonly ornamentPeriodMs: number;
 	readonly perimeterGutterRem: PerimeterGutterRem;
 	readonly autoSaveMode: AutoSaveMode;
+	readonly tooltipInfoLevel?: number;
+	readonly historyLimit?: number;
+	readonly hudZoneStaggerMs?: number;
+	readonly controlConfig?: StudioControlConfig;
 }
 
 export const DEFAULT_ACCESSIBILITY_PREFS: AccessibilityPrefs = {
-	fontScale: 100,
-	cornerMode: 'CHAMFER',
-	cornerRadiusRem: DEFAULT_CORNER_CUT_REM,
-	highContrast: false,
-	kineticMotion: true,
-	dyslexiaSpacing: false
+	fontScale: 100, cornerMode: 'CHAMFER', cornerRadiusRem: DEFAULT_CORNER_CUT_REM,
+	highContrast: false, kineticMotion: true, dyslexiaSpacing: false
 } as const;
 
 export const DEFAULT_STUDIO_DEFAULTS: StudioDefaultsConfig = {
-	defaultsVersion: STUDIO_DEFAULTS_VERSION,
-	baseCornerCutRem: DEFAULT_CORNER_CUT_REM,
-	stationCornerCutRem: DEFAULT_STATION_CORNER_CUT_REM,
-	controlCornerCutRem: DEFAULT_CONTROL_CORNER_CUT_REM,
-	borderStrokePx: 1.5,
-	ornamentOffsetRem: ORNAMENT_LIMITS.defaultOffsetRem,
-	ornamentDriftAmpRem: ORNAMENT_LIMITS.defaultAmpRem,
-	ornamentPeriodMs: ORNAMENT_LIMITS.defaultPeriodMs,
-	perimeterGutterRem: 0.75,
-	autoSaveMode: 'OFF'
+	defaultsVersion: STUDIO_DEFAULTS_VERSION, baseCornerCutRem: DEFAULT_CORNER_CUT_REM,
+	stationCornerCutRem: DEFAULT_STATION_CORNER_CUT_REM, controlCornerCutRem: DEFAULT_CONTROL_CORNER_CUT_REM,
+	borderStrokePx: 1.5, ornamentOffsetRem: ORNAMENT_LIMITS.defaultOffsetRem,
+	ornamentDriftAmpRem: ORNAMENT_LIMITS.defaultAmpRem, ornamentPeriodMs: ORNAMENT_LIMITS.defaultPeriodMs,
+	perimeterGutterRem: 0.75, autoSaveMode: 'OFF', tooltipInfoLevel: TOOLTIP_LEVEL_BOUNDS.defaultLevel,
+	historyLimit: HISTORY_LIMIT_BOUNDS.defaultLimit, hudZoneStaggerMs: HUD_STAGGER_BOUNDS.defaultMs,
+	controlConfig: DEFAULT_CONTROL_CONFIG
 } as const;
 
 const snapStep = (v: number, min: number, max: number, step: number): number =>
@@ -71,32 +73,37 @@ export function clampControlCutRem(value?: number): number {
 	return snapStep(safe, CONTROL_CUT_LIMITS.minRem, CONTROL_CUT_LIMITS.maxRem, CONTROL_CUT_LIMITS.stepRem);
 }
 
-export function clampStudioDefaults(
-	patch?: Partial<StudioDefaultsConfig>,
-	base: StudioDefaultsConfig = DEFAULT_STUDIO_DEFAULTS
-): StudioDefaultsConfig {
-	if (!patch) return { ...base, defaultsVersion: base.defaultsVersion ?? STUDIO_DEFAULTS_VERSION };
-	const stroke = BORDER_STROKE_OPTIONS.includes(patch.borderStrokePx as BorderStrokePx) ? patch.borderStrokePx! : base.borderStrokePx;
-	const gutter = PERIMETER_GUTTER_OPTIONS.includes(patch.perimeterGutterRem as PerimeterGutterRem) ? patch.perimeterGutterRem! : base.perimeterGutterRem;
-	const save = AUTO_SAVE_MODES.includes(patch.autoSaveMode as AutoSaveMode) ? patch.autoSaveMode! : base.autoSaveMode;
+const clampStaggerMs = (v?: number): number =>
+	snapStep(v ?? HUD_STAGGER_BOUNDS.defaultMs, HUD_STAGGER_BOUNDS.minMs, HUD_STAGGER_BOUNDS.maxMs, HUD_STAGGER_BOUNDS.stepMs);
+
+export function clampStudioDefaults(patch?: Partial<StudioDefaultsConfig>, base: StudioDefaultsConfig = DEFAULT_STUDIO_DEFAULTS): StudioDefaultsConfig {
+	const baseControl = base.controlConfig ?? DEFAULT_CONTROL_CONFIG;
+	if (!patch) {
+		return {
+			...base, defaultsVersion: base.defaultsVersion ?? STUDIO_DEFAULTS_VERSION,
+			tooltipInfoLevel: clampTooltipInfoLevel(base.tooltipInfoLevel), historyLimit: clampHistoryLimit(base.historyLimit),
+			hudZoneStaggerMs: clampStaggerMs(base.hudZoneStaggerMs), controlConfig: clampControlConfig(undefined, baseControl)
+		};
+	}
 	return {
 		defaultsVersion: patch.defaultsVersion ?? base.defaultsVersion ?? STUDIO_DEFAULTS_VERSION,
 		baseCornerCutRem: patch.baseCornerCutRem !== undefined ? clampCornerRadiusRem(patch.baseCornerCutRem) : base.baseCornerCutRem,
 		stationCornerCutRem: patch.stationCornerCutRem !== undefined ? clampCornerRadiusRem(patch.stationCornerCutRem) : base.stationCornerCutRem,
 		controlCornerCutRem: patch.controlCornerCutRem !== undefined ? clampControlCutRem(patch.controlCornerCutRem) : base.controlCornerCutRem,
-		borderStrokePx: stroke,
+		borderStrokePx: BORDER_STROKE_OPTIONS.includes(patch.borderStrokePx as BorderStrokePx) ? patch.borderStrokePx! : base.borderStrokePx,
 		ornamentOffsetRem: patch.ornamentOffsetRem !== undefined ? snapStep(patch.ornamentOffsetRem, ORNAMENT_LIMITS.minOffsetRem, ORNAMENT_LIMITS.maxOffsetRem, ORNAMENT_LIMITS.stepOffsetRem) : base.ornamentOffsetRem,
 		ornamentDriftAmpRem: patch.ornamentDriftAmpRem !== undefined ? snapStep(patch.ornamentDriftAmpRem, ORNAMENT_LIMITS.minAmpRem, ORNAMENT_LIMITS.maxAmpRem, ORNAMENT_LIMITS.stepOffsetRem) : base.ornamentDriftAmpRem,
 		ornamentPeriodMs: patch.ornamentPeriodMs !== undefined ? snapStep(patch.ornamentPeriodMs, ORNAMENT_LIMITS.minPeriodMs, ORNAMENT_LIMITS.maxPeriodMs, ORNAMENT_LIMITS.stepPeriodMs) : base.ornamentPeriodMs,
-		perimeterGutterRem: gutter,
-		autoSaveMode: save
+		perimeterGutterRem: PERIMETER_GUTTER_OPTIONS.includes(patch.perimeterGutterRem as PerimeterGutterRem) ? patch.perimeterGutterRem! : base.perimeterGutterRem,
+		autoSaveMode: AUTO_SAVE_MODES.includes(patch.autoSaveMode as AutoSaveMode) ? patch.autoSaveMode! : base.autoSaveMode,
+		tooltipInfoLevel: clampTooltipInfoLevel(patch.tooltipInfoLevel ?? base.tooltipInfoLevel),
+		historyLimit: clampHistoryLimit(patch.historyLimit ?? base.historyLimit),
+		hudZoneStaggerMs: clampStaggerMs(patch.hudZoneStaggerMs ?? base.hudZoneStaggerMs),
+		controlConfig: patch.controlConfig ? clampControlConfig(patch.controlConfig, baseControl) : clampControlConfig(undefined, baseControl)
 	};
 }
 
-export function applyAccessibilityPrefs(
-	prefs: AccessibilityPrefs,
-	target: HTMLElement | null = typeof document !== 'undefined' ? document.documentElement : null
-): void {
+export function applyAccessibilityPrefs(prefs: AccessibilityPrefs, target: HTMLElement | null = typeof document !== 'undefined' ? document.documentElement : null): void {
 	if (!target) return;
 	const radiusRem = prefs.cornerMode === 'STRAIGHT' ? 0 : clampCornerRadiusRem(prefs.cornerRadiusRem ?? DEFAULT_CORNER_CUT_REM);
 	target.style.setProperty('--ui-font-scale', String(prefs.fontScale / 100));
@@ -107,10 +114,7 @@ export function applyAccessibilityPrefs(
 	target.setAttribute('data-ui-dyslexia', prefs.dyslexiaSpacing ? 'on' : 'off');
 }
 
-export function applyStudioDefaults(
-	defaults: StudioDefaultsConfig,
-	target: HTMLElement | null = typeof document !== 'undefined' ? document.documentElement : null
-): void {
+export function applyStudioDefaults(defaults: StudioDefaultsConfig, target: HTMLElement | null = typeof document !== 'undefined' ? document.documentElement : null): void {
 	if (!target) return;
 	target.style.setProperty('--ui-corner-cut', `${defaults.baseCornerCutRem}rem`);
 	target.style.setProperty('--ui-station-cut', `${defaults.stationCornerCutRem}rem`);
@@ -121,4 +125,6 @@ export function applyStudioDefaults(
 	target.style.setProperty('--ui-orn-amp', `${defaults.ornamentDriftAmpRem}rem`);
 	target.style.setProperty('--ui-orn-period', `${defaults.ornamentPeriodMs}ms`);
 	target.style.setProperty('--ui-perimeter-gutter', `${defaults.perimeterGutterRem}rem`);
+	target.style.setProperty('--ui-stagger-zone-ms', `${defaults.hudZoneStaggerMs ?? HUD_STAGGER_BOUNDS.defaultMs}ms`);
+	applyControlConfigToRoot(defaults.controlConfig ?? DEFAULT_CONTROL_CONFIG, target);
 }

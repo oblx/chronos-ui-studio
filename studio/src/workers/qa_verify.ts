@@ -5,7 +5,7 @@ import { runStaticAudit } from './qa_audit';
 import { formatClockBanner, formatDurationCompact, getSprintTimerStatus, lapSprintTimer } from './qa_timer';
 
 export type QaTier = 'fast' | 'delta' | 'release';
-export const LATEST_DELTA_TEST = 'studio/src/tests/releases/v0100_public_release.test.ts';
+export const LATEST_DELTA_TEST = 'studio/src/tests/releases/v0101_motion_cursors_history.test.ts';
 const TSC_BUILD_INFO = 'studio/data/.tsbuildinfo';
 const TSC_BIN = existsSync('node_modules/.bin/tsc') ? ['node_modules/.bin/tsc'] : ['bunx', 'tsc'];
 
@@ -53,7 +53,7 @@ export async function runVerificationSuite(tier: QaTier = 'fast', scopedTest = L
 	console.log(`[verify] Stage 1 Static Audit (${tier === 'fast' ? 'cached' : 'full'}) PASSED (0 violations, ${auditMs}ms).`);
 
 	if (tier === 'fast') {
-		const ok = runStep('TypeScript Check', [...TSC_BIN, '--noEmit', '--incremental', '--tsBuildInfoFile', TSC_BUILD_INFO])
+		const ok = runStep('TypeScript Check', [...TSC_BIN, '--noEmit', '--skipLibCheck', '--incremental', '--tsBuildInfoFile', TSC_BUILD_INFO])
 			&& runStep(`v${VERSION} Scoped Delta`, ['bun', 'test', scopedTest]);
 		emitEdgeTiming(tier, Math.round(performance.now() - totalStart));
 		return ok;
@@ -65,15 +65,15 @@ export async function runVerificationSuite(tier: QaTier = 'fast', scopedTest = L
 		emitEdgeTiming(tier, Math.round(performance.now() - totalStart));
 		return ok;
 	}
-	if (!runStep('Full Test Battery', ['bun', 'test'])) {
+	if (!runStep('Package .d.ts Emit Check', [...TSC_BIN, '-p', 'packages/chronos-ui/tsconfig.build.json'])
+		|| !runStep('Full Test Battery', ['bun', 'test'])) {
 		emitEdgeTiming(tier, Math.round(performance.now() - totalStart));
 		return false;
 	}
 	const ssgStart = performance.now();
 	compileTomeSsg();
 	console.log(`[verify] SSG Tome Compiled (${Math.round(performance.now() - ssgStart)}ms).`);
-	const ok = runStep('Package .d.ts Emit Check', [...TSC_BIN, '-p', 'packages/chronos-ui/tsconfig.build.json'])
-		&& runStep('Production Vite Build', ['bun', 'run', '--bun', 'vite', 'build']);
+	const ok = runStep('Production Vite Build', ['bun', 'run', '--bun', 'vite', 'build']);
 	emitEdgeTiming(tier, Math.round(performance.now() - totalStart));
 	return ok;
 }

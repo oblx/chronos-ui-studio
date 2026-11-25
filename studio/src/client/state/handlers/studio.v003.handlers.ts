@@ -1,5 +1,5 @@
 import {
-	applyAccessibilityPrefs, clamp, generateUuidV7, HUD_METRICS,
+	applyAccessibilityPrefs, clamp, clampHistoryLimit, generateUuidV7, HUD_METRICS,
 	type HudZoneId, type SemanticInputAction, type UiComponentKind, type UiNode, type UiWireBroker
 } from '@chronos-ui/svelte';
 import { CAPABILITY_BITS, findStarterSample, SAMPLE_LOAD_CHOREOGRAPHY, sortNodesForChoreography } from '@studio/config';
@@ -11,6 +11,7 @@ import {
 import { resolveRootFontPx, syncThemeAndCursor } from '../lifecycle';
 import { apiCommitRevision } from '../studio.project.api';
 import type { StudioModalId, StudioState } from '../studio.types';
+import { persistActiveHistory } from './studio.v011.handlers';
 
 export interface ChoreographyEpochGuard { epoch: number; controller: AbortController | null; timers: ReturnType<typeof setTimeout>[]; }
 export function cancelChoreographyEpoch(guard: ChoreographyEpochGuard): number {
@@ -68,9 +69,10 @@ export function registerV003Handlers(broker: UiWireBroker<StudioState>): void {
 			const { doc } = applyJsonPatchWithInverse(nodeTreeToDocumentGraph(proj.nodes, s.prototypes), env.payload.patches);
 			if (!evaluateGovernanceGate({ graph: doc, actorCapabilityMask: s.user?.capabilityMask ?? STUDIO_ROLE_MASKS.ARCHITECT, requiredCapabilityBit: CAPABILITY_BITS.WRITE_BLUEPRINTS }).ok) return s;
 			const nextNodes = documentGraphToNodeTree(doc);
-			return { ...s, projectPersistence: { ...s.projectPersistence, isDirty: true, status: 'DIRTY' }, undoStack: [...s.undoStack.slice(-19), proj.nodes], redoStack: [], projects: s.projects.map((p) => (p.id === proj.id ? { ...p, nodes: nextNodes, updatedAt: Date.now() } : p)) };
+			const cap = clampHistoryLimit(s.studioDefaults.historyLimit);
+			return { ...s, projectPersistence: { ...s.projectPersistence, isDirty: true, status: 'DIRTY' }, undoStack: [...s.undoStack, proj.nodes].slice(-cap), redoStack: [], projects: s.projects.map((p) => (p.id === proj.id ? { ...p, nodes: nextNodes, updatedAt: Date.now() } : p)) };
 		},
-		effect: (s, env) => { const cur = s.projects.find((p) => p.id === s.activeProjectId); if (cur) void apiCommitRevision(cur.id, cur.nodes, env.origin); },
+		effect: (s, env) => { persistActiveHistory(s); const cur = s.projects.find((p) => p.id === s.activeProjectId); if (cur) void apiCommitRevision(cur.id, cur.nodes, env.origin); },
 		summarize: (env) => `Applied ${env.payload.patches.length} RFC 6902 patch op(s)`
 	});
 	broker.register<{ action: SemanticInputAction }>('UI_INPUT_ACTION', { tier: 'TIER_0_LOCAL_UI', reduce: (s, env) => ({ ...s, inputModality: env.payload.action.modality }), summarize: (env) => `${env.payload.action.modality}: ${env.payload.action.type}` });
@@ -90,9 +92,10 @@ function scheduleSampleAssembly(broker: UiWireBroker<StudioState>, sampleId: str
 	const reduced = !broker.state.accessibility.kineticMotion || (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 	broker.patchState((s) => ({
 		...s, activeThemeId: sample.themeId, selectedNodeId: null, accessibility: { ...s.accessibility, cornerMode: sample.cornerMode },
-		projectPersistence: { ...s.projectPersistence, isDirty: true, status: 'DIRTY' }, undoStack: [...s.undoStack.slice(-19), cur.nodes], redoStack: [],
+		projectPersistence: { ...s.projectPersistence, isDirty: true, status: 'DIRTY' }, undoStack: [...s.undoStack, cur.nodes].slice(-clampHistoryLimit(s.studioDefaults.historyLimit)), redoStack: [],
 		projects: s.projects.map((p) => (p.id === cur.id ? { ...p, themeId: sample.themeId, cornerMode: sample.cornerMode, nodes: reduced ? ordered : [] } : p))
 	}));
+	persistActiveHistory(broker.state);
 	broker.dispatch('UI_LOAD_SAMPLE', { sampleId: sample.id, title: sample.title });
 	syncThemeAndCursor(broker.state);
 	applyAccessibilityPrefs(broker.state.accessibility);

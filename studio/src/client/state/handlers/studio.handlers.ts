@@ -3,11 +3,12 @@ import {
 } from '@chronos-ui/svelte';
 import type { UiBlueprint } from '@studio/config';
 import { registerLifecycleAndCursorHandlers, syncThemeAndCursor } from '../lifecycle';
-import { apiSaveBlueprint } from '../studio.api';
+import { apiFetchMcpManifest, apiFetchServerTraces, apiSaveBlueprint } from '../studio.api';
 import { registerDrawerAndStageHandlers } from './studio.drawer.handlers';
 import { registerProjectHandlers } from './studio.project.handlers';
 import type { StudioState, StudioViewId, ZoneCornerPayload, ZoneTogglePayload } from '../studio.types';
 import { registerV003Handlers } from './studio.v003.handlers';
+import { registerV011Handlers } from './studio.v011.handlers';
 
 function updateActiveBlueprint(state: StudioState, updater: (bp: UiBlueprint) => UiBlueprint): StudioState {
 	const nextList = state.blueprints.map((bp) => (bp.id === state.activeBlueprintId ? updater(bp) : bp));
@@ -40,10 +41,31 @@ function registerThemeHandlers(broker: UiWireBroker<StudioState>): void {
 	});
 }
 
+function reduceActiveView(s: StudioState, view: StudioViewId): StudioState {
+	if (view === 'THEMES') {
+		return { ...s, activeView: view, helpTopic: 'themes', rightDrawer: { ...s.rightDrawer, open: true, activeTab: 'themes' } };
+	}
+	if (view === 'BLUEPRINTS') {
+		return { ...s, activeView: view, helpTopic: 'blueprints', leftDrawer: { ...s.leftDrawer, open: true, activeTab: 'blueprints' } };
+	}
+	if (view === 'MCP_TWIN') {
+		return { ...s, activeView: view, helpTopic: 'mcp_twin', rightDrawer: { ...s.rightDrawer, open: true, activeTab: 'export' } };
+	}
+	return { ...s, activeView: view, helpTopic: 'workbench', leftDrawer: { ...s.leftDrawer, open: false }, rightDrawer: { ...s.rightDrawer, open: false } };
+}
+
 function registerBlueprintHandlers(broker: UiWireBroker<StudioState>): void {
 	broker.register<{ view: StudioViewId }>('UI_SET_ACTIVE_VIEW', {
 		tier: 'TIER_0_LOCAL_UI',
-		reduce: (s, env) => ({ ...s, activeView: env.payload.view, helpTopic: env.payload.view.toLowerCase() })
+		reduce: (s, env) => reduceActiveView(s, env.payload.view),
+		effect: (s, env) => {
+			if (env.payload.view !== 'MCP_TWIN' || typeof window === 'undefined') return;
+			void Promise.all([apiFetchMcpManifest(), s.user ? apiFetchServerTraces() : Promise.resolve({ traces: null })]).then(([m, tr]) => {
+				if (tr.traces) broker.ingestServerTraces(tr.traces);
+				if (m) broker.dispatch('SERVER_MANIFEST_SYNCED', { toolCount: m.toolCount, version: m.version, syncedAt: Date.now() }, 'MCP_TWIN');
+			});
+		},
+		summarize: (env) => `Active view -> ${env.payload.view}`
 	});
 	broker.register<{ blueprintId: string }>('UI_SET_ACTIVE_TAB', {
 		tier: 'TIER_0_LOCAL_UI',
@@ -80,4 +102,5 @@ export function registerStudioIntentHandlers(broker: UiWireBroker<StudioState>):
 	registerProjectHandlers(broker);
 	registerV003Handlers(broker);
 	registerLifecycleAndCursorHandlers(broker);
+	registerV011Handlers(broker);
 }

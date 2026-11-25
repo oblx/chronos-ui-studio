@@ -21,7 +21,7 @@ function makeTrace(seq: number, kind: WireTraceRecord['kind'], origin: WireTrace
 
 describe('v0.0.12 ADHD-friendly global motion system (CALM_SLOW default)', () => {
 	test('defaults to CALM_SLOW tokens and updates CSS vars via UI_SET_MOTION_PROFILE', () => {
-		expect(VERSION).toBe('0.1.0');
+		expect(VERSION).toBe('0.1.1');
 		setActiveMotionProfile('CALM_SLOW');
 		setActiveMotionSensory({ ambientPulsesEnabled: true, signalFlowSpeed: 1, modalMorphEnabled: true, microDetentsEnabled: true });
 		const def = getActiveMotionSensory();
@@ -112,10 +112,10 @@ describe('v0.0.12 Modal Grow/Shrink state restoration, 2D Wire DAG & 42-tool MCP
 	});
 
 	test('42-tool MCP registry, Tour Step 4 assistant drill & /motion slash command', async () => {
-		expect(STUDIO_TOOL_REGISTRY.length).toBe(42);
+		expect(STUDIO_TOOL_REGISTRY.length).toBe(48);
 		const listRes = await handleBuilderMcpRpc({ jsonrpc: '2.0', id: 1201, method: 'tools/list' });
 		const tools = (listRes.result as unknown as { tools: { name: string }[] }).tools;
-		expect(tools.length).toBe(42);
+		expect(tools.length).toBe(48);
 		const motionRes = await handleBuilderMcpRpc({ jsonrpc: '2.0', id: 1202, method: 'tools/call', params: { name: 'ui_set_motion_profile', arguments: { profile: 'BALANCED', signalFlowSpeed: 0.5 } } });
 		expect(motionRes.error).toBeUndefined();
 		const modalRes = await handleBuilderMcpRpc({ jsonrpc: '2.0', id: 1203, method: 'tools/call', params: { name: 'ui_modal_toggle_expand', arguments: { expanded: true } } });

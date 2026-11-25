@@ -1,8 +1,9 @@
-import type { UiNode, UiNodeTree, UiWireBroker } from '@chronos-ui/svelte';
+import { clampHistoryLimit, type UiNode, type UiNodeTree, type UiWireBroker } from '@chronos-ui/svelte';
 import { patchNodeInTreeByUuid } from '@studio/core/engine';
 import { syncCorridorForState, syncThemeAndCursor } from '../lifecycle';
 import { apiCommitRevision } from '../studio.project.api';
 import type { StudioState } from '../studio.types';
+import { persistActiveHistory } from './studio.v011.handlers';
 
 export { createInitialStudioState, GENESIS_FALLBACK, STUDIO_INITIAL_LAYOUT } from '../lifecycle';
 
@@ -13,10 +14,11 @@ function activeProj(state: StudioState) {
 function replaceActiveNodes(state: StudioState, nextNodes: UiNodeTree, pushUndo = true): StudioState {
 	const cur = activeProj(state);
 	if (!cur) return state;
+	const cap = clampHistoryLimit(state.studioDefaults.historyLimit);
 	return {
 		...state,
 		projectPersistence: { ...state.projectPersistence, isDirty: true, status: 'DIRTY' },
-		undoStack: pushUndo ? [...state.undoStack.slice(-19), cur.nodes] : state.undoStack,
+		undoStack: pushUndo ? [...state.undoStack, cur.nodes].slice(-cap) : state.undoStack,
 		redoStack: pushUndo ? [] : state.redoStack,
 		projects: state.projects.map((p) => (p.id === cur.id ? { ...p, nodes: nextNodes, updatedAt: Date.now() } : p))
 	};
@@ -24,6 +26,7 @@ function replaceActiveNodes(state: StudioState, nextNodes: UiNodeTree, pushUndo 
 
 function syncRevision(state: StudioState, origin: string): void {
 	if (typeof window === 'undefined') return;
+	persistActiveHistory(state);
 	const cur = activeProj(state);
 	if (cur) void apiCommitRevision(cur.id, cur.nodes, origin).catch(() => {});
 }
@@ -96,12 +99,22 @@ function registerNodeFlagHandlers(broker: UiWireBroker<StudioState>): void {
 function registerRevisionHandlers(broker: UiWireBroker<StudioState>): void {
 	broker.register('UI_UNDO_REVISION', {
 		tier: 'TIER_1_COALESCED_PERSIST',
-		reduce: (s) => { if (!s.undoStack.length) return s; const cur = activeProj(s); return { ...replaceActiveNodes(s, s.undoStack[s.undoStack.length - 1], false), undoStack: s.undoStack.slice(0, -1), redoStack: cur ? [...s.redoStack, cur.nodes] : s.redoStack }; },
+		reduce: (s) => {
+			if (!s.undoStack.length) return s;
+			const cur = activeProj(s);
+			const cap = clampHistoryLimit(s.studioDefaults.historyLimit);
+			return { ...replaceActiveNodes(s, s.undoStack[s.undoStack.length - 1], false), undoStack: s.undoStack.slice(0, -1), redoStack: cur ? [...s.redoStack, cur.nodes].slice(-cap) : s.redoStack };
+		},
 		effect: (s) => syncRevision(s, 'USER'), summarize: () => 'Undid last canvas revision'
 	});
 	broker.register('UI_REDO_REVISION', {
 		tier: 'TIER_1_COALESCED_PERSIST',
-		reduce: (s) => { if (!s.redoStack.length) return s; const cur = activeProj(s); return { ...replaceActiveNodes(s, s.redoStack[s.redoStack.length - 1], false), redoStack: s.redoStack.slice(0, -1), undoStack: cur ? [...s.undoStack, cur.nodes] : s.undoStack }; },
+		reduce: (s) => {
+			if (!s.redoStack.length) return s;
+			const cur = activeProj(s);
+			const cap = clampHistoryLimit(s.studioDefaults.historyLimit);
+			return { ...replaceActiveNodes(s, s.redoStack[s.redoStack.length - 1], false), redoStack: s.redoStack.slice(0, -1), undoStack: cur ? [...s.undoStack, cur.nodes].slice(-cap) : s.undoStack };
+		},
 		effect: (s) => syncRevision(s, 'USER'), summarize: () => 'Redid canvas revision'
 	});
 }

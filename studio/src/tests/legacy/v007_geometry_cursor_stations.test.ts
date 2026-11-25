@@ -12,7 +12,7 @@ import { createStudioProject, listCursorPacks, updateCursorStateAsset } from '@s
 
 describe('v0.0.7 true-stroke geometry, concentric ROUND arcs & configurable cornerRadiusRem', () => {
 	test('clampCornerRadiusRem enforces 0.25rem-1.5rem bounds and emits --ui-corner-cut CSS token', () => {
-		expect(VERSION).toBe('0.1.0');
+		expect(VERSION).toBe('0.1.1');
 		expect(CORNER_RADIUS_LIMITS.minRem).toBe(0.25);
 		expect(CORNER_RADIUS_LIMITS.maxRem).toBe(1.5);
 		expect(clampCornerRadiusRem(0.05)).toBe(0.25);
@@ -104,8 +104,8 @@ describe('v0.0.7 Station Builder, Zone Edition, 33-tool MCP parity & local assis
 	test('exposes 33 parity tools and executes all 6 station/zone/radius MCP tools with DB persistence', async () => {
 		const listRes = await handleBuilderMcpRpc({ jsonrpc: '2.0', id: 700, method: 'tools/list' });
 		const tools = (listRes.result as unknown as { tools: { name: string }[] }).tools;
-		expect(tools.length).toBe(42);
-		expect(STUDIO_TOOL_REGISTRY.length).toBe(42);
+		expect(tools.length).toBe(48);
+		expect(STUDIO_TOOL_REGISTRY.length).toBe(48);
 		const sample = findStarterSample('sample-shape-matrix')!;
 		const created = await createStudioProject({ name: 'v007 Station Spec', themeId: sample.themeId, nodes: sample.nodes.slice(0, 2).map((n) => ({ ...n, id: generateUuidV7() })) });
 		const radRes = await handleBuilderMcpRpc({ jsonrpc: '2.0', id: 701, method: 'tools/call', params: { name: 'ui_set_corner_radius', arguments: { projectId: created.id, cornerRadiusRem: 1.125, cornerMode: 'ROUND' } } });

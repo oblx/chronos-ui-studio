@@ -1,7 +1,7 @@
 <script lang="ts">
 	import {
-		AUTO_SAVE_MODES, HUD_METRICS, PERIMETER_GUTTER_OPTIONS, UiChamferButton, UiProgressGauge,
-		type CornerKind, type StudioDefaultsConfig
+		AUTO_SAVE_MODES, HISTORY_LIMIT_BOUNDS, HUD_METRICS, PERIMETER_GUTTER_OPTIONS, UiChamferButton,
+		UiProgressGauge, UiSlider, type CornerKind, type StudioDefaultsConfig
 	} from '@chronos-ui/svelte';
 
 	interface Props {
@@ -9,18 +9,22 @@
 		studioDefaults: StudioDefaultsConfig;
 		projectNodeCount: number;
 		traceCount: number;
+		undoCount?: number;
+		redoCount?: number;
 		lowMemoryMode: boolean;
 		onToggleLowMemory: (next: boolean) => void;
 		onSetStudioDefaults: (patch: Partial<StudioDefaultsConfig>) => void;
+		onSetHistoryLimit?: (limit: number) => void;
 		onResetStudioDefaults: () => void;
 	}
 
 	let {
-		cornerMode, studioDefaults, projectNodeCount, traceCount, lowMemoryMode,
-		onToggleLowMemory, onSetStudioDefaults, onResetStudioDefaults
+		cornerMode, studioDefaults, projectNodeCount, traceCount, undoCount = 0, redoCount = 0, lowMemoryMode,
+		onToggleLowMemory, onSetStudioDefaults, onSetHistoryLimit, onResetStudioDefaults
 	}: Props = $props();
 
 	let domNodes = $derived(typeof document !== 'undefined' ? document.getElementsByTagName('*').length : 0);
+	let historyLimit = $derived(studioDefaults.historyLimit ?? HISTORY_LIMIT_BOUNDS.defaultLimit);
 	let heapMb = $derived.by(() => {
 		const mem = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory;
 		return mem ? (mem.usedJSHeapSize / (1024 * 1024)).toFixed(1) : 'N/A';
@@ -38,6 +42,18 @@
 		</div>
 		<UiProgressGauge label="WireTelemetryRing Utilization" value={traceCount} max={HUD_METRICS.ringCapacity} />
 		<div class="flex flex-col gap-1 pt-1">
+			<UiSlider
+				value={historyLimit}
+				min={HISTORY_LIMIT_BOUNDS.minLimit}
+				max={HISTORY_LIMIT_BOUNDS.maxLimit}
+				step={1}
+				label="Undo/Redo History Limit (IndexedDB)"
+				valueLabel={`${historyLimit} steps (${undoCount} undo · ${redoCount} redo)`}
+				testId="settings-history-limit-slider"
+				oninput={(v) => onSetHistoryLimit?.(v)}
+			/>
+		</div>
+		<div class="flex flex-col gap-1 pt-1">
 			<span class="ui-font-mono text-[0.66rem]" style="color: var(--ui-muted-content);">Perimeter Gutter Spacing</span>
 			<div class="grid grid-cols-3 gap-1.5">
 				{#each PERIMETER_GUTTER_OPTIONS as rem (rem)}
@@ -51,7 +67,7 @@
 		<div class="flex flex-col gap-1.5">
 			<span class="font-semibold" style="color: var(--ui-muted-content);">512MB SBC Low-Memory & Auto-Save Policy</span>
 			<p class="leading-relaxed" style="color: var(--ui-muted-content);">
-				Reduces canvas scanline overhead for constrained single-board hardware and tunes automatic project persistence.
+				Reduces canvas scanline overhead for constrained single-board hardware and tunes automatic project persistence. History snapshots remain local in browser IndexedDB.
 			</p>
 			<div class="grid grid-cols-3 gap-1.5 pt-1">
 				{#each AUTO_SAVE_MODES as mode (mode)}

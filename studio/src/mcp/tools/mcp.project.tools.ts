@@ -17,6 +17,7 @@ import { commitProjectRevision, createStudioProject, loadProjectWithNodes } from
 import { buildWorkspaceCursorMcpTools } from './mcp.cursor.tools';
 import { buildEntityMcpTools, buildWireframeMcpTools } from './mcp.entity.tools';
 import { buildStationMcpTools } from './mcp.station.tools';
+import { buildV011McpTools } from './mcp.v011.tools';
 
 export type ProjectMcpToolFn = (args: Record<string, unknown>) => Promise<unknown>;
 
@@ -137,6 +138,6 @@ export function buildProjectMcpTools(): readonly [string, ProjectMcpToolFn][] {
 		['ui_load_sample', toolLoadSample], ['ui_spawn_node', toolSpawnNode], ['ui_configure_node', toolConfigureNode],
 		['ui_commit_node', toolCommitNode], ['ui_remove_node', toolRemoveNode], ['ui_reject_all_staged', toolRejectAllStaged], ['ui_derive_blueprint', toolDeriveBlueprint],
 		['ui_patch_document', toolPatchDocument], ['ui_apply_theme', toolApplyTheme], ['ui_export_static', toolExportStatic],
-		...buildEntityMcpTools(), ...buildWorkspaceCursorMcpTools(), ...buildStationMcpTools(), ...buildWireframeMcpTools()
+		...buildEntityMcpTools(), ...buildWorkspaceCursorMcpTools(), ...buildStationMcpTools(), ...buildWireframeMcpTools(), ...buildV011McpTools()
 	];
 }

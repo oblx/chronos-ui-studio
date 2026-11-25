@@ -1,36 +1,11 @@
+import { LATEST_SCENARIO_SCRIPT } from './qa_scenario_latest';
+
 export type HarnessScenarioId = 'latest' | 'calm-density' | 'wireframe-cs6' | 'spotlight-tour' | 'assistant-dock' | 'station-preview' | 'field-tome' | 'persistence' | 'responsive';
 
-export const ALL_HARNESS_SCENARIOS: readonly HarnessScenarioId[] = [
-	'calm-density', 'wireframe-cs6', 'spotlight-tour', 'assistant-dock', 'station-preview', 'field-tome', 'persistence', 'responsive'
-] as const;
+export const ALL_HARNESS_SCENARIOS: readonly HarnessScenarioId[] = ['calm-density', 'wireframe-cs6', 'spotlight-tour', 'assistant-dock', 'station-preview', 'field-tome', 'persistence', 'responsive'] as const;
 
 export const SCENARIO_SCRIPTS: Readonly<Record<HarnessScenarioId, string>> = {
-	'latest': `async (page) => {
-		const root = page.locator('[data-layout-density]').first(); await root.waitFor({ state: 'visible', timeout: 6000 });
-		if ((await root.getAttribute('data-studio-chrome')) !== 'false') throw new Error('Expected Calm boot');
-		await page.locator('[data-testid="starter-sample-chips"] button', { hasText: 'Synth Audio Console' }).first().hover({ force: true });
-		await page.locator('[data-testid="ui-cyber-tooltip"]').first().waitFor({ state: 'visible', timeout: 3000 }); await page.waitForTimeout(80);
-		const tipCheck = await page.evaluate(() => { const f = document.querySelector('[data-testid="ui-cyber-tooltip"] [data-frame-shape]')?.getBoundingClientRect(), b = document.querySelector('[data-testid="ui-cyber-tooltip-body"]'), br = b?.getBoundingClientRect(); return { paras: b ? b.querySelectorAll('p').length : 0, height: Math.round(f?.height || 0), overflowPx: f && br ? Math.max(0, Math.ceil(br.right - f.right), Math.ceil((b?.scrollWidth || 0) - f.width)) : 999, vpOverflow: f ? Math.max(0, Math.ceil(f.right - (window.innerWidth - 8))) : 999 }; });
-		if (tipCheck.overflowPx > 0 || tipCheck.vpOverflow > 0 || tipCheck.paras < 1 || tipCheck.height < 42) throw new Error('Tooltip check failed: ' + JSON.stringify(tipCheck));
-		const calmCheck = await page.evaluate(() => { const h = document.querySelector('[data-testid="studio-hud-toggle-btn"]')?.getBoundingClientRect(), p = document.querySelector('[data-testid="calm-top-left"] [data-testid="project-lifecycle-pod"]'), st = document.querySelector('[data-ui-stage-viewport]')?.getBoundingClientRect(); const railsOk = ['left', 'right'].every((s) => { const r = document.querySelector('[data-testid="edge-rail-' + s + '"]'), hr = r?.querySelector('[data-testid="edge-rail-divider-' + s + '"]'), g = r?.querySelector('[data-testid="edge-grip-' + s + '"]'); return Boolean(r && hr && g && hr.nextElementSibling === g && !g.nextElementSibling); }); return { hudBtn: h ? { left: h.left, top: h.top, cx: h.left + h.width / 2, cy: h.top + h.height / 2 } : null, resetTxt: (p?.querySelector('[data-testid="workspace-reset-btn"]')?.textContent || '').trim(), railsOk, stageW: Math.round(st?.width || 0), stageH: Math.round(st?.height || 0) }; });
-		if (!calmCheck.hudBtn || !calmCheck.railsOk || calmCheck.resetTxt !== 'Reset') throw new Error('Calm check failed: ' + JSON.stringify(calmCheck));
-		await page.locator('[data-testid="assistant-unfold-trigger"]').first().click({ force: true }); await page.waitForTimeout(120);
-		const chatOpenH = await page.evaluate(() => Math.round(document.querySelector('[data-ui-stage-viewport]')?.getBoundingClientRect().height || 0));
-		const canvasHeightDeltaPx = Math.abs(chatOpenH - calmCheck.stageH);
-		if (canvasHeightDeltaPx > 0) throw new Error('Expanded chat shrank WORLD_CANVAS by ' + canvasHeightDeltaPx + 'px');
-		const input = page.locator('[data-testid="assistant-prompt-input"]').first(); await input.fill('Build a telemetry dashboard'); await input.press('Enter');
-		await page.waitForFunction(() => (document.querySelector('[data-testid="assistant-submit-btn"]')?.textContent || '').trim() === 'Send' && document.querySelectorAll('[data-testid="assistant-tool-chip"]').length >= 2, null, { timeout: 6000 });
-		const chatUx = await page.evaluate(() => { const hdr = document.querySelector('[data-testid="assistant-transcript-header"]')?.getBoundingClientRect(), badge = document.querySelector('[data-testid="assistant-user-badge"]')?.getBoundingClientRect(); return { topClipPx: hdr && badge ? Math.max(0, Math.ceil(hdr.bottom + 4 - badge.top)) : 999, chips: document.querySelectorAll('[data-testid="assistant-tool-chip"]').length, cta: (document.querySelector('[data-testid="assistant-submit-btn"]')?.textContent || '').trim() }; });
-		if (chatUx.topClipPx > 0 || chatUx.chips < 2 || chatUx.cta !== 'Send') throw new Error('Chat UX check failed: ' + JSON.stringify(chatUx));
-		await page.reload({ waitUntil: 'domcontentloaded' }); await root.waitFor({ state: 'visible', timeout: 6000 });
-		await page.waitForFunction(() => (document.querySelector('[data-testid="assistant-submit-btn"]')?.textContent || '').trim() === 'Send', null, { timeout: 4000 });
-		await page.mouse.click(calmCheck.hudBtn.cx, calmCheck.hudBtn.cy); await page.locator('[data-testid="calm-view-toggle-btn"]').first().waitFor({ state: 'visible', timeout: 4000 });
-		const hudCheck = await page.evaluate(() => { const cb = document.querySelector('[data-testid="calm-view-toggle-btn"]')?.getBoundingClientRect(), p = document.querySelector('[data-testid="top-left-pod"] [data-testid="project-lifecycle-pod"]'); return { cb: cb ? { left: cb.left, top: cb.top } : null, resetTxt: (p?.querySelector('[data-testid="workspace-reset-btn"]')?.textContent || '').trim() }; });
-		const dx = hudCheck.cb ? Math.abs(calmCheck.hudBtn.left - hudCheck.cb.left) : 999, dy = hudCheck.cb ? Math.abs(calmCheck.hudBtn.top - hudCheck.cb.top) : 999;
-		if (dx > 16 || dy > 8 || hudCheck.resetTxt !== 'Reset') throw new Error('HUD check failed: ' + JSON.stringify({ dx, dy, hudCheck }));
-		await page.mouse.click(calmCheck.hudBtn.cx, calmCheck.hudBtn.cy); await page.locator('[data-testid="studio-hud-toggle-btn"]').first().waitFor({ state: 'visible', timeout: 4000 });
-		return { tipOverflowPx: tipCheck.overflowPx, canvasHeightDeltaPx, topClipPx: chatUx.topClipPx, toolChips: chatUx.chips, ctaReloadSync: 'Send', dx: Math.round(dx), dy: Math.round(dy), roundTrip: true };
-	}`,
+	'latest': LATEST_SCENARIO_SCRIPT,
 	'calm-density': `async (page) => {
 		const root = page.locator('[data-layout-density]').first(); await root.waitFor({ state: 'visible', timeout: 6000 });
 		if ((await root.getAttribute('data-studio-chrome')) !== 'false') throw new Error('Expected Minimal Calm launch on boot');

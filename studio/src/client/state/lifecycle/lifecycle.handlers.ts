@@ -1,8 +1,9 @@
 import {
-	applyCursorPackToDocument, CSS_CURSOR_STATES, DEFAULT_EMBELLISHMENT_CONFIG, findThemePack,
+	applyCursorPackToDocument, clampHistoryLimit, CSS_CURSOR_STATES, DEFAULT_EMBELLISHMENT_CONFIG, findThemePack,
 	resetCursorPackOnDocument, resolveThemeCursorPalette,
 	type CssCursorState, type CursorPackDefinition, type EmbellishmentConfig, type UiWireBroker
 } from '@chronos-ui/svelte';
+import { historyIdbStore } from '@studio/lib/history.idb';
 import type { StudioState } from '../studio.types';
 import {
 	apiCleanProject, apiCreateCursorPack, apiDeriveCursorPackStates,
@@ -26,11 +27,15 @@ function registerWorkspaceLifecycleHandlers(broker: UiWireBroker<StudioState>): 
 		reduce: (s) => {
 			const cur = s.projects.find((p) => p.id === s.activeProjectId) ?? s.projects[0];
 			if (!cur) return s;
+			const cap = clampHistoryLimit(s.studioDefaults.historyLimit);
 			return {
-				...s, selectedNodeId: null, chatMessages: [], undoStack: [...s.undoStack.slice(-19), cur.nodes], redoStack: [],
+				...s, selectedNodeId: null, chatMessages: [], undoStack: [...s.undoStack, cur.nodes].slice(-cap), redoStack: [],
 				projectPersistence: { ...s.projectPersistence, isDirty: false, lastSavedAt: Date.now(), status: 'SAVED' },
 				projects: s.projects.map((p) => (p.id === cur.id ? { ...p, nodes: [], hasBuiltOnce: false, updatedAt: Date.now() } : p))
 			};
+		},
+		effect: (s) => {
+			if (typeof window !== 'undefined') void historyIdbStore.save(s.activeProjectId, { undoStack: s.undoStack, redoStack: s.redoStack, historyLimit: clampHistoryLimit(s.studioDefaults.historyLimit) });
 		},
 		summarize: () => 'Cleaned workspace to Calm Empty Stage'
 	});

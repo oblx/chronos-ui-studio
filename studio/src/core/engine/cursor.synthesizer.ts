@@ -1,6 +1,8 @@
 import {
+	buildBespokeCursorBody,
 	buildVectorCursorDataUrl,
 	CSS_CURSOR_STATES,
+	CURSOR_CALIBRATED_HOTSPOTS,
 	CURSOR_LIMITS,
 	encodeSvgCursorDataUrl,
 	THEME_PACKS,
@@ -36,30 +38,9 @@ export function validatePngDataUrl(dataUrl: string): PngCheckResult {
 	return { ok: true, width, height, byteLength: raw.byteLength };
 }
 
-type BadgeBuilder = (accent: string) => string;
-
-const STATE_BADGE_MAP = new Map<CssCursorState, BadgeBuilder>([
-	['default', () => ''],
-	['pointer', (a) => `<circle cx="24" cy="7" r="4" fill="${a}"/>`],
-	['grab', (a) => `<rect x="19" y="19" width="9" height="7" rx="1" fill="none" stroke="${a}" stroke-width="2"/>`],
-	['grabbing', (a) => `<rect x="19" y="19" width="9" height="7" fill="${a}"/>`],
-	['text', (a) => `<path d="M23 5h5M25.5 5v14M23 19h5" stroke="${a}" stroke-width="2"/>`],
-	['move', (a) => `<path d="M24 17v10M19 22h10" stroke="${a}" stroke-width="2"/>`],
-	['not-allowed', (a) => `<circle cx="23" cy="23" r="5" fill="none" stroke="${a}" stroke-width="2"/><path d="M19 27l8-8" stroke="${a}" stroke-width="2"/>`],
-	['wait', (a) => `<circle cx="23" cy="23" r="5" fill="none" stroke="${a}" stroke-width="2" stroke-dasharray="14 6"/>`],
-	['progress', (a) => `<circle cx="23" cy="23" r="5" fill="none" stroke="${a}" stroke-width="2" stroke-dasharray="10 6"/>`],
-	['crosshair', (a) => `<path d="M16 3v26M3 16h26" stroke="${a}" stroke-width="2"/>`],
-	['help', (a) => `<path d="M21 20c0-2 4-2 4 0 0 1-2 1.5-2 3M23 26h.01" stroke="${a}" stroke-width="2" stroke-linecap="round"/>`],
-	['zoom-in', (a) => `<circle cx="22" cy="22" r="4.5" fill="none" stroke="${a}" stroke-width="1.8"/><path d="M20 22h4M22 20v4" stroke="${a}" stroke-width="1.8"/>`],
-	['zoom-out', (a) => `<circle cx="22" cy="22" r="4.5" fill="none" stroke="${a}" stroke-width="1.8"/><path d="M20 22h4" stroke="${a}" stroke-width="1.8"/>`],
-	['col-resize', (a) => `<path d="M18 24h10M20 21l-3 3 3 3M26 21l3 3-3 3" fill="none" stroke="${a}" stroke-width="1.8"/>`],
-	['row-resize', (a) => `<path d="M24 18v10M21 20l3-3 3 3M21 26l3 3 3-3" fill="none" stroke="${a}" stroke-width="1.8"/>`],
-	['nesw-resize', (a) => `<path d="M19 27l8-8M23 19h4v4M19 23v4h4" fill="none" stroke="${a}" stroke-width="1.8"/>`],
-	['nwse-resize', (a) => `<path d="M19 19l8 8M19 23v-4h4M27 23v4h-4" fill="none" stroke="${a}" stroke-width="1.8"/>`],
-	['copy', (a) => `<rect x="18" y="18" width="10" height="10" fill="none" stroke="${a}" stroke-width="1.8"/><path d="M23 20v6M20 23h6" stroke="${a}" stroke-width="1.8"/>`],
-	['alias', (a) => `<path d="M19 27l8-8M22 19h5v5" fill="none" stroke="${a}" stroke-width="2"/>`],
-	['cell', (a) => `<path d="M16 5v22M5 16h22" stroke="${a}" stroke-width="3"/>`],
-	['context-menu', (a) => `<rect x="18" y="18" width="10" height="10" fill="none" stroke="${a}" stroke-width="1.8"/><path d="M20 21h6M20 23.5h6M20 26h4" stroke="${a}" stroke-width="1.6"/>`]
+const STANDALONE_SILHOUETTE_STATES = new Set<CssCursorState>([
+	'pointer', 'grab', 'grabbing', 'text', 'move', 'not-allowed', 'wait', 'progress',
+	'crosshair', 'zoom-in', 'zoom-out', 'col-resize', 'row-resize', 'nesw-resize', 'nwse-resize', 'cell'
 ]);
 
 export function composeDerivedCursorSvgDataUrl(
@@ -67,21 +48,19 @@ export function composeDerivedCursorSvgDataUrl(
 	cssState: CssCursorState,
 	accent = SYNTH_TOKENS['--ui-accent-vivid']
 ): string {
-	if (!sourcePngDataUrl) {
-		return buildVectorCursorDataUrl(cssState, SYNTH_TOKENS['--ui-base-100'], accent, SYNTH_TOKENS['--ui-primary']);
+	const fill = SYNTH_TOKENS['--ui-base-100'];
+	const secondary = SYNTH_TOKENS['--ui-primary'];
+	const err = SYNTH_TOKENS['--ui-error'];
+	if (!sourcePngDataUrl || STANDALONE_SILHOUETTE_STATES.has(cssState)) {
+		return buildVectorCursorDataUrl(cssState, fill, accent, secondary, err);
 	}
 	const sz = CURSOR_LIMITS.normalizedPx;
-	const mid = CURSOR_LIMITS.centerHotspot;
-	if (cssState === 'crosshair' || cssState === 'cell') {
-		const badge = STATE_BADGE_MAP.get(cssState)?.(accent) ?? '';
-		const ring = cssState === 'crosshair'
-			? `<circle cx="${mid}" cy="${mid}" r="5" fill="none" stroke="${SYNTH_TOKENS['--ui-base-content']}" stroke-width="1.4"/>`
-			: '';
-		return encodeSvgCursorDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}">${badge}${ring}</svg>`);
+	const overlay = buildBespokeCursorBody(cssState, { fill, stroke: secondary, accent, danger: err });
+	if (cssState === 'default') {
+		return encodeSvgCursorDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}"><image href="${sourcePngDataUrl}" x="0" y="0" width="${sz}" height="${sz}"/></svg>`);
 	}
-	const badge = STATE_BADGE_MAP.get(cssState)?.(accent) ?? '';
 	return encodeSvgCursorDataUrl(
-		`<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}"><image href="${sourcePngDataUrl}" x="1" y="1" width="22" height="22"/>${badge}</svg>`
+		`<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}"><image href="${sourcePngDataUrl}" x="1" y="1" width="18" height="18"/><g transform="translate(8 8) scale(0.75)">${overlay}</g></svg>`
 	);
 }
 
@@ -101,12 +80,13 @@ export async function deriveAllCursorStates(opts: {
 			};
 			continue;
 		}
-		const isCenter = st === 'crosshair' || st === 'cell';
+		const [calX, calY] = CURSOR_CALIBRATED_HOTSPOTS[st];
+		const useBaseSpot = Boolean(opts.basePack.sourcePngDataUrl && !STANDALONE_SILHOUETTE_STATES.has(st));
 		next[st] = {
 			cssState: st,
 			assetDataUrl: composeDerivedCursorSvgDataUrl(opts.basePack.sourcePngDataUrl, st, accent),
-			hotspotX: isCenter ? CURSOR_LIMITS.centerHotspot : opts.basePack.baseHotspotX,
-			hotspotY: isCenter ? CURSOR_LIMITS.centerHotspot : opts.basePack.baseHotspotY,
+			hotspotX: useBaseSpot ? opts.basePack.baseHotspotX : calX,
+			hotspotY: useBaseSpot ? opts.basePack.baseHotspotY : calY,
 			generatorOrigin: origin
 		};
 	}

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { UiIcon } from '../atoms';
-	import { uiTransition } from '../motion';
-	import type { ContextMenuItem } from './molecules.types';
+	import { UiIcon } from '@ui/atoms';
+	import { uiTransition } from '@ui/motion';
+	import type { ContextMenuItem } from '../molecules.types';
 
 	interface Props {
 		open: boolean;

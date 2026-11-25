@@ -3,7 +3,7 @@
 	import {
 		MODAL_EXPANSION_CTX_KEY, type AccessibilityPrefs, type CornerKind, type CssCursorState,
 		type CursorPackDefinition, type EnvironmentCapabilityReport, type GamepadProfileId, type HudZoneId,
-		type LayoutDensity, type ModalExpansionBridge, type ModalGeometrySnapshot, type MotionConfig,
+		type LayoutDensity, type ModalExpansionBridge, type ModalGeometrySnapshot, type ModalLifecyclePhase, type MotionConfig,
 		type RegisteredUiEntity, type StudioDefaultsConfig, type ThemePack, type UiNode, type UiNodeTree,
 		type UiProjectDefinition, type VoiceCaptureMode, type WireTraceRecord
 	} from '@chronos-ui/svelte';
@@ -12,8 +12,11 @@
 	import type { AiProfileSummary, StationLayerConfig, StudioUser, ZoneEditPayload } from '../state';
 
 	interface Props {
-		activeModalId: string | null; modalExpanded: boolean; modalRestoreSnapshot: ModalGeometrySnapshot | null;
+		activeModalId: string | null; modalPhase?: ModalLifecyclePhase; modalExpanded: boolean; modalRestoreSnapshot: ModalGeometrySnapshot | null;
 		onSetModalExpanded: (next: boolean, snapshot?: ModalGeometrySnapshot | null) => void;
+		onModalOpened?: () => void; onModalClosed?: () => void;
+		onSetControlConfig?: (patch: Record<string, unknown>) => void; onSetHistoryLimit?: (limit: number) => void;
+		onSetTooltipInfoLevel?: (infoLevel: number) => void; onReplayHudSequence?: () => void; redoCount?: number;
 		helpTopic: string; cornerMode: CornerKind;
 		isLocked: boolean; remainingSeconds: number; progressRatio: number;
 		accessibility: AccessibilityPrefs; motionConfig: MotionConfig; studioDefaults: StudioDefaultsConfig;
@@ -55,7 +58,10 @@
 	setContext<ModalExpansionBridge>(MODAL_EXPANSION_CTX_KEY, {
 		get isExpanded() { return p.modalExpanded; },
 		get restoreSnapshot() { return p.modalRestoreSnapshot; },
-		setExpanded(next, snap) { p.onSetModalExpanded(next, snap); }
+		get phase() { return p.modalPhase; },
+		setExpanded(next, snap) { p.onSetModalExpanded(next, snap); },
+		markOpened() { p.onModalOpened?.(); },
+		markClosed() { p.onModalClosed?.(); }
 	});
 </script>
 
@@ -65,7 +71,7 @@
 	{/await}
 {:else if p.activeModalId === 'settings'}
 	{#await import('./SettingsModal.svelte') then mod}
-		<mod.default open={true} prefs={p.accessibility} motionConfig={p.motionConfig} studioDefaults={p.studioDefaults} envCapabilities={p.envCapabilities} activeAdapterBadge={p.activeAdapterBadge} themes={p.themes} activeThemeId={p.activeThemeId} aiProfiles={p.aiProfiles} projectNodeCount={p.project.nodes.length} traceCount={p.traces.length} lowMemoryMode={p.lowMemoryMode} cornerMorphEnabled={p.stationLayer.cornerMorphEnabled} voiceMode={p.voiceMode} gamepadOverride={p.gamepadOverride} onUpdate={p.onUpdatePrefs} onSetCornerStyle={p.onSetCornerStyle} onSetCornerRadius={p.onSetCornerRadius} onSetStudioDefaults={p.onSetStudioDefaults} onResetStudioDefaults={p.onResetStudioDefaults} onSetMotionConfig={p.onSetMotionConfig} onSetMotionProfile={p.onSetMotionProfile} onToggleCornerMorph={(cornerMorphEnabled) => p.onConfigureStationLayer({ cornerMorphEnabled })} onSelectTheme={p.onSelectTheme} onSaveAiProfile={p.onSaveAiProfile} onToggleLowMemory={p.onToggleLowMemory} onSetVoiceMode={p.onSetVoiceMode} onSetGamepadOverride={p.onSetGamepadOverride} onOpenCursors={p.onOpenCursors} onClose={p.onCloseModal} />
+		<mod.default open={true} prefs={p.accessibility} motionConfig={p.motionConfig} studioDefaults={p.studioDefaults} envCapabilities={p.envCapabilities} activeAdapterBadge={p.activeAdapterBadge} themes={p.themes} activeThemeId={p.activeThemeId} aiProfiles={p.aiProfiles} projectNodeCount={p.project.nodes.length} traceCount={p.traces.length} undoCount={p.undoStack.length} redoCount={p.redoCount ?? 0} lowMemoryMode={p.lowMemoryMode} cornerMorphEnabled={p.stationLayer.cornerMorphEnabled} voiceMode={p.voiceMode} gamepadOverride={p.gamepadOverride} onUpdate={p.onUpdatePrefs} onSetCornerStyle={p.onSetCornerStyle} onSetCornerRadius={p.onSetCornerRadius} onSetStudioDefaults={p.onSetStudioDefaults} onResetStudioDefaults={p.onResetStudioDefaults} onSetMotionConfig={p.onSetMotionConfig} onSetMotionProfile={p.onSetMotionProfile} onSetControlConfig={p.onSetControlConfig} onSetHistoryLimit={p.onSetHistoryLimit} onSetTooltipInfoLevel={p.onSetTooltipInfoLevel} onReplayHudSequence={p.onReplayHudSequence} onToggleCornerMorph={(cornerMorphEnabled) => p.onConfigureStationLayer({ cornerMorphEnabled })} onSelectTheme={p.onSelectTheme} onSaveAiProfile={p.onSaveAiProfile} onToggleLowMemory={p.onToggleLowMemory} onSetVoiceMode={p.onSetVoiceMode} onSetGamepadOverride={p.onSetGamepadOverride} onOpenCursors={p.onOpenCursors} onClose={p.onCloseModal} />
 	{/await}
 {:else if p.activeModalId === 'station-builder'}
 	{#await import('./station/StationBuilderModal.svelte') then mod}

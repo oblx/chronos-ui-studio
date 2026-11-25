@@ -1,6 +1,6 @@
 import { HUD_ZONES, shortUuid, type CornerKind, type HudZoneId, type UiFrameShape, type UiNode, type UiNodeTree, type UiProjectDefinition } from '@chronos-ui/svelte';
 import { CAPABILITY_BITS } from '@studio/config';
-import type { StudioToolDescriptor } from './tool.registry';
+import type { StudioToolDescriptor } from '../tool.registry';
 
 export interface UiEntityRecord {
 	readonly uuid: string;

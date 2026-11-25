@@ -1,4 +1,4 @@
-import { ALL_HARNESS_SCENARIOS, SCENARIO_SCRIPTS, type HarnessScenarioId } from './qa_harness_scenarios';
+import { ALL_HARNESS_SCENARIOS, SCENARIO_SCRIPTS, type HarnessScenarioId } from './harness';
 import { formatClockBanner } from './qa_timer';
 
 export const DEFAULT_LATEST_SCENARIO: HarnessScenarioId = 'latest';

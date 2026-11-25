@@ -1,18 +1,20 @@
 <script lang="ts">
-	import { createControlCornerRef } from '../motion';
+	import { createControlCornerRef } from '@ui/motion';
 	import {
 		clampControlCutRem, CONTROL_MAX_CUT_RATIO, DEFAULT_CHAMFER_TUPLE, HUD_METRICS, resolveControlSurface,
 		type CornerKind, type CornerTuple, type UiIconName
-	} from '../tokens';
-	import UiIcon from './UiIcon.svelte';
-	import UiVectorBorder from './UiVectorBorder.svelte';
+	} from '@ui/tokens';
+	import UiIcon from '../UiIcon.svelte';
+	import UiVectorBorder from '../UiVectorBorder.svelte';
 
 	interface Props {
 		icon: UiIconName;
 		label: string;
 		tip?: string;
+		tipLevel?: number;
 		testId?: string;
 		active?: boolean;
+		disabled?: boolean;
 		glitterBurst?: number;
 		corners?: CornerTuple;
 		cornerMode?: CornerKind;
@@ -21,7 +23,7 @@
 	}
 
 	let {
-		icon, label, tip, testId, active = false, glitterBurst = 0,
+		icon, label, tip, tipLevel, testId, active = false, disabled = false, glitterBurst = 0,
 		corners = DEFAULT_CHAMFER_TUPLE, cornerMode = 'CHAMFER', onclick, className = ''
 	}: Props = $props();
 
@@ -39,24 +41,28 @@
 	});
 
 	let surface = $derived(resolveControlSurface(cornerMode, corners, clampControlCutRem(cornerRef.cutRem)));
-	let strokeVar = $derived(active ? 'var(--ui-accent)' : 'var(--ui-border-subtle)');
+	let strokeVar = $derived(active ? 'var(--ui-accent-vivid, var(--ui-accent))' : 'var(--ui-border-subtle)');
 </script>
 
 <button
 	type="button"
+	{disabled}
 	aria-label={label}
 	aria-pressed={active}
+	aria-disabled={disabled ? 'true' : undefined}
 	data-testid={testId}
 	data-corner-mode={cornerMode}
 	data-corner-cut-rem={surface.cutRem}
+	data-ui-active={active ? 'true' : 'false'}
 	data-ui-tip={tip ?? label}
+	data-ui-tip-level={tipLevel}
 	data-ui-interactive="true"
-	data-ui-cursor="pointer"
+	data-ui-cursor={disabled ? 'not-allowed' : 'pointer'}
 	{onclick}
-	class="ui-dur-micro ui-detent group relative inline-flex h-8 w-8 shrink-0 items-center justify-center transition-all {className}"
-	style="color: {active ? 'var(--ui-accent)' : 'var(--ui-muted-content)'}; opacity: {active ? '1' : '0.82'}; background: transparent; border: none;"
+	class="ui-ctl ui-dur-micro ui-detent group relative inline-flex h-8 w-8 shrink-0 items-center justify-center {className}"
+	style="color: {active ? 'var(--ui-accent-vivid, var(--ui-accent))' : 'var(--ui-muted-content)'}; opacity: {active ? '1' : '0.88'}; background: transparent; border: none;"
 >
-	<span aria-hidden="true" class="pointer-events-none absolute inset-0 z-0" style="{surface.surfaceStyle} background-color: {active ? 'var(--ui-base-300)' : 'transparent'};"></span>
+	<span aria-hidden="true" class="pointer-events-none absolute inset-0 z-0" style="{surface.surfaceStyle} background-color: {active ? 'var(--ui-state-active-bg, var(--ui-base-300))' : 'transparent'};"></span>
 	<UiVectorBorder {corners} {cornerMode} cutPx={surface.cutPx} maxCutRatio={CONTROL_MAX_CUT_RATIO} {strokeVar} />
 	<span class="ui-dur-micro relative z-10 transition-transform group-hover:scale-105 group-hover:opacity-100" style="color: inherit;">
 		<UiIcon name={icon} sizeRem={1} />

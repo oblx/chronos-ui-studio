@@ -1,9 +1,9 @@
 import { THEME_PACKS, validateThemePackContrast, type ThemePack } from '@chronos-ui/svelte';
 import { eq } from 'drizzle-orm';
-import { STUDIO_CONFIG } from '../config';
-import { getStudioDb, mapThemeRow, themes } from '../lib';
-import { pushServerTrace } from './server.telemetry';
-import { HTTP_STATUS, jsonErr, jsonOk, readJsonBody } from './routes';
+import { STUDIO_CONFIG } from '@studio/config';
+import { getStudioDb, mapThemeRow, themes } from '@studio/lib';
+import { pushServerTrace } from '../server.telemetry';
+import { HTTP_STATUS, jsonErr, jsonOk, readJsonBody } from '../routes';
 
 async function listThemes(req: Request): Promise<Response> {
 	const db = await getStudioDb();

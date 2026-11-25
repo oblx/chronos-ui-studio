@@ -58,4 +58,11 @@ export function applyThemeToRoot(
 	for (const [key, value] of Object.entries(pack.tokens)) {
 		target.style.setProperty(key, value);
 	}
+	target.style.setProperty('--ui-scroll-size', '0.375rem');
+	target.style.setProperty('--ui-scroll-track', `color-mix(in srgb, ${pack.tokens['--ui-base-100']} 76%, transparent)`);
+	target.style.setProperty('--ui-scroll-thumb', pack.tokens['--ui-border-subtle']);
+	target.style.setProperty('--ui-scroll-thumb-hover', pack.tokens['--ui-accent-vivid'] || pack.tokens['--ui-accent']);
+	target.style.setProperty('--ui-state-idle-bg', pack.tokens['--ui-base-300']);
+	target.style.setProperty('--ui-state-hover-bg', `color-mix(in srgb, ${pack.tokens['--ui-primary']} 14%, ${pack.tokens['--ui-base-300']})`);
+	target.style.setProperty('--ui-state-active-bg', `color-mix(in srgb, ${pack.tokens['--ui-accent-vivid'] || pack.tokens['--ui-primary']} 24%, ${pack.tokens['--ui-base-300']})`);
 }

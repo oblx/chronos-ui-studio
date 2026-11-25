@@ -7,40 +7,22 @@
 	import type { DrawerTabDef } from './organisms.types';
 
 	interface Props {
-		side: 'LEFT' | 'RIGHT';
-		open: boolean;
-		floating: boolean;
-		railOffsetY: number;
-		floatX: number;
-		floatY: number;
-		tabs: readonly DrawerTabDef[];
-		activeTabId: string;
-		cornerMode?: CornerKind;
-		onToggleOpen: () => void;
-		onSelectTab: (tabId: string) => void;
-		onToggleFloat: () => void;
-		onMoveRail: (dy: number) => void;
-		onMoveFloat: (dx: number, dy: number) => void;
-		children?: Snippet;
+		side: 'LEFT' | 'RIGHT'; open: boolean; floating: boolean; railOffsetY: number; floatX: number; floatY: number;
+		tabs: readonly DrawerTabDef[]; activeTabId: string; cornerMode?: CornerKind;
+		onToggleOpen: () => void; onSelectTab: (tabId: string) => void; onToggleFloat: () => void;
+		onMoveRail: (dy: number) => void; onMoveFloat: (dx: number, dy: number) => void; children?: Snippet;
 	}
 
 	let {
-		side, open, floating, railOffsetY, floatX, floatY,
-		tabs, activeTabId, cornerMode = 'CHAMFER',
+		side, open, floating, railOffsetY, floatX, floatY, tabs, activeTabId, cornerMode = 'CHAMFER',
 		onToggleOpen, onSelectTab, onToggleFloat, onMoveRail, onMoveFloat, children
 	}: Props = $props();
 
 	let isRight = $derived(side === 'RIGHT');
 	let topCorners = $derived(isRight ? mirrorCornerTuple(ZONE_CORNER_PRESETS.EDGE_TOP_CAP_LEFT) : ZONE_CORNER_PRESETS.EDGE_TOP_CAP_LEFT);
 	let bodyCorners = $derived(isRight ? ZONE_CORNER_PRESETS.RIGHT_EDGE : ZONE_CORNER_PRESETS.LEFT_EDGE);
-	let railStyle = $derived(
-		`top: 50%; ${isRight ? 'right: 0.75rem;' : 'left: 0.75rem;'} transform: translate3d(0, calc(-50% + ${railOffsetY}px), 0);`
-	);
-	let panelStyle = $derived(
-		floating
-			? `left: ${floatX}px; top: ${floatY}px; width: 22rem; height: calc(100vh - var(--ui-safe-top, 4.5rem) - var(--ui-safe-bottom, 5.25rem));`
-			: `top: var(--ui-safe-top, 4.5rem); ${isRight ? 'right: var(--ui-safe-right, 4.5rem);' : 'left: var(--ui-safe-left, 4.5rem);'} width: 21rem; max-height: calc(100vh - var(--ui-safe-top, 4.5rem) - var(--ui-safe-bottom, 5.25rem));`
-	);
+	let railStyle = $derived(`top: 50%; ${isRight ? 'right: 0.75rem;' : 'left: 0.75rem;'} transform: translate3d(0, calc(-50% + ${railOffsetY}px), 0);`);
+	let panelStyle = $derived(floating ? `left: ${floatX}px; top: ${floatY}px; width: 22rem; height: calc(100vh - var(--ui-safe-top, 4.5rem) - var(--ui-safe-bottom, 5.25rem));` : `top: var(--ui-safe-top, 4.5rem); ${isRight ? 'right: var(--ui-safe-right, 4.5rem);' : 'left: var(--ui-safe-left, 4.5rem);'} width: 21rem; max-height: calc(100vh - var(--ui-safe-top, 4.5rem) - var(--ui-safe-bottom, 5.25rem));`);
 </script>
 
 <aside
@@ -85,10 +67,12 @@
 			type="button"
 			aria-label={floating ? 'Dock drawer to edge or drag to move' : 'Click to detach drawer or drag to reposition'}
 			data-ui-tip={floating ? 'Click: dock to edge\nDrag: reposition drawer' : 'Click: float drawer\nDrag: slide along rail'}
+			data-ui-tip-level={65}
 			data-testid="edge-grip-{side.toLowerCase()}"
 			data-ui-floating={floating ? 'true' : 'false'}
+			data-ui-cursor="grab"
 			use:uiFoldGrip={{ axis: 'HORIZONTAL', isFloating: floating, onToggleFloat, onMoveRail, onMoveFloat }}
-			class="flex h-7 w-full cursor-grab items-center justify-center active:cursor-grabbing"
+			class="ui-ctl ui-detent flex h-7 w-full cursor-grab items-center justify-center active:cursor-grabbing"
 			style="background-color: {floating ? 'var(--ui-primary)' : 'var(--ui-base-200)'}; color: {floating ? 'var(--ui-primary-content)' : 'var(--ui-accent)'}; border: var(--ui-hairline) solid {floating ? 'var(--ui-primary)' : 'var(--ui-border-subtle)'};"
 		>
 			<UiIcon name="grip" sizeRem={0.9} />
@@ -116,8 +100,11 @@
 							type="button"
 							data-testid="edge-drawer-tab-{side.toLowerCase()}-{tab.id}"
 							aria-pressed={activeTabId === tab.id}
+							data-ui-tip="Open {tab.label} panel"
+							data-ui-tip-level={45}
+							data-ui-cursor="pointer"
 							onclick={() => onSelectTab(tab.id)}
-							class="inline-flex shrink-0 items-center gap-1 whitespace-nowrap px-2 py-1 text-xs font-semibold"
+							class="ui-ctl ui-detent inline-flex shrink-0 items-center gap-1 whitespace-nowrap px-2 py-1 text-xs font-semibold"
 							style="background-color: {activeTabId === tab.id ? 'var(--ui-primary)' : 'transparent'}; color: {activeTabId === tab.id ? 'var(--ui-primary-content)' : 'var(--ui-muted-content)'};"
 						>
 							<UiIcon name={tab.icon} sizeRem={0.85} />
@@ -128,8 +115,11 @@
 				<button
 					type="button"
 					aria-label="Drag floating drawer"
+					data-ui-tip="Click: float/dock drawer\nDrag: reposition"
+					data-ui-tip-level={70}
+					data-ui-cursor="grab"
 					use:uiFoldGrip={{ axis: 'HORIZONTAL', isFloating: floating, onToggleFloat, onMoveRail, onMoveFloat }}
-					class="inline-flex h-6 w-6 shrink-0 cursor-grab items-center justify-center active:cursor-grabbing"
+					class="ui-ctl inline-flex h-6 w-6 shrink-0 cursor-grab items-center justify-center active:cursor-grabbing"
 					style="color: var(--ui-accent);"
 				>
 					<UiIcon name="grip" sizeRem={0.85} />

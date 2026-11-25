@@ -10,6 +10,8 @@
 		"emitDeclarationOnly": true,
 		"outDir": "./dist",
 		"rootDir": "./src",
+		"baseUrl": ".",
+		"paths": { "@ui/*": ["./src/*"] },
 		"isolatedModules": true
 	},
 	"include": [

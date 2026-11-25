@@ -21,8 +21,12 @@
 	<button
 		type="button"
 		aria-expanded={open}
+		data-ui-interactive="true"
+		data-ui-cursor="pointer"
+		data-ui-tip={open ? `Collapse ${title}` : `Expand ${title}`}
+		data-ui-tip-level={55}
 		onclick={() => (open = !open)}
-		class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-colors"
+		class="ui-ctl ui-detent flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-colors"
 		style="color: var(--ui-base-content);"
 	>
 		<div class="min-w-0">

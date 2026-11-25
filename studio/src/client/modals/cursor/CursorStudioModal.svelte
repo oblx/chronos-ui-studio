@@ -1,7 +1,7 @@
 <script lang="ts">
 	import {
-		CSS_CURSOR_STATES, CURSOR_LIMITS, THEME_PACKS, UiChamferButton, UiHorizontalDeck, UiInput, UiModalFooter, UiModalShell,
-		type CornerKind, type CssCursorState, type CursorPackDefinition
+		CSS_CURSOR_STATES, CURSOR_CALIBRATED_HOTSPOTS, CURSOR_LIMITS, THEME_PACKS, UiChamferButton, UiHorizontalDeck,
+		UiInput, UiModalFooter, UiModalShell, type CornerKind, type CssCursorState, type CursorPackDefinition
 	} from '@chronos-ui/svelte';
 	import { readPngFileAsDataUrl } from '@studio/client/state';
 	import CursorHotspotPad from './CursorHotspotPad.svelte';
@@ -62,6 +62,12 @@
 			busy = false;
 		}
 	}
+
+	async function handleResetState(): Promise<void> {
+		if (!inspectedPack || inspectedPack.isBuiltin) return;
+		const [hx, hy] = CURSOR_CALIBRATED_HOTSPOTS[selectedState];
+		await onUpdateHotspot(inspectedPack.uuid, selectedState, hx, hy);
+	}
 </script>
 
 <UiModalShell {open} sizeTier="WIDE" title={`Cursor Studio — ${CSS_CURSOR_STATES.length}-State AI Pointer Synthesizer`} subtitle={inspectedPack ? `Inspecting ${inspectedPack.name}` : 'OS Default'} icon="cursor" {cornerMode} {onClose}>
@@ -87,6 +93,7 @@
 				{#if inspectedPack && activeAsset}
 					<CursorHotspotPad cssState={selectedState} assetUrl={activeAsset.assetDataUrl} hotspotX={activeAsset.hotspotX} hotspotY={activeAsset.hotspotY} {cornerMode}
 						onSetHotspot={(x, y) => { if (!inspectedPack.isBuiltin) void onUpdateHotspot(inspectedPack.uuid, selectedState, x, y); }} />
+					<UiChamferButton {cornerMode} icon="reset" label={`Reset "${selectedState}" Hotspot`} tip="Restore calibrated default hotspot for this cursor state" tipLevel={50} variant="ghost" disabled={inspectedPack.isBuiltin} onclick={() => void handleResetState()} testId="cursor-reset-state-btn" className="w-full py-0.5 text-[0.64rem]" />
 				{/if}
 			</div>
 
@@ -98,8 +105,8 @@
 				</div>
 				<div class="grid grid-cols-3 gap-1.5 sm:grid-cols-4" data-testid="cursor-hover-sandbox">
 					{#each CSS_CURSOR_STATES as st (st)}
-						<button type="button" data-ui-cursor={st} data-testid={`cursor-state-${st}`} onclick={() => { selectedState = st; }}
-							class="ui-font-mono flex items-center gap-1 border px-1.5 py-1 text-left text-[0.62rem]"
+						<button type="button" data-ui-cursor={st} data-ui-tip={`Inspect ${st} cursor silhouette`} data-ui-tip-level={65} data-testid={`cursor-state-${st}`} onclick={() => { selectedState = st; }}
+							class="ui-ctl ui-detent ui-font-mono flex items-center gap-1 border px-1.5 py-1 text-left text-[0.62rem]"
 							style={`border-color: ${selectedState === st ? 'var(--ui-accent-vivid, var(--ui-primary))' : 'var(--ui-border-subtle)'}; background-color: var(--ui-base-200);`}>
 							{#if inspectedPack?.states[st]?.assetDataUrl}
 								<img src={inspectedPack.states[st].assetDataUrl} alt="" class="h-3.5 w-3.5 shrink-0" />

@@ -5,6 +5,7 @@ import type {
 	CornerTuple,
 	EmbellishmentConfig,
 	HudZoneId,
+	StudioControlConfig,
 	StudioDefaultsConfig,
 	UiFrameShape
 } from '../tokens';
@@ -37,6 +38,7 @@ export interface UiNode {
 	readonly cornerEmbellishment?: CornerEmbellishment;
 	readonly cornerAnimation?: CornerAnimation;
 	readonly embellishmentConfig?: EmbellishmentConfig;
+	readonly controlConfig?: Partial<StudioControlConfig>;
 	readonly intentBinding?: string;
 	readonly locked?: boolean;
 	readonly visible?: boolean;

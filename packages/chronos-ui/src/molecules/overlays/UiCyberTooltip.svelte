@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { UiChamferFrame } from '../atoms';
-	import { parseTooltipContent, uiClampTooltipRect, type TooltipState } from '../machines';
-	import { uiTransition } from '../motion';
-	import { DEFAULT_CHAMFER_TUPLE, Z_LAYERS } from '../tokens';
+	import { UiChamferFrame } from '@ui/atoms';
+	import { parseTooltipContent, uiClampTooltipRect, type TooltipState } from '@ui/machines';
+	import { uiTransition } from '@ui/motion';
+	import { DEFAULT_CHAMFER_TUPLE, Z_LAYERS } from '@ui/tokens';
 
 	interface Props {
 		tooltip: TooltipState;
@@ -26,6 +26,7 @@
 	<div
 		role="tooltip"
 		data-testid="ui-cyber-tooltip"
+		data-tip-level={tooltip.infoLevel}
 		use:uiClampTooltipRect={{ x: tooltip.x, y: tooltip.y, placement: tooltip.placement, text: tooltip.text }}
 		class="pointer-events-none fixed"
 		style="z-index: {Z_LAYERS.overlays}; left: {tooltip.x}px; top: {tooltip.y}px; transform: {transformOrigin}; width: fit-content; max-width: min(20rem, calc(100vw - 1rem));"

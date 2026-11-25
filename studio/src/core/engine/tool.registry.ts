@@ -1,8 +1,7 @@
 import type { IntentKind, UiIconName } from '@chronos-ui/svelte';
 import { CAPABILITY_BITS } from '@studio/config';
 import { WORKSPACE_CURSOR_TOOL_DESCRIPTORS } from './cursor.synthesizer';
-import { ENTITY_TOOL_DESCRIPTORS } from './entity.tools';
-import { STATION_TOOL_DESCRIPTORS } from './station.tools';
+import { ENTITY_TOOL_DESCRIPTORS, STATION_TOOL_DESCRIPTORS, V011_TOOL_DESCRIPTORS } from './tools';
 
 export type StudioToolCategory = 'BUILD' | 'CUSTOMIZE' | 'BLUEPRINTS' | 'EXPORT';
 
@@ -141,7 +140,7 @@ export const STUDIO_TOOL_REGISTRY: readonly StudioToolDescriptor[] = [
 		category: 'EXPORT', icon: 'export', intentKind: 'UI_TOGGLE_STUDIO_CHROME', requiredCapabilityBit: CAPABILITY_BITS.READ_BLUEPRINTS,
 		inputSchema: { type: 'object', properties: { blueprintId: { type: 'string' }, format: { type: 'string' } } },
 		outputSchema: { type: 'object', properties: { filename: { type: 'string' }, content: { type: 'string' } } }, annotations: RO },
-	...ENTITY_TOOL_DESCRIPTORS, ...WORKSPACE_CURSOR_TOOL_DESCRIPTORS, ...STATION_TOOL_DESCRIPTORS
+	...ENTITY_TOOL_DESCRIPTORS, ...WORKSPACE_CURSOR_TOOL_DESCRIPTORS, ...STATION_TOOL_DESCRIPTORS, ...V011_TOOL_DESCRIPTORS
 ];
 
 export const listMcpToolDescriptors = () => STUDIO_TOOL_REGISTRY.map(({ name, description, inputSchema, outputSchema, annotations }) => ({ name, description, inputSchema, outputSchema, annotations }));

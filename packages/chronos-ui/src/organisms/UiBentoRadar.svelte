@@ -77,6 +77,7 @@
 					{cornerMode}
 					icon={act.icon}
 					tip={act.label}
+					tipLevel={50}
 					active={act.active}
 					onclick={act.onClick}
 					className="h-6 w-full px-0 py-0"
@@ -88,10 +89,12 @@
 			type="button"
 			data-testid={onOpenSkeleton ? 'radar-open-skeleton' : undefined}
 			data-ui-interactive="true"
+			data-ui-cursor="pointer"
 			data-ui-tip="Open Wireframe Skeleton Workbench"
+			data-ui-tip-level={55}
 			aria-label="Open Wireframe Skeleton Workbench"
 			onclick={() => onOpenSkeleton?.()}
-			class="pointer-events-auto relative flex flex-col items-center justify-center overflow-hidden text-left transition-opacity hover:opacity-95"
+			class="ui-ctl ui-detent pointer-events-auto relative flex flex-col items-center justify-center overflow-hidden text-left transition-opacity hover:opacity-95"
 			style="background-color: var(--ui-base-100); border: var(--ui-hairline) solid var(--ui-border-subtle);"
 		>
 			<svg viewBox="0 0 100 100" class="pointer-events-none h-full max-h-[5.5rem] w-full" aria-hidden="true">
@@ -131,6 +134,7 @@
 					{cornerMode}
 					icon={act.icon}
 					tip={act.label}
+					tipLevel={50}
 					active={act.active}
 					onclick={act.onClick}
 					className="h-6 w-full px-0 py-0"

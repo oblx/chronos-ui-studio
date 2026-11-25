@@ -21,6 +21,8 @@
 		aiProfiles: readonly AiProfileSummary[];
 		projectNodeCount: number;
 		traceCount: number;
+		undoCount?: number;
+		redoCount?: number;
 		lowMemoryMode: boolean;
 		cornerMorphEnabled: boolean;
 		voiceMode: VoiceCaptureMode;
@@ -32,6 +34,10 @@
 		onResetStudioDefaults: () => void;
 		onSetMotionConfig: (patch: Partial<MotionConfig>) => void;
 		onSetMotionProfile?: (patch: Record<string, unknown>) => void;
+		onSetControlConfig?: (patch: Record<string, unknown>) => void;
+		onSetHistoryLimit?: (limit: number) => void;
+		onSetTooltipInfoLevel?: (infoLevel: number) => void;
+		onReplayHudSequence?: () => void;
 		onToggleCornerMorph: (enabled: boolean) => void;
 		onSelectTheme: (themeId: string) => void;
 		onSaveAiProfile: (payload: Record<string, unknown>) => Promise<void>;
@@ -44,8 +50,9 @@
 
 	let {
 		open, prefs, motionConfig, studioDefaults, envCapabilities, activeAdapterBadge, themes, activeThemeId, aiProfiles,
-		projectNodeCount, traceCount, lowMemoryMode, cornerMorphEnabled, voiceMode, gamepadOverride,
-		onUpdate, onSetCornerStyle, onSetCornerRadius, onSetStudioDefaults, onResetStudioDefaults, onSetMotionConfig, onSetMotionProfile, onToggleCornerMorph,
+		projectNodeCount, traceCount, undoCount = 0, redoCount = 0, lowMemoryMode, cornerMorphEnabled, voiceMode, gamepadOverride,
+		onUpdate, onSetCornerStyle, onSetCornerRadius, onSetStudioDefaults, onResetStudioDefaults, onSetMotionConfig, onSetMotionProfile,
+		onSetControlConfig, onSetHistoryLimit, onSetTooltipInfoLevel, onReplayHudSequence, onToggleCornerMorph,
 		onSelectTheme, onSaveAiProfile, onToggleLowMemory, onSetVoiceMode, onSetGamepadOverride, onOpenCursors, onClose
 	}: Props = $props();
 
@@ -75,7 +82,7 @@
 		{#if activeTab === 'ai'}
 			<SettingsAiTab cornerMode={prefs.cornerMode} profiles={aiProfiles} {envCapabilities} {activeAdapterBadge} onSaveProfile={onSaveAiProfile} />
 		{:else if activeTab === 'visuals'}
-			<SettingsVisualsTab {prefs} {motionConfig} {studioDefaults} {themes} {activeThemeId} {cornerMorphEnabled} {onUpdate} {onSetCornerStyle} {onSetCornerRadius} {onSetStudioDefaults} {onResetStudioDefaults} {onSetMotionConfig} {onSetMotionProfile} {onToggleCornerMorph} {onSelectTheme} {onOpenCursors} />
+			<SettingsVisualsTab {prefs} {motionConfig} {studioDefaults} {themes} {activeThemeId} {cornerMorphEnabled} {onUpdate} {onSetCornerStyle} {onSetCornerRadius} {onSetStudioDefaults} {onResetStudioDefaults} {onSetMotionConfig} {onSetMotionProfile} {onSetControlConfig} {onSetTooltipInfoLevel} {onReplayHudSequence} {onToggleCornerMorph} {onSelectTheme} {onOpenCursors} />
 		{:else if activeTab === 'input'}
 			<div class="grid grid-cols-1 gap-3 text-xs md:grid-cols-2" data-testid="settings-input-tab">
 				<div class="flex flex-col gap-2">
@@ -95,7 +102,7 @@
 				</div>
 			</div>
 		{:else}
-			<SettingsRuntimeTab cornerMode={prefs.cornerMode} {studioDefaults} {projectNodeCount} {traceCount} {lowMemoryMode} {onToggleLowMemory} {onSetStudioDefaults} {onResetStudioDefaults} />
+			<SettingsRuntimeTab cornerMode={prefs.cornerMode} {studioDefaults} {projectNodeCount} {traceCount} {undoCount} {redoCount} {lowMemoryMode} {onToggleLowMemory} {onSetStudioDefaults} {onSetHistoryLimit} {onResetStudioDefaults} />
 		{/if}
 	</div>
 	{#snippet footer()}

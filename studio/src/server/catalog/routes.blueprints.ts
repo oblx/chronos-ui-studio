@@ -1,10 +1,10 @@
 import { eq } from 'drizzle-orm';
-import { STUDIO_CONFIG } from '../config';
-import { validateBlueprint } from '../core';
-import { blueprints, getStudioDb, mapBlueprintRow } from '../lib';
-import { dispatchOutboundWebhooks, exportBlueprintArtifact, type ExportFormat } from '../plugins';
-import { pushServerTrace } from './server.telemetry';
-import { HTTP_STATUS, jsonErr, jsonOk, readJsonBody } from './routes';
+import { STUDIO_CONFIG } from '@studio/config';
+import { validateBlueprint } from '@studio/core';
+import { blueprints, getStudioDb, mapBlueprintRow } from '@studio/lib';
+import { dispatchOutboundWebhooks, exportBlueprintArtifact, type ExportFormat } from '@studio/plugins';
+import { pushServerTrace } from '../server.telemetry';
+import { HTTP_STATUS, jsonErr, jsonOk, readJsonBody } from '../routes';
 
 async function saveBlueprint(req: Request): Promise<Response> {
 	const db = await getStudioDb();

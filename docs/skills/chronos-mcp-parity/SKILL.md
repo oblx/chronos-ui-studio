@@ -4,19 +4,19 @@ description: Maintains 1:1 parity across STUDIO_TOOL_REGISTRY, Dual-Spine MCP ha
 license: MIT
 metadata:
   author: Oblx <code@oblx.dev>
-  version: "0.1.0"
+  version: "0.1.1"
 ---
 
-# Chronos Dual-Spine MCP Parity (`v0.1.0`)
+# Chronos Dual-Spine MCP Parity (`v0.1.1`)
 
 Use this skill when adding or modifying Studio capabilities, MCP tools, slash commands, or client wire intents.
 
 ## Single Source of Truth Rules
 
-1. **Declarative Registry**: Declare every tool once inside `STUDIO_TOOL_REGISTRY` (`studio/src/core/engine/`), currently spanning `42` parity tools across primitives, canvas nodes, themes, 21-state cursors, station layers, 11-zone dispositions, lifecycle snapshots, exports, and Twin live-session telemetry.
-2. **Modular Handler Barrels**: Implement Builder Spine handlers inside `studio/src/mcp/tools/` (re-exported via `studio/src/mcp/index.ts`) and keep every directory at $\le 8$ files.
+1. **Declarative Registry**: Declare every tool once inside `STUDIO_TOOL_REGISTRY` (`studio/src/core/engine/`), spanning `48` parity tools including `ui_configure_controls`, `ui_set_history_limit`, `ui_undo`, `ui_redo`, `ui_replay_hud_sequence`, and `ui_set_tooltip_info_level`.
+2. **Modular Handler Barrels**: Implement Builder Spine handlers inside `studio/src/mcp/tools/` (`mcp.v011.tools.ts`, `mcp.project.tools.ts`, `mcp.station.tools.ts`, `mcp.entity.tools.ts`, `mcp.cursor.tools.ts`) keeping every directory at $\le 8$ files.
 3. **Builder & Twin Spines**:
-	- Builder Spine (`/api/mcp` & `bun run mcp:stdio`) mutates persisted Drizzle SQLite projects, revisions, and blueprints, returning structured JSON + `clientIntents`.
-	- Twin Live-Studio Spine (`/api/mcp/twin` & `/api/ws/collab`) lists active browser sessions, dispatches live `DagEnvelope` intents, and streams unified `CLIENT_DAG` + `SERVER_DAG` ring telemetry.
-4. **Assistant & Lifecycle Sync**: `ui_clean_project` and `POST /api/projects/:id/clean` clear both project nodes and persisted `ai_chat_messages` while resetting `hasBuiltOnce = 0`, keeping `Build -> Send` CTA state deterministic across reloads.
+	- Builder Spine (`/api/mcp` & `bun run mcp:stdio`) mutates persisted Drizzle SQLite projects, studio defaults, revisions, and blueprints, returning structured JSON + `clientIntents`.
+	- Twin Live-Studio Spine (`/api/mcp/twin`, `/api/mcp/manifest`, `/api/ws/collab`) synchronizes live browser sessions, dispatches `DagEnvelope` intents, and streams unified `CLIENT_DAG` + `SERVER_DAG` ring telemetry (`SERVER_MANIFEST_SYNCED`).
+4. **100% Real-Action Header & Rail Intents**: Every `TOP_CENTER` view tab (`Workbench`, `Tokens`, `Decks`, `Twin MCP`) and utility trigger dispatches real client or server-backed state transitions (`UI_SET_ACTIVE_VIEW`, `SERVER_MANIFEST_SYNCED`).
 5. **Security & Auth**: Enforce bearer PAT (`bun run mcp:token`) or session cookie checks and SSRF URL guards (`studio/src/core/ssrf.guard.ts`) on all external provider webhooks.

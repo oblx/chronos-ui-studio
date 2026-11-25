@@ -7,6 +7,7 @@
 		label?: string;
 		valueLabel?: string;
 		disabled?: boolean;
+		testId?: string;
 		className?: string;
 		oninput?: (value: number) => void;
 	}
@@ -19,6 +20,7 @@
 		label = '',
 		valueLabel = '',
 		disabled = false,
+		testId,
 		className = '',
 		oninput
 	}: Props = $props();
@@ -40,6 +42,7 @@
 		{step}
 		{value}
 		{disabled}
+		data-testid={testId}
 		aria-label={label || undefined}
 		data-ui-interactive="true"
 		oninput={(e) => {
@@ -47,7 +50,7 @@
 			value = next;
 			oninput?.(next);
 		}}
-		class="h-1.5 w-full cursor-pointer appearance-none outline-none disabled:opacity-50"
+		class="ui-ctl ui-slider-input h-1.5 w-full cursor-pointer appearance-none outline-none disabled:opacity-50"
 		style="background: linear-gradient(90deg, var(--ui-accent-vivid, var(--ui-primary)) {ratioPct}%, var(--ui-base-300) {ratioPct}%); accent-color: var(--ui-accent-vivid, var(--ui-primary));"
 	/>
 </label>

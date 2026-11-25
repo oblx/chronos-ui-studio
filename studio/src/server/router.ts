@@ -6,8 +6,7 @@ import {
 	handleProjectRoutes, HTTP_STATUS, jsonErr, jsonOk, readJsonBody
 } from './routes';
 import { handleAuthRoutes } from './routes.auth';
-import { handleBlueprintRoutes } from './routes.blueprints';
-import { handleThemeRoutes } from './routes.themes';
+import { handleBlueprintRoutes, handleThemeRoutes } from './catalog';
 import { handleWebhookRoutes } from './routes.webhooks';
 import { getServerTraces } from './server.telemetry';
 import { handleCollabHttp } from './ws.collab';

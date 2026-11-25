@@ -17,7 +17,7 @@ import { createStudioProject, handleProjectRoutes } from '@studio/server/routes'
 
 describe('v0.0.5 UUID v7 registry, DB/REST/MCP parity, and sparse overrides', () => {
 	test('RFC 9562 UUID v7 generator is strictly monotonic and formats 8-char short prefixes', () => {
-		expect(VERSION).toBe('0.1.0');
+		expect(VERSION).toBe('0.1.1');
 		const ids = Array.from({ length: 16 }, () => generateUuidV7());
 		for (let i = 0; i < ids.length; i += 1) {
 			expect(isUuidV7(ids[i])).toBe(true);
@@ -98,7 +98,7 @@ describe('v0.0.5 morphable corners, safe corridors, tool scorer, hardware VID:PI
 		const plan = planLocalAssistantPrompt('switch theme to alabaster with round corners');
 		expect(plan.actions.some((a) => a.tool === 'ui_switch_theme' || a.tool === 'ui_apply_theme')).toBe(true);
 		expect(parseHardwareVidPid('Controller (STANDARD GAMEPAD Vendor: 054c Product: 0ce6)')).toEqual({ vendorId: '054c', productId: '0ce6' });
-		expect(readFileSync(join(process.cwd(), 'packages/chronos-ui/src/machines/tooltip.machine.svelte.ts'), 'utf8')).not.toContain('setInterval');
+		expect(readFileSync(join(process.cwd(), 'packages/chronos-ui/src/machines/overlays/tooltip.machine.svelte.ts'), 'utf8')).not.toContain('setInterval');
 		const sample = findStarterSample('sample-shape-matrix')!;
 		const workDir = join(tmpdir(), `chronos-v005-export-${Date.now().toString(36)}`);
 		try {
