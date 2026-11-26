@@ -2,7 +2,7 @@ import {
 	BUILTIN_CURSOR_PACKS, CORNER_RADIUS_LIMITS, DEFAULT_ACCESSIBILITY_PREFS, DEFAULT_EMBELLISHMENT_CONFIG,
 	DEFAULT_MOTION_CONFIG, DEFAULT_STUDIO_DEFAULTS, THEME_PACKS, type UiProjectDefinition
 } from '@chronos-ui/svelte';
-import { STARTER_BLUEPRINTS } from '@studio/config';
+import { STARTER_BLUEPRINTS, STUDIO_CONFIG } from '@studio/config';
 import { DEFAULT_BUILD_CONFIG } from '@studio/core/project.schema';
 import type { StationLayerConfig, StudioState } from '../studio.types';
 
@@ -19,7 +19,7 @@ export const DEFAULT_STATION_LAYER: StationLayerConfig = {
 };
 
 export const GENESIS_FALLBACK: UiProjectDefinition = {
-	id: 'proj-genesis', slug: 'genesis', name: 'Genesis Canvas',
+	id: STUDIO_CONFIG.defaultProjectId, slug: 'genesis', name: 'Genesis Canvas',
 	description: 'Calm empty-stage canvas ready for live AI composition.',
 	themeId: THEME_PACKS[0].id, cornerMode: 'CHAMFER',
 	cornerRadiusRem: CORNER_RADIUS_LIMITS.defaultRem,

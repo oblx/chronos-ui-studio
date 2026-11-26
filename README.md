@@ -32,4 +32,4 @@ Author: `Oblx <code@oblx.dev>` | Package Lock: `@chronos-ui/svelte` (`v0.1.1`, M
 - `bun run build` — Build AST SSG Tome and code-split production Vite bundle.
 - `bun run qa:fast` — Scoped-default inner-loop gate ($\le 3\text{s}$ warm: cached `qa_audit` + incremental `--skipLibCheck` `tsc --noEmit` + `v0101_motion_cursors_history.test.ts`).
 - `bun run qa:harness` — Scoped-default headless Chromium E2E CLI (`--scenario=latest` @ `1440x900`, inline console capture, `0` screenshots); add `--scenario=all --json` for all 8 scenarios across desktop + mobile.
-- `bun run qa:release` — Single pre-signoff full battery across all 16 test suites, uncached `qa_audit`, SSG Tome, package `.d.ts` emit check, and production Vite build.
+- `bun run qa:release` — Single pre-signoff full battery across all 17 test suites, uncached `qa_audit`, SSG Tome, package `.d.ts` emit check, and production Vite build.

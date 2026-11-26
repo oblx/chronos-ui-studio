@@ -7,6 +7,7 @@ import type { ZoneBlueprintConfig } from '@studio/config';
 import { apiSaveBlueprint } from '../studio.api';
 import { apiCommitRevision } from '../studio.project.api';
 import type { MoveEntityToZonePayload, StationLayerConfig, StudioState, ZoneEditPayload } from '../studio.types';
+import { persistActiveHistory, pushUndoSnapshot, resolveActiveProject } from './dom.sync';
 import { apiPatchProjectCornerRadius, apiPatchProjectStudioDefaults } from './lifecycle.api';
 
 export { findOppositeZone };
@@ -71,11 +72,11 @@ function reduceZoneEdit(s: StudioState, p: ZoneEditPayload): StudioState {
 }
 
 function reduceEntityZoneMove(s: StudioState, p: MoveEntityToZonePayload): StudioState {
-	const cur = s.projects.find((proj) => proj.id === s.activeProjectId) ?? s.projects[0];
+	const cur = resolveActiveProject(s);
 	if (!cur) return s;
 	const nextNodes = moveOrReorderNodes(cur.nodes, p);
 	return {
-		...s, undoStack: [...s.undoStack.slice(-19), cur.nodes], redoStack: [],
+		...s, ...pushUndoSnapshot(s, cur.nodes),
 		projects: s.projects.map((proj) => (proj.id === cur.id ? { ...proj, nodes: nextNodes, updatedAt: Date.now() } : proj)),
 		projectPersistence: { ...s.projectPersistence, isDirty: true, status: 'DIRTY' }
 	};
@@ -111,7 +112,7 @@ export function registerStationAndZoneHandlers(broker: UiWireBroker<StudioState>
 		tier: 'TIER_1_COALESCED_PERSIST',
 		reduce: (s) => applyDefaultsReducer(s, DEFAULT_STUDIO_DEFAULTS),
 		effect: (s) => { resetActiveStudioDefaults(); applyStudioDefaults(DEFAULT_STUDIO_DEFAULTS); applyAccessibilityPrefs(s.accessibility); void apiPatchProjectStudioDefaults(s.activeProjectId, DEFAULT_STUDIO_DEFAULTS); },
-		summarize: () => 'Reset Studio defaults to v0.0.8 baseline'
+		summarize: () => 'Reset Studio defaults to canonical baseline'
 	});
 	broker.register<Partial<StationLayerConfig>>('UI_CONFIGURE_STATION_LAYER', {
 		tier: 'TIER_0_LOCAL_UI',
@@ -128,7 +129,7 @@ export function registerStationAndZoneHandlers(broker: UiWireBroker<StudioState>
 	broker.register<MoveEntityToZonePayload>('UI_MOVE_ENTITY_TO_ZONE', {
 		tier: 'TIER_1_COALESCED_PERSIST',
 		reduce: (s, env) => reduceEntityZoneMove(s, env.payload),
-		effect: (s) => { const cur = s.projects.find((p) => p.id === s.activeProjectId); if (cur) void apiCommitRevision(cur.id, cur.nodes, 'ZONE_EDITION'); },
+		effect: (s) => { persistActiveHistory(s); const cur = resolveActiveProject(s); if (cur) void apiCommitRevision(cur.id, cur.nodes, 'ZONE_EDITION'); },
 		summarize: (env) => `Moved entity ${env.payload.nodeId} -> ${env.payload.targetZone}`
 	});
 }

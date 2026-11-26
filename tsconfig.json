@@ -25,11 +25,11 @@
 		"noEmit": true
 	},
 	"include": [
-		"packages/**/*.ts",
-		"packages/**/*.svelte",
-		"studio/**/*.ts",
-		"studio/**/*.svelte"
+		"packages/chronos-ui/src/**/*.ts",
+		"packages/chronos-ui/src/**/*.svelte",
+		"studio/src/**/*.ts",
+		"studio/src/**/*.svelte"
 	],
-	"exclude": ["dist", "node_modules"]
+	"exclude": ["dist", "packages/chronos-ui/dist", "studio/data", "node_modules"]
 }
 

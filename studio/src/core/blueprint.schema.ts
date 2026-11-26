@@ -1,4 +1,4 @@
-import { HUD_ZONES, type CornerKind, type CornerTuple } from '@chronos-ui/svelte';
+import { DEFAULT_DARK_THEME_ID, HUD_ZONES, type CornerKind, type CornerTuple } from '@chronos-ui/svelte';
 import type { UiBlueprint, ZoneBlueprintConfig } from '../config';
 
 const VALID_CORNERS = new Set<CornerKind>(['CHAMFER', 'STRAIGHT', 'ROUND']);
@@ -46,7 +46,7 @@ export function validateBlueprint(input: unknown): { ok: true; blueprint: UiBlue
 		blueprint: {
 			id: typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : `bp-${Date.now().toString(36)}`,
 			name: raw.name.trim(), description: typeof raw.description === 'string' ? raw.description.trim() : '',
-			themeId: typeof raw.themeId === 'string' ? raw.themeId : 'obsidian-brass', cornerMode,
+			themeId: typeof raw.themeId === 'string' ? raw.themeId : DEFAULT_DARK_THEME_ID, cornerMode,
 			starred: Boolean(raw.starred), version: typeof raw.version === 'number' && raw.version > 0 ? Math.floor(raw.version) : 1, zones
 		}
 	};

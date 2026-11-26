@@ -64,26 +64,28 @@ export const ENTITY_TOOL_DESCRIPTORS: readonly StudioToolDescriptor[] = [
 	}
 ];
 
-export function flattenNodesToEntityRecords(
-	projectUuid: string,
-	nodes: UiNodeTree,
-	hlcTimestamp: string,
-	now = Date.now()
-): UiEntityRecord[] {
+export function findNodeInTreeByUuid(nodes: readonly UiNode[], uuid: string | null | undefined): UiNode | null {
+	if (!uuid) return null;
+	for (const n of nodes) {
+		if (n.id === uuid) return n;
+		if (n.children?.length) { const hit = findNodeInTreeByUuid(n.children, uuid); if (hit) return hit; }
+	}
+	return null;
+}
+
+export function isDuplicateStagingNode(existing: readonly UiNode[], candidate: UiNode): boolean {
+	if (candidate.lifecycle !== 'STAGING' && candidate.lifecycle !== 'BUILDING') return false;
+	const sig = JSON.stringify(candidate.props);
+	return existing.some((n) => (n.lifecycle === 'STAGING' || n.lifecycle === 'BUILDING')
+		&& n.type === candidate.type && n.zone === candidate.zone && n.label === candidate.label && JSON.stringify(n.props) === sig);
+}
+
+export function flattenNodesToEntityRecords(projectUuid: string, nodes: UiNodeTree, hlcTimestamp: string, now = Date.now()): UiEntityRecord[] {
 	const out: UiEntityRecord[] = [];
 	const visit = (node: UiNode, parentUuid: string | null): void => {
 		out.push({
-			uuid: node.id,
-			projectUuid,
-			parentUuid,
-			zoneId: node.zone,
-			kind: node.type,
-			label: node.label,
-			shape: node.shape ?? 'BOX',
-			lifecycle: node.lifecycle,
-			hlcTimestamp,
-			propsJson: JSON.stringify(node.props ?? {}),
-			updatedAt: now
+			uuid: node.id, projectUuid, parentUuid, zoneId: node.zone, kind: node.type, label: node.label,
+			shape: node.shape ?? 'BOX', lifecycle: node.lifecycle, hlcTimestamp, propsJson: JSON.stringify(node.props ?? {}), updatedAt: now
 		});
 		for (const child of node.children ?? []) visit(child, node.id);
 	};
@@ -91,11 +93,7 @@ export function flattenNodesToEntityRecords(
 	return out;
 }
 
-export function patchNodeInTreeByUuid(
-	nodes: UiNodeTree,
-	uuid: string,
-	patch: Partial<UiNode>
-): { nodes: UiNodeTree; matched: boolean } {
+export function patchNodeInTreeByUuid(nodes: UiNodeTree, uuid: string, patch: Partial<UiNode>): { nodes: UiNodeTree; matched: boolean } {
 	let matched = false;
 	const mapNode = (node: UiNode): UiNode => {
 		let next = node;
@@ -103,7 +101,7 @@ export function patchNodeInTreeByUuid(
 			matched = true;
 			next = { ...node, ...patch, props: { ...node.props, ...(patch.props ?? {}) } };
 		}
-		if (next.children && next.children.length > 0) {
+		if (next.children?.length) {
 			const children = next.children.map(mapNode);
 			if (matched) next = { ...next, children };
 		}
@@ -119,23 +117,11 @@ export function buildWireframeSkeleton(project: UiProjectDefinition): {
 } {
 	const flat: WireframeSkeletonNode[] = [];
 	const visit = (node: UiNode, parentUuid: string | null): void => {
-		const cornerMode: CornerKind = node.corners?.includes('ROUND')
-			? 'ROUND'
-			: node.corners?.includes('STRAIGHT')
-				? 'STRAIGHT'
-				: project.cornerMode;
+		const cornerMode: CornerKind = node.corners?.includes('ROUND') ? 'ROUND' : node.corners?.includes('STRAIGHT') ? 'STRAIGHT' : project.cornerMode;
 		flat.push({
-			uuid: node.id,
-			shortId: shortUuid(node.id),
-			parentUuid,
-			zoneId: node.zone,
-			kind: node.type,
-			label: node.label,
-			shape: node.shape ?? 'BOX',
-			cornerMode,
-			lifecycle: node.lifecycle,
-			childUuids: (node.children ?? []).map((c) => c.id),
-			...(node.intentBinding ? { intentBinding: node.intentBinding } : {})
+			uuid: node.id, shortId: shortUuid(node.id), parentUuid, zoneId: node.zone, kind: node.type,
+			label: node.label, shape: node.shape ?? 'BOX', cornerMode, lifecycle: node.lifecycle,
+			childUuids: (node.children ?? []).map((c) => c.id), ...(node.intentBinding ? { intentBinding: node.intentBinding } : {})
 		});
 		for (const child of node.children ?? []) visit(child, node.id);
 	};

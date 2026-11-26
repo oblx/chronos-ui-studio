@@ -7,7 +7,7 @@ import { formatClockBanner, formatDurationCompact, getSprintTimerStatus, lapSpri
 export type QaTier = 'fast' | 'delta' | 'release';
 export const LATEST_DELTA_TEST = 'studio/src/tests/releases/v0101_motion_cursors_history.test.ts';
 const TSC_BUILD_INFO = 'studio/data/.tsbuildinfo';
-const TSC_BIN = existsSync('node_modules/.bin/tsc') ? ['node_modules/.bin/tsc'] : ['bunx', 'tsc'];
+const TSC_BIN = existsSync('node_modules/typescript/bin/tsc') ? ['bun', '--bun', 'node_modules/typescript/bin/tsc'] : ['bunx', 'tsc'];
 
 export function resolveQaTier(argv: readonly string[]): QaTier {
 	if (argv.includes('--full-battery') || argv.includes('--release') || argv.includes('--full') || argv.includes('--all')) return 'release';

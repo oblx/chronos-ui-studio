@@ -1,5 +1,6 @@
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { STUDIO_CONFIG } from '@studio/config';
 import { exportJobs, getStudioDb } from '@studio/lib';
 import {
 	compileFullstackBundle, compileStaticClientBuild, emitProjectCssTokens, emitProjectJsonBundle, emitProjectSvelteScaffold,
@@ -11,7 +12,7 @@ import { createStudioProject, loadProjectWithNodes } from './routes.projects';
 
 async function handlePipelineExport(req: Request): Promise<Response> {
 	const body = await readJsonBody<{ projectId: string; adapterId: string }>(req);
-	const project = await loadProjectWithNodes(body.projectId || 'proj-genesis');
+	const project = await loadProjectWithNodes(body.projectId || STUDIO_CONFIG.defaultProjectId);
 	if (!project) return jsonErr('Project not found', HTTP_STATUS.NOT_FOUND);
 	const db = await getStudioDb();
 	if (body.adapterId === 'fullstack-bundle') {

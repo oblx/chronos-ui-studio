@@ -26,6 +26,7 @@ export interface HarnessReport {
 	readonly url: string;
 	readonly screenshotsTaken: number;
 	readonly consoleErrors: number;
+	readonly consoleErrorSamples?: readonly string[];
 	readonly cleanTeardown: boolean;
 	readonly results: readonly HarnessScenarioResult[];
 	readonly totalDurationMs: number;
@@ -92,19 +93,19 @@ function buildBatchRunnerScript(opts: HarnessOptions): string {
 		}
 		const remaining = await cleanGenesis(false);
 		page.off('console', onCon); page.off('pageerror', onErr);
-		return { results, cleanTeardown: remaining === 0, remaining, consoleErrors: consoleErrs.length };
+		return { results, cleanTeardown: remaining === 0, remaining, consoleErrors: consoleErrs.length, consoleErrorSamples: consoleErrs.slice(0, 5) };
 	}`;
 }
 
-function parseBatchPayload(raw: string): { results: HarnessScenarioResult[]; cleanTeardown: boolean; consoleErrors: number } | null {
+function parseBatchPayload(raw: string): { results: HarnessScenarioResult[]; cleanTeardown: boolean; consoleErrors: number; consoleErrorSamples?: string[] } | null {
 	const m = raw.match(/### Result\s*\n([\s\S]*?)(?:\n### |\s*$)/);
 	if (!m) return null;
-	try { return JSON.parse(m[1].trim()) as { results: HarnessScenarioResult[]; cleanTeardown: boolean; consoleErrors: number }; } catch { return null; }
+	try { return JSON.parse(m[1].trim()) as { results: HarnessScenarioResult[]; cleanTeardown: boolean; consoleErrors: number; consoleErrorSamples?: string[] }; } catch { return null; }
 }
 
 export function runQaHarness(opts: HarnessOptions): HarnessReport {
 	const t0 = performance.now();
-	let consoleErrors = 0, results: HarnessScenarioResult[] = [], cleanTeardown = false;
+	let consoleErrors = 0, consoleErrorSamples: string[] = [], results: HarnessScenarioResult[] = [], cleanTeardown = false;
 	if (!opts.json) console.log(formatClockBanner('qa:harness'));
 	try {
 		const open = runPlaywrightCli(['open', '--browser=chromium', opts.url]);
@@ -113,13 +114,13 @@ export function runQaHarness(opts: HarnessOptions): HarnessReport {
 		}
 		const batch = runPlaywrightCli(['run-code', buildBatchRunnerScript(opts)]);
 		const parsed = parseBatchPayload(batch.output);
-		if (parsed) { results = parsed.results; cleanTeardown = parsed.cleanTeardown; consoleErrors = parsed.consoleErrors ?? 0; }
+		if (parsed) { results = parsed.results; cleanTeardown = parsed.cleanTeardown; consoleErrors = parsed.consoleErrors ?? 0; consoleErrorSamples = parsed.consoleErrorSamples ?? []; }
 		else results = [{ scenario: opts.scenarios[0], viewport: 'batch', pass: false, durationMs: Math.round(performance.now() - t0), detail: batch.output.slice(0, 260) }];
 	} finally {
 		runPlaywrightCli(['close']);
 	}
 	const ok = results.length > 0 && results.every((r) => r.pass) && consoleErrors === 0 && cleanTeardown;
-	return { ok, url: opts.url, screenshotsTaken: 0, consoleErrors, cleanTeardown, results, totalDurationMs: Math.round(performance.now() - t0) };
+	return { ok, url: opts.url, screenshotsTaken: 0, consoleErrors, ...(consoleErrorSamples.length ? { consoleErrorSamples } : {}), cleanTeardown, results, totalDurationMs: Math.round(performance.now() - t0) };
 }
 
 if (import.meta.main) {

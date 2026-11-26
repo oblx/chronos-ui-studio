@@ -1,4 +1,5 @@
 import { clampHistoryLimit, HISTORY_LIMIT_BOUNDS, type UiNodeTree } from '@chronos-ui/svelte';
+import { runIdbStoreTx } from './idb.mirror';
 
 export interface HistorySnapshot {
 	readonly projectUuid: string;
@@ -17,6 +18,7 @@ export interface HistoryStorePort {
 
 const DB_NAME = 'chronos_ui_history_v1';
 const STORE_NAME = 'histories';
+const KEY_PATH = 'projectUuid';
 const DB_VERSION = 1;
 const memoryFallback = new Map<string, HistorySnapshot>();
 const cloneNodes = (nodes: UiNodeTree): UiNodeTree => JSON.parse(JSON.stringify(nodes)) as UiNodeTree;
@@ -26,10 +28,10 @@ export function trimHistoryStacks(undoStack: readonly UiNodeTree[], redoStack: r
 	return { undoStack: undoStack.slice(-cap), redoStack: redoStack.slice(-cap), historyLimit: cap };
 }
 
-function stepStack(from: UiNodeTree[], to: UiNodeTree[], current: UiNodeTree, limit: number) {
+export function stepHistoryStack(from: readonly UiNodeTree[], to: readonly UiNodeTree[], current: UiNodeTree, limit: number) {
 	if (!from.length) return null;
-	const target = from[from.length - 1];
-	return { target: cloneNodes(target), nextFrom: from.slice(0, -1), nextTo: [...to, cloneNodes(current)].slice(-limit) };
+	const cap = clampHistoryLimit(limit);
+	return { target: cloneNodes(from[from.length - 1]), nextFrom: from.slice(0, -1), nextTo: [...to, cloneNodes(current)].slice(-cap) };
 }
 
 export function createHistoryRing(initialLimit = HISTORY_LIMIT_BOUNDS.defaultLimit) {
@@ -44,12 +46,12 @@ export function createHistoryRing(initialLimit = HISTORY_LIMIT_BOUNDS.defaultLim
 		get canRedo(): boolean { return redoStack.length > 0; },
 		push: (prev: UiNodeTree): void => { undoStack = [...undoStack, cloneNodes(prev)].slice(-limit); redoStack = []; },
 		undo: (cur: UiNodeTree): UiNodeTree | null => {
-			const res = stepStack(undoStack, redoStack, cur, limit);
+			const res = stepHistoryStack(undoStack, redoStack, cur, limit);
 			if (!res) return null;
 			undoStack = res.nextFrom; redoStack = res.nextTo; return res.target;
 		},
 		redo: (cur: UiNodeTree): UiNodeTree | null => {
-			const res = stepStack(redoStack, undoStack, cur, limit);
+			const res = stepHistoryStack(redoStack, undoStack, cur, limit);
 			if (!res) return null;
 			redoStack = res.nextFrom; undoStack = res.nextTo; return res.target;
 		},
@@ -63,36 +65,12 @@ export function createHistoryRing(initialLimit = HISTORY_LIMIT_BOUNDS.defaultLim
 	};
 }
 
-function openHistoryDb(): Promise<IDBDatabase | null> {
-	if (typeof indexedDB === 'undefined') return Promise.resolve(null);
-	return new Promise((resolve) => {
-		try {
-			const req = indexedDB.open(DB_NAME, DB_VERSION);
-			req.onupgradeneeded = () => {
-				if (!req.result.objectStoreNames.contains(STORE_NAME)) req.result.createObjectStore(STORE_NAME, { keyPath: 'projectUuid' });
-			};
-			req.onsuccess = () => resolve(req.result);
-			req.onerror = () => resolve(null);
-		} catch { resolve(null); }
-	});
-}
-
-function runIdbTx<T>(mode: IDBTransactionMode, op: (store: IDBObjectStore) => IDBRequest<T>): Promise<T | null> {
-	return openHistoryDb().then((db) => {
-		if (!db) return null;
-		return new Promise<T | null>((resolve) => {
-			try {
-				const req = op(db.transaction(STORE_NAME, mode).objectStore(STORE_NAME));
-				req.onsuccess = () => resolve((req.result ?? null) as T | null);
-				req.onerror = () => resolve(null);
-			} catch { resolve(null); }
-		});
-	});
-}
+const runHistoryTx = <T>(mode: IDBTransactionMode, op: (store: IDBObjectStore) => IDBRequest<T>): Promise<T | null> =>
+	runIdbStoreTx(DB_NAME, STORE_NAME, KEY_PATH, mode, op, DB_VERSION);
 
 export const historyIdbStore: HistoryStorePort = {
 	async load(projectId: string): Promise<HistorySnapshot | null> {
-		const hit = (await runIdbTx<HistorySnapshot>('readonly', (s) => s.get(projectId))) ?? memoryFallback.get(projectId) ?? null;
+		const hit = (await runHistoryTx<HistorySnapshot>('readonly', (s) => s.get(projectId))) ?? memoryFallback.get(projectId) ?? null;
 		if (!hit) return null;
 		const trimmed = trimHistoryStacks(hit.undoStack ?? [], hit.redoStack ?? [], hit.historyLimit);
 		return { projectUuid: projectId, ...trimmed, updatedAt: hit.updatedAt ?? Date.now() };
@@ -104,11 +82,11 @@ export const historyIdbStore: HistoryStorePort = {
 			redoStack: trimmed.redoStack.map(cloneNodes), historyLimit: trimmed.historyLimit, updatedAt: Date.now()
 		};
 		memoryFallback.set(projectId, record);
-		await runIdbTx('readwrite', (s) => s.put(record));
+		await runHistoryTx('readwrite', (s) => s.put(record));
 	},
 	async clear(projectId: string): Promise<void> {
 		memoryFallback.delete(projectId);
-		await runIdbTx('readwrite', (s) => s.delete(projectId));
+		await runHistoryTx('readwrite', (s) => s.delete(projectId));
 	},
 	async setLimit(projectId: string, limit: number): Promise<HistorySnapshot> {
 		const existing = await historyIdbStore.load(projectId);

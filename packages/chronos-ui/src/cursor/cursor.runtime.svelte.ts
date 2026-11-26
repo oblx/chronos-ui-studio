@@ -1,5 +1,6 @@
 import { clamp, CURSOR_LIMITS, THEME_PACKS } from '../tokens';
 import { buildVectorCursorDataUrl, encodeSvgCursorDataUrl, resolveThemeCursorPalette } from './cursor.presets';
+import { resolveCursorPackStyle } from './cursor.silhouettes';
 import {
 	CSS_CURSOR_STATES,
 	type CssCursorState,
@@ -16,17 +17,14 @@ function resolveAssetUrl(
 	palette?: ResolvedCursorPalette,
 	packSlug?: string
 ): string {
-	const style = (packSlug === 'archival-nib' || packSlug === 'tactical-brass' || packSlug === 'minimal-precision' ? packSlug : 'cyber-reticle') as 'cyber-reticle' | 'archival-nib' | 'tactical-brass' | 'minimal-precision';
-	if (palette && (!asset?.assetDataUrl || asset.generatorOrigin === 'PRESET')) {
-		return buildVectorCursorDataUrl(state, palette.fillHex, palette.primaryHex, palette.accentHex, palette.errorHex, style);
-	}
-	if (!asset?.assetDataUrl) {
-		const fallback = palette ?? resolveThemeCursorPalette(THEME_PACKS[0]);
-		return buildVectorCursorDataUrl(state, fallback.fillHex, fallback.primaryHex, fallback.accentHex, fallback.errorHex, style);
+	const style = resolveCursorPackStyle(packSlug);
+	const resolvedPalette = palette ?? resolveThemeCursorPalette(THEME_PACKS[0]);
+	if (!asset?.assetDataUrl || (palette && asset.generatorOrigin === 'PRESET')) {
+		return buildVectorCursorDataUrl(state, resolvedPalette.fillHex, resolvedPalette.primaryHex, resolvedPalette.accentHex, resolvedPalette.errorHex, style);
 	}
 	if (asset.assetDataUrl.startsWith('data:image/svg+xml,')) {
 		const decoded = decodeURIComponent(asset.assetDataUrl.slice('data:image/svg+xml,'.length));
-		return encodeSvgCursorDataUrl(decoded, palette ?? resolveThemeCursorPalette(THEME_PACKS[0]));
+		return encodeSvgCursorDataUrl(decoded, resolvedPalette);
 	}
 	return asset.assetDataUrl;
 }

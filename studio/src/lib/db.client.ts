@@ -106,14 +106,14 @@ async function seedCatalogAndGenesis(db: StudioDb, now: number): Promise<void> {
 	if ((await db.select().from(schema.uiProjects).limit(1)).length === 0) {
 		const revId = 'rev-genesis-0';
 		await db.insert(schema.uiProjects).values({
-			id: 'proj-genesis', slug: 'genesis', name: 'Genesis Canvas',
+			id: STUDIO_CONFIG.defaultProjectId, slug: 'genesis', name: 'Genesis Canvas',
 			description: 'Calm empty-stage canvas ready for live AI composition.',
 			activeRevisionId: revId, themeId: THEME_PACKS[0].id, cornerStyle: 'CHAMFER',
 			cornerRadiusRem: CORNER_RADIUS_LIMITS.defaultRem, cursorPackUuid: BUILTIN_CURSOR_PACKS[0].uuid,
 			buildConfigJson: JSON.stringify(DEFAULT_BUILD_CONFIG), createdAt: now, updatedAt: now
 		});
 		await db.insert(schema.uiProjectRevisions).values({
-			id: revId, projectId: 'proj-genesis', hlcTimestamp: formatHlc(tickHlc(null, 'studio', now)),
+			id: revId, projectId: STUDIO_CONFIG.defaultProjectId, hlcTimestamp: formatHlc(tickHlc(null, 'studio', now)),
 			parentRevisionId: null, nodesJson: '[]', authorOrigin: 'SYSTEM', createdAt: now
 		});
 	}

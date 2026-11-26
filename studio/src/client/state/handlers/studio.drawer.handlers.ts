@@ -1,5 +1,5 @@
 import {
-	applyAccessibilityPrefs, clamp, clampStageCamera, HUD_METRICS, setActiveMotionConfig,
+	applyAccessibilityPrefs, clamp, clampFloatCoords, clampStageCamera, HUD_METRICS, setActiveMotionConfig,
 	setActiveMotionProfile, setActiveMotionSensory, STAGE_LIMITS, type CornerKind, type LayoutDensity,
 	type MotionConfig, type MotionProfileId, type MotionSensoryConfig, type ToastItem, type UiWireBroker
 } from '@chronos-ui/svelte';
@@ -38,9 +38,9 @@ function registerStageHandlers(broker: UiWireBroker<StudioState>): void {
 		tier: 'TIER_0_LOCAL_UI',
 		reduce: (s, env) => {
 			const k = drawerKey(env.payload.side);
-			const maxW = typeof window !== 'undefined' ? window.innerWidth - STAGE_LIMITS.floatPadRightPx : STAGE_LIMITS.defaultMaxWidthPx;
-			const maxH = typeof window !== 'undefined' ? window.innerHeight - STAGE_LIMITS.floatPadBottomPx : STAGE_LIMITS.defaultMaxHeightPx;
-			return { ...s, [k]: { ...s[k], floatX: clamp(s[k].floatX + env.payload.dx, STAGE_LIMITS.floatMarginLeftPx, maxW), floatY: clamp(s[k].floatY + env.payload.dy, STAGE_LIMITS.floatMarginTopPx, maxH) } };
+			const vw = typeof window !== 'undefined' ? window.innerWidth : undefined;
+			const vh = typeof window !== 'undefined' ? window.innerHeight : undefined;
+			return { ...s, [k]: { ...s[k], ...clampFloatCoords(s[k].floatX + env.payload.dx, s[k].floatY + env.payload.dy, vw, vh) } };
 		}
 	});
 	broker.register<{ dx?: number; dy?: number; dz?: number; panX?: number; panY?: number; zoom?: number; coalescedFrames?: number; durationMs?: number; reset?: boolean }>('UI_STAGE_PAN_ZOOM', {

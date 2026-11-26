@@ -1,5 +1,6 @@
 import type { AssistantToolChip, UiProjectDefinition } from '@chronos-ui/svelte';
 import { asc, desc, eq } from 'drizzle-orm';
+import { STUDIO_CONFIG } from '@studio/config';
 import {
 	probeServerEnvironmentCapabilities, resolveAiStudioServerConfig, runAiProviderPlan,
 	type AiProviderConfig, type AiProviderKind
@@ -45,7 +46,7 @@ async function handleAssistantChat(req: Request): Promise<Response> {
 	if (!prompt) return jsonErr('Prompt is required.', HTTP_STATUS.BAD_REQUEST);
 	const db = await getStudioDb();
 	const projects = await listAllProjects();
-	let activeProjectId = body.projectId || projects[0]?.id || 'proj-genesis';
+	let activeProjectId = body.projectId || projects[0]?.id || STUDIO_CONFIG.defaultProjectId;
 	const now = Date.now();
 	await db.insert(aiChatMessages).values({ id: `msg-u-${now.toString(36)}`, projectId: activeProjectId, role: 'user', content: prompt, toolCallsJson: '[]', revisionId: null, createdAt: now });
 	const { profile, badgeLabel } = await resolveActiveProfile();
@@ -114,7 +115,7 @@ export async function handleAiRoutes(req: Request, path: string): Promise<Respon
 	}
 	if (path === '/api/ai/profiles' && req.method === 'POST') return handleSaveProfile(req);
 	if (path === '/api/assistant/chat' && req.method === 'GET') {
-		const projectId = new URL(req.url).searchParams.get('projectId') ?? 'proj-genesis';
+		const projectId = new URL(req.url).searchParams.get('projectId') ?? STUDIO_CONFIG.defaultProjectId;
 		const db = await getStudioDb();
 		const rows = await db.select().from(aiChatMessages).where(eq(aiChatMessages.projectId, projectId)).orderBy(asc(aiChatMessages.createdAt)).limit(60);
 		return jsonOk({ messages: rows.map(mapChatMessageRow) });

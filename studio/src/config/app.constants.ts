@@ -14,6 +14,7 @@ export const STUDIO_CONFIG = {
 	minPasswordLength: 8,
 	maxTokenLabelLength: 64,
 	defaultBlueprintId: 'bp-telemetry-command',
+	defaultProjectId: 'proj-genesis',
 	devSeed: {
 		ownerId: 'usr-architect',
 		email: env?.CHRONOS_DEV_EMAIL ?? 'architect@chronos.local',

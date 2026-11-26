@@ -73,7 +73,7 @@ export const STATION_TOOL_DESCRIPTORS = [
 	},
 	{
 		name: 'ui_reset_studio_defaults',
-		description: 'Reset all Studio geometry, ornament, gutter, and auto-save defaults back to canonical v0.0.10 baseline.',
+		description: 'Reset all Studio geometry, ornament, gutter, and auto-save defaults back to canonical baseline.',
 		humanTitle: 'Reset Studio Defaults',
 		plainDescription: 'Restore default 0.5rem base, 0.75rem station, and 0.3125rem control corner cuts.',
 		category: 'CUSTOMIZE', icon: 'reset', intentKind: 'UI_RESET_STUDIO_DEFAULTS',

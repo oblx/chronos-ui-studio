@@ -1,15 +1,16 @@
 import {
-	computeViewportOccupancy, DEFAULT_VIEWPORT, generateUuidV7,
+	computeViewportOccupancy, DEFAULT_DARK_THEME_ID, DEFAULT_VIEWPORT, generateUuidV7,
 	type CornerAnimation, type CornerEmbellishment, type CornerTuple,
 	type HudZoneId, type LayoutDensity, type UiComponentKind, type UiFrameShape, type UiNode
 } from '@chronos-ui/svelte';
 import { eq } from 'drizzle-orm';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { CAPABILITY_BITS, findStarterSample } from '@studio/config';
+import { CAPABILITY_BITS, findStarterSample, STUDIO_CONFIG } from '@studio/config';
 import {
 	applyJsonPatchWithInverse, derivePrototypeFromNode, documentGraphToNodeTree, evaluateGovernanceGate,
-	nodeTreeToDocumentGraph, probeServerEnvironmentCapabilities, STUDIO_ROLE_MASKS, validateUiNode, type JsonPatchOp
+	isDuplicateStagingNode, nodeTreeToDocumentGraph, probeServerEnvironmentCapabilities, STUDIO_ROLE_MASKS,
+	validateUiNode, type JsonPatchOp
 } from '@studio/core';
 import { getStudioDb, uiProjects } from '@studio/lib';
 import { compileStaticClientBuild } from '@studio/plugins';
@@ -22,7 +23,7 @@ import { buildV011McpTools } from './mcp.v011.tools';
 export type ProjectMcpToolFn = (args: Record<string, unknown>) => Promise<unknown>;
 
 export async function resolveMcpProject(args: Record<string, unknown>) {
-	const key = String(args.projectId ?? args.slug ?? 'proj-genesis');
+	const key = String(args.projectId ?? args.slug ?? STUDIO_CONFIG.defaultProjectId);
 	const project = await loadProjectWithNodes(key);
 	if (!project) throw new Error(`Project not found: ${key}`);
 	return project;
@@ -43,8 +44,7 @@ async function toolSpawnNode(args: Record<string, unknown>) {
 		intentBinding: typeof args.intentBinding === 'string' ? args.intentBinding : undefined
 	});
 	if (!check.ok) throw new Error(check.error);
-	const dup = check.node.lifecycle === 'STAGING' && project.nodes.some((n) => (n.lifecycle === 'STAGING' || n.lifecycle === 'BUILDING') && n.type === check.node.type && n.zone === check.node.zone && n.label === check.node.label && JSON.stringify(n.props) === JSON.stringify(check.node.props));
-	if (dup) return { summary: `deduplicated ${check.node.type} in ${check.node.zone}`, node: check.node, project };
+	if (isDuplicateStagingNode(project.nodes, check.node)) return { summary: `deduplicated ${check.node.type} in ${check.node.zone}`, node: check.node, project };
 	const res = await commitProjectRevision(project.id, [...project.nodes, check.node], 'MCP_BUILDER');
 	return { summary: `spawned ${check.node.type} in ${check.node.zone}`, node: check.node, project: res.project };
 }
@@ -117,7 +117,7 @@ async function toolPatchDocument(args: Record<string, unknown>) {
 }
 
 async function toolApplyTheme(args: Record<string, unknown>) {
-	const project = await resolveProjectOrThrow(args), themeId = String(args.themeId ?? 'obsidian-brass'), db = await getStudioDb();
+	const project = await resolveProjectOrThrow(args), themeId = String(args.themeId ?? DEFAULT_DARK_THEME_ID), db = await getStudioDb();
 	await db.update(uiProjects).set({ themeId, updatedAt: Date.now() }).where(eq(uiProjects.id, project.id));
 	return { summary: `theme ${themeId}`, project: await loadProjectWithNodes(project.id) };
 }
@@ -134,7 +134,7 @@ export function buildProjectMcpTools(): readonly [string, ProjectMcpToolFn][] {
 		['ui_probe_environment', async () => probeServerEnvironmentCapabilities()],
 		['ui_get_viewport_occupancy', async (args) => computeViewportOccupancy({ viewportW: Number(args.viewportW ?? DEFAULT_VIEWPORT.width), viewportH: Number(args.viewportH ?? DEFAULT_VIEWPORT.height), chromeVisible: Boolean(args.chromeVisible ?? true), density: String(args.density ?? 'BALANCED') as LayoutDensity, leftPanelOpen: Boolean(args.leftPanelOpen ?? true), rightPanelOpen: Boolean(args.rightPanelOpen ?? true), toastVisible: Boolean(args.toastVisible ?? true), assistantExpanded: Boolean(args.assistantExpanded ?? true) })],
 		['ui_create_project', async (args) => { const project = await createStudioProject({ name: String(args.name ?? 'Untitled Workspace'), description: typeof args.description === 'string' ? args.description : undefined, themeId: typeof args.themeId === 'string' ? args.themeId : undefined }); return { summary: `created ${project.slug}`, project }; }],
-		['ui_switch_project', async (args) => ({ summary: `switched to ${String(args.projectId ?? 'proj-genesis')}`, project: await resolveProjectOrThrow(args) })],
+		['ui_switch_project', async (args) => ({ summary: `switched to ${String(args.projectId ?? STUDIO_CONFIG.defaultProjectId)}`, project: await resolveProjectOrThrow(args) })],
 		['ui_load_sample', toolLoadSample], ['ui_spawn_node', toolSpawnNode], ['ui_configure_node', toolConfigureNode],
 		['ui_commit_node', toolCommitNode], ['ui_remove_node', toolRemoveNode], ['ui_reject_all_staged', toolRejectAllStaged], ['ui_derive_blueprint', toolDeriveBlueprint],
 		['ui_patch_document', toolPatchDocument], ['ui_apply_theme', toolApplyTheme], ['ui_export_static', toolExportStatic],

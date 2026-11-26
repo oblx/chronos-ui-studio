@@ -1,22 +1,10 @@
 import {
-	generateUuidV7, type CornerAnimation, type CornerEmbellishment, type CornerTuple,
-	type HudZoneId, type UiComponentKind, type UiFrameShape, type UiNode, type UiNodeLifecycle, type UiNodeTree
+	generateUuidV7, type HudZoneId, type UiComponentKind, type UiNode, type UiNodeLifecycle, type UiNodeTree
 } from '@chronos-ui/svelte';
 
-export interface UiDocumentNode {
-	readonly id: string;
-	readonly type: UiComponentKind;
-	readonly zone: HudZoneId;
-	readonly label: string;
-	readonly lifecycle: UiNodeLifecycle;
+export interface UiDocumentNode extends Omit<UiNode, 'children'> {
 	readonly parentId: string | null;
 	readonly childIds: readonly string[];
-	readonly props: Readonly<Record<string, unknown>>;
-	readonly shape?: UiFrameShape;
-	readonly corners?: CornerTuple;
-	readonly cornerEmbellishment?: CornerEmbellishment;
-	readonly cornerAnimation?: CornerAnimation;
-	readonly intentBinding?: string;
 	readonly prototypeId?: string;
 }
 
@@ -39,6 +27,17 @@ export interface UiDocumentGraph {
 
 export type PatchTargetKind = 'PROTOTYPE' | 'INSTANCE';
 
+const NODE_META_KEYS = [
+	'shape', 'corners', 'cornerRadiusRem', 'cornerEmbellishment', 'cornerAnimation',
+	'embellishmentConfig', 'controlConfig', 'locked', 'visible', 'intentBinding'
+] as const;
+
+function pickNodeMeta(n: Partial<UiNode>): Partial<UiNode> {
+	const out: Record<string, unknown> = {};
+	for (const k of NODE_META_KEYS) if (n[k] !== undefined) out[k] = n[k];
+	return out;
+}
+
 export function nodeTreeToDocumentGraph(tree: UiNodeTree, prototypes: readonly UiComponentPrototype[] = []): UiDocumentGraph {
 	const nodes: Record<string, UiDocumentNode> = {};
 	const rootZoneIds: Partial<Record<HudZoneId, string[]>> = {};
@@ -47,10 +46,7 @@ export function nodeTreeToDocumentGraph(tree: UiNodeTree, prototypes: readonly U
 		nodes[node.id] = {
 			id: node.id, type: node.type, zone: node.zone, label: node.label, lifecycle: node.lifecycle,
 			parentId, childIds: (node.children ?? []).map((c) => c.id), props: { ...node.props },
-			...(node.shape ? { shape: node.shape } : {}), ...(node.corners ? { corners: node.corners } : {}),
-			...(node.cornerEmbellishment ? { cornerEmbellishment: node.cornerEmbellishment } : {}),
-			...(node.cornerAnimation ? { cornerAnimation: node.cornerAnimation } : {}),
-			...(node.intentBinding ? { intentBinding: node.intentBinding } : {}),
+			...pickNodeMeta(node),
 			...(typeof node.props.prototypeId === 'string' ? { prototypeId: node.props.prototypeId } : {})
 		};
 		if (!parentId) (rootZoneIds[node.zone] ??= []).push(node.id);
@@ -70,11 +66,7 @@ export function documentGraphToNodeTree(graph: UiDocumentGraph): UiNodeTree {
 		const children = entry.childIds.map(build).filter((c): c is UiNode => Boolean(c));
 		return {
 			id: entry.id, type: entry.type, zone: entry.zone, label: entry.label, lifecycle: entry.lifecycle,
-			props: resolveEffectiveNodeProps(graph, id),
-			...(entry.shape ? { shape: entry.shape } : {}), ...(entry.corners ? { corners: entry.corners } : {}),
-			...(entry.cornerEmbellishment ? { cornerEmbellishment: entry.cornerEmbellishment } : {}),
-			...(entry.cornerAnimation ? { cornerAnimation: entry.cornerAnimation } : {}),
-			...(entry.intentBinding ? { intentBinding: entry.intentBinding } : {}),
+			props: resolveEffectiveNodeProps(graph, id), ...pickNodeMeta(entry),
 			...(children.length > 0 ? { children } : {})
 		};
 	};

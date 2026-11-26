@@ -1,4 +1,4 @@
-import type { HudZoneId, UiComponentKind, UiNode, UiProjectDefinition } from '@chronos-ui/svelte';
+import { DEFAULT_DARK_THEME_ID, type HudZoneId, type UiComponentKind, type UiNode, type UiProjectDefinition } from '@chronos-ui/svelte';
 import { DEFAULT_BUILD_CONFIG } from '@studio/core';
 import { registerInputConnector } from '../registry';
 import type { ProjectImportResult } from './json.connector';
@@ -55,7 +55,7 @@ export function parseMermaidWireframe(source: string, projectName = 'Mermaid Wir
 		slug: projectName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
 		name: projectName,
 		description: 'Generated from Mermaid wireframe graph.',
-		themeId: 'obsidian-brass',
+		themeId: DEFAULT_DARK_THEME_ID,
 		cornerMode: 'CHAMFER',
 		activeRevisionId: 'rev-mmd-1',
 		nodes: [...seen.values()],

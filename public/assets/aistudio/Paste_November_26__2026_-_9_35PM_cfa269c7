@@ -1,0 +1,232 @@
+### Senior Architectural & Visual Audit of `v0.1.0`
+
+The `v0.1.0` Review Seal hit strong operational discipline (`96.5%` implementation vs. `3.5%` QA, `0` audit violations, `82/82` tests, `0px` tooltip overflow, `0px` assistant expand canvas delta). Auditing the rendered surfaces and repository metrics highlights **six structural gaps** to resolve in `v0.1.1`:
+
+* **Stenciled Arrow+Badge Cursors Instead of True CSS Silhouettes:** Both the default viewport cursor and the hover-state cursor on `Calm View` render the exact same pointer arrow with a microscopic cyan square or dot stapled beside its tail rather than distinct semantic silhouettes for pointer, hand/grab, I-beam text, crosshair target, zoom lens, and resize axes.
+
+
+* **Flat Interactive State Differentiation & Missing Scrollbar Theming:** Interactive controls across the perimeter pods, rails, and tabs lack distinct, semantic `inactive / hover / active / focus-visible / disabled` state progressions, while scrollable containers fall back to raw browser scrollbars instead of thin theme-bound tracks.
+
+
+* **Missing Always-Visible Undo/Redo & IndexedDB History Ceiling:** `ProjectLifecyclePod` exposes `[ Save ]` and `[ Reset ]` without permanent, disabled-aware `[ Undo ]` and `[ Redo ]` controls backed by a configurable IndexedDB-only history ring (`default: 5`, `max: 128`).
+
+
+* **Unchoreographed HUD Paint & Missing Modal Lifecycle Motion:** Switching into `Studio HUD` snaps all 11 perimeter zones onscreen simultaneously rather than revealing them sequentially via existing visibility events, and modals lack a true event-driven `OPENING -> OPEN -> CLOSING -> CLOSED` exit lifecycle.
+
+
+* **Cosmetic / Incomplete Action Paths & Unprioritized Tooltips:** Several header tabs (`Tokens`, `Decks`, `Twin MCP`) and utility controls need strict end-to-end verification that every click injects a live intent producing concrete client or server-controlled state changes, paired with universal tooltips gated by a configurable `0–100` `infoLevel` filter.
+
+
+* **Near-Cap Folder Pressure & `8.1s` `tsc` Drag in `qa:fast`:** Seven directories (`machines`, `atoms`, `molecules`, `workers`, `client/canvas`, `core/engine`, `server`) sit at `9/10` (`NEAR_CAP_WARNING`), and `qa:fast` still takes `8.26s` because `tsc --noEmit` re-checks library declarations without `--skipLibCheck`.
+
+---
+
+# `@chronos-ui/svelte` (`v0.1.1`) — Bespoke 21-State CSS Cursor Silhouettes, Revamped Motion Engine & Sequential `250ms` ASC HUD Reveal, Event-Driven Modal Transitions, IndexedDB Undo/Redo (`5..128`), `0–100` Tooltip `infoLevel`, Thin Themed Scrollbars, Configurable Controls & 100% Real-Action Intent Audit Specification
+
+* **Package & Release Target:** `@chronos-ui/svelte` & Companion Builder Studio (`VERSION = "0.1.1"`)
+* **Author:** `Oblx <code@oblx.dev>`
+* **Role:** `Senior AI assistant | 256 IQ`
+* **SSOT Anchor:** `@README.md` (`THE TRUTH`) + `packages/chronos-ui/README.md` + `docs/**/*.md` (`<= 100 LoC`, balanced LaTeX MathML, zero fenced code blocks) + `docs/skills/*/SKILL.md`
+* **Hard Invariants:** Tabs (`\t`) only | `function <= 42 LoC` | `code <= 150 LoC` | `docs <= 100 LoC` | `folder <= 10 files` (target `<= 8`) | `100% barrelled (index.ts)` | `0 runtime deps in @chronos-ui/svelte` | `0 ../../ parent-traversal imports` | `0 hardcoded literals/numerals/colors/durations` | `0 Unicode emojis (\p{Extended_Pictographic})` | `Humble .svelte views` | `Strict Acyclic Event DAG` | **`25m Target / 32m Hard Freeze / >= 85% Impl vs. <= 15% QA / 0 Agent Screenshots`**
+
+---
+
+## 1. Bounded-Context `@chronos-ui/svelte` Lineage (`v0.0.1` – `v0.1.0`)
+
+Persist Sprint 17 (`docs/08-sprints/sprint-17-v0.1.1-motion-cursors-history.md`, `<= 100 LoC`, zero fenced code blocks) and rotate older logs into `docs/08-sprints/archive/` if needed so `docs/08-sprints/` stays `<= 8` entries:
+
+* **`v0.0.1`–`v0.0.5`:** Zero-dep Svelte 5 library (`packages/chronos-ui/`), Companion Studio (`studio/`), Calm Empty-Stage Genesis, 3-layer native Svelte 5 dynamic canvas, Drizzle WAL/IDB mirror, RFC 6902 patcher, normalized `UiDocumentGraph` + infinite derivations, Governance Gate, Dual-Spine MCP, 6 Connectors / 5 Adapters, Voice + Xbox/PS5 DualSense `input/`, Spatial Anti-Bloat Governor, Svelte 5 `motion/`, Harbor + Google AI Studio probe, RFC 9562 UUID v7 `UiEntityRegistry`, realtime `UiBentoRadar`.
+* **`v0.0.6`–`v0.0.12`:** Workspace lifecycle (`Save`/`Clean`/`Default View`), 14 true-contour UML shapes, `5×3` embellishments + `ORBIT_TRACE`, `UiVectorBorder` true-stroke chamfers & concentric `ROUND` `A` arcs, 3-tier corner cuts (`0.5rem`/`0.75rem`/`0.3125rem`), concrete-hex 21-state root/body cursors, zero `../..` aliases (`@ui/*`, `@studio/*`), `StationBuilderModal`, `ZoneEditionModal`, dual-page AST `FieldTomeModal`, 5-panel CS6 `WireframeSkeletonModal`, O(1) batched DAG, W3C/WebMCP static builds, vendored `fullstack-bun-drizzle` adapter, minimal Calm launch, unified `LEFT_EDGE`/`RIGHT_EDGE` `OVERLAY_HOVER` drawers.
+* **`v0.1.0` (+ Review Seal):** MIT license, `CHANGELOG.md`, `packages/chronos-ui/README.md`, 16 package subpath exports + `.d.ts` emit, reciprocal `Studio HUD <-> Calm View` (`dx=2px, dy=0px`), `ProjectLifecyclePod`, unified `HORIZONTAL | VERTICAL` `fold.overlay` (`0px` canvas delta on chat unfold), multi-paragraph wrapping tooltips (`0px` overflow), scoped-default `qa:fast` / `qa:harness`.
+
+---
+
+## 2. Phase 0 — Sprint Clock, `9/10` Folder Decongestion & Sub-`3s` `qa:fast` Optimization
+
+1. **Clock Reset & Skill-First Start:**
+* Start strictly with `bun run qa:timer -- reset && bun run qa:timer -- start`. Load all 5 domain skills in `docs/skills/*/SKILL.md` before modifying code and sync them at sprint close.
+
+
+2. **Proactively Decongest Touched `9/10` Folders (`<= 8` Files Target):**
+* Before adding new modules to `packages/chronos-ui/src/{machines,atoms,molecules}` or `studio/src/{client/canvas,core/engine,server,workers}`, extract cohesive sub-barrels (e.g., `packages/chronos-ui/src/machines/overlays/`, `packages/chronos-ui/src/motion/sequences/`, `studio/src/workers/qa/`) with `100%` `index.ts` barrelling so zero directories cross `8/10`.
+
+
+3. **Sub-`3s` `qa:fast` Typecheck Lever (`studio/src/workers/qa_verify.ts`):**
+* Add `--skipLibCheck` to the incremental `tsc --noEmit` invocation inside `qa:fast` (retaining full strict checking in `qa:delta` / `lint_applet`) so inner-loop `qa:fast` drops cleanly under **`3.0s`** and total sprint QA remains strictly `<= 15%` (`0` agent screenshots).
+
+
+
+---
+
+## 3. Universal Semantic Theming: Thin Scrollbars, Interactive State Matrix & Configurable Buttons/Forms
+
+### 3.1 Thin Themed Scrollbars Everywhere (`packages/chronos-ui/src/styles.css` & `tokens/semantic.tokens.ts`)
+
+* Define semantic scrollbar custom properties resolved from every theme pack (`--ui-scroll-track`, `--ui-scroll-thumb`, `--ui-scroll-thumb-hover`, `--ui-scroll-size: 0.375rem`).
+* Apply standardized thin scrollbars globally to all scrollable containers (`.ui-scroll-thin`, drawers, modals, `UiHorizontalDeck`, `StagingBuildLayer`, `ClientDocumentRoot`, `UiAssistantDock` transcript, `FieldTomeModal` folios, `WireframeSkeletonModal` Layers/History, `Live Stream`):
+* Standard CSS: `scrollbar-width: thin; scrollbar-color: var(--ui-scroll-thumb) var(--ui-scroll-track); scrollbar-gutter: stable;`.
+* WebKit/Chromium: `::-webkit-scrollbar` (`6px` width/height), recessed `--ui-scroll-track`, subtle chamfered/rounded `--ui-scroll-thumb` transitioning to `--ui-accent-vivid` on `:hover` / `:active`.
+
+
+
+### 3.2 Complete Interactive State Token Matrix (`inactive | hover | active | focus-visible | disabled`)
+
+Standardize every interactive `@chronos-ui/svelte` primitive (`UiChamferButton`, `UiUtilityIconButton`, `UiSubTabBar`, `UiInput`, `UiSelect`, `UiSlider`, `UiAccordionSection`, edge-rail triggers, and `UiBadge` interactive chips) against one unified CSS state contract—zero unstyled raw transitions:
+
+* **`Inactive` (Idle / Resting):** Recessed semantic fill (`--ui-state-idle-bg`), calm subtle stroke (`--ui-border-subtle`), balanced label luminance (`--ui-base-content` / `--ui-muted-content`).
+* **`Hover` (`:hover:not(:disabled)`):** Elevated surface tint (`--ui-state-hover-bg`), illuminated semantic border (`--ui-primary` or `--ui-accent-vivid`), crisp micro-lift or border glow honoring global motion tokens.
+* **`Active / Pressed` (`:active`, `[aria-pressed="true"]`, `[aria-selected="true"]`, `[data-ui-active="true"]`):** Solid or high-contrast tinted fill (`--ui-state-active-bg`), vivid border stroke (`--ui-accent-vivid`), tactile detent press (`scale(0.98)` when kinetic motion is active).
+* **`Focus-Visible` (`:focus-visible`):** Unmistakable high-contrast keyboard/gamepad ring (`2px solid var(--ui-accent-vivid)` with `2px` offset) meeting WCAG AA/AAA focus visibility.
+* **`Disabled` (`:disabled`, `[aria-disabled="true"]`):** Explicit desaturated muted posture (`opacity: 0.42`, `filter: grayscale(0.65)`, `cursor: var(--ui-cursor-not-allowed)`, zero hover lift or press detent).
+
+### 3.3 Runtime Configuration for Buttons & Form Controls (`@ui/tokens`, `Settings`, `NodeInspectorFloat`, MCP)
+
+Extend `studioDefaults` and per-node props with declarative **`controlConfig`** (`buttonStyle` & `formConfig`) persisted via Drizzle/IDB, emitted in static builds, and exposed via `UI_SET_CONTROL_CONFIG` / MCP `ui_configure_controls`:
+
+* **Buttons (`buttonConfig`):** `variant` (`SOLID | OUTLINE | GHOST | TACTICAL`), `density` (`COMPACT | STANDARD | SPACIOUS`), `hoverEffect` (`GLOW | LIFT | BORDER_SWEEP | NONE`), `pressDetent` (`boolean`), `uppercaseLabels` (`boolean`), `iconPosition` (`LEFT | RIGHT`).
+* **Form Elements (`formConfig`):** `surfaceStyle` (`RECESSED | OUTLINED | UNDERLINE`), `density` (`COMPACT | STANDARD | SPACIOUS`), `focusGlow` (`boolean`), `showValidationInline` (`boolean`), `sliderTrackStyle` (`HAIRLINE | SEGMENTED | SOLID`).
+* Surface a dedicated **`Controls & Forms`** calibration section inside `Settings -> Visuals & Motion` (with live interactive button/input/select/slider preview) and inside `NodeInspectorFloat`.
+
+---
+
+## 4. True Bespoke 21-State CSS Cursor Silhouettes (`packages/chronos-ui/src/cursor/`)
+
+Completely overhaul `cursor.presets.ts` and `cursor.synthesizer.ts`—**ban the lazy "same arrow + microscopic corner badge" pattern**. Every one of the **21 CSS cursor states** MUST render its own genuine, immediately recognizable, `32×32` theme-colored architectural vector silhouette with an ergonomically accurate hotspot:
+
+| State Group | Required Distinct Vector Silhouette (Zero Recycled Arrow+Dot Stamps) | Calibrated Hotspot `(hx, hy)` |
+| --- | --- | --- |
+| **`default`** | Crisp geometric angular pointer arrow with internal chamfer notch and high-contrast outline halo (`stroke` + `fill`). | `(4, 3)` |
+| **`pointer`** | Clean geometric pointing hand / stylized actuator fingertip (unmistakable link/action affordance—distinct from `default` arrow). | `(10, 3)` |
+| **`grab` / `grabbing**` | Open architectural claw/hand (`grab`) closing into a tightened gripped claw/hand (`grabbing`). | `(16, 16)` |
+| **`text`** | Precision drafting I-beam with chamfered top/bottom serifs and vivid center tick. | `(16, 16)` |
+| **`crosshair` / `cell**` | True open-center 4-quadrant tactical reticle (`crosshair`); solid drafting plus-grid cross (`cell`). | `(16, 16)` |
+| **`move`** | Symmetric 4-way cardinal compass arrows (`N/E/S/W`) with central diamond pivot. | `(16, 16)` |
+| **`col-resize` / `row-resize` / `nesw-resize` / `nwse-resize**` | True dual-headed orthogonal (`↔`, `↕`) and diagonal (`⤢`, `⤡`) drafting caliper arrows with crisp center separator bar. | `(16, 16)` |
+| **`zoom-in` / `zoom-out**` | Genuine octagonal/circular magnifying lens with angled handle and crisp internal `+` (`zoom-in`) or `-` (`zoom-out`) sign. | `(13, 13)` |
+| **`wait` / `progress**` | Geometric hourglass / segmented orbital ring (`wait`); compact pointer paired with balanced orbital arc (`progress`). | `(16, 16)` / `(4, 3)` |
+| **`not-allowed`** | Clean forbidden circle with bold `45°` diagonal slash in semantic `--ui-error` / contrast stroke. | `(16, 16)` |
+| **`help` / `context-menu` / `copy` / `alias**` | Distinct chamfered `?` emblem (`help`); crisp stacked 3-bar menu glyph (`context-menu`); overlapping dual-sheet `+` icon (`copy`); curved shortcut link arrow (`alias`). | `(12, 12)` / `(4, 3)` |
+
+* **Pack Cohesion Across All 4 Built-In Packs:** Apply each pack's signature aesthetic geometry across all 21 bespoke silhouettes (`Cyber Reticle` = `45°` chamfered high-contrast cyan/brass; `Archival Nib` = calligraphic ink-nib & drafting pen silhouettes; `Tactical Brass` = precision vernier caliper silhouettes; `Minimal Precision` = ultra-clean Swiss geometric hairlines), always resolving concrete `%23rrggbb` theme hex values (`0` `var(--` inside SVGs) and passing Chromium `Image.decode() === 32×32`.
+* **Upgraded `CursorStudioModal` & Synthesizer:** Ensure uploaded PNG derivation composes clean silhouette-aware overlays and lets users inspect, override, or reset any of the 21 individual states live.
+
+---
+
+## 5. IndexedDB-Only Configurable Undo/Redo History (`default: 5`, `max: 128`) & Permanent Disabled-Aware Controls
+
+1. **Dedicated IndexedDB-Only History Engine (`studio/src/lib/history.idb.ts`):**
+* Persist per-project RFC 6902 undo/redo patch stacks exclusively inside a dedicated IndexedDB object store (`chronos_ui_history_v1`, keyed by `projectUuid`, zero SQLite row bloat for transient local undo steps).
+* Maintain bounded ring-buffer semantics strictly capped at **`historyLimit`** (`default: 5`, configurable integer `1..128` via `Settings -> Runtime & Memory`, `UI_SET_HISTORY_LIMIT` intent, and MCP `ui_set_history_limit`). Whenever a new entry pushes `undoStack.length > historyLimit`, evict the oldest entry cleanly; any new forward mutation clears `redoStack`.
+* Gracefully fall back to an identical bounded in-memory ring when running in non-IndexedDB headless/unit environments (`bun test`) using the exact same `HistoryStorePort` interface.
+
+
+2. **Always-Visible `[ Undo ]` & `[ Redo ]` Buttons (`ProjectLifecyclePod.svelte` & `UiAssistantDock.svelte`):**
+* Mount compact, chamfered **`[ Undo ]`** (`undo` icon, `Cmd/Ctrl+Z`) and **`[ Redo ]`** (`redo` icon, `Cmd/Ctrl+Shift+Z` / `Cmd/Ctrl+Y`) triggers permanently inside `ProjectLifecyclePod` (visible in both Calm and Studio HUD modes—never unmounting or causing horizontal CLS).
+* When `undoStack.length === 0`, `[ Undo ]` remains visible in its explicit semantic `disabled` (grayed) state (`disabled={true}`, `aria-disabled="true"`). When `redoStack.length === 0`, `[ Redo ]` remains visible in its explicit semantic `disabled` (grayed) state.
+* Dynamic tooltips display live stack depth (e.g., `"Undo last change (3/5) [Ctrl+Z]"` / `"Nothing to redo"`), and both actions dispatch `UI_HISTORY_UNDO` / `UI_HISTORY_REDO` with full Twin MCP parity (`ui_undo`, `ui_redo`).
+
+
+
+---
+
+## 6. Global Motion Design Revamp, Event-Driven Modal Lifecycle & Sequential `250ms` ASC HUD Boot Choreography
+
+### 6.1 Token-Driven, Non-Hardcoded Global Motion Registry (`packages/chronos-ui/src/motion/`)
+
+Revamp `@chronos-ui/svelte/motion` so **zero** components hardcode transition durations (`150ms`, `220ms`, `250ms`), bezier curves, or stagger timings:
+
+* **`motion.tokens.ts`:** Canonical `MOTION_DESIGN_TOKENS` registry mapped to CSS custom properties (`--ui-dur-instant`, `--ui-dur-fast`, `--ui-dur-normal`, `--ui-dur-deliberate`, `--ui-ease-standard`, `--ui-ease-enter`, `--ui-ease-exit`, `--ui-ease-spring`, `--ui-stagger-zone-ms`, `--ui-stagger-node-ms`).
+* **Per-Surface Configurable Motion Profiles (`motionConfig.surfaces`):** Independently configurable (with sensible unified defaults) for `MODAL`, `DRAWER`, `HUD_ZONE`, `TOOLTIP`, `NODE`, and `CONTROL`—all controlled via `UI_SET_MOTION_CONFIG`, persisted in `studioDefaults`, editable in `Settings -> Visuals & Motion`, and honoring `prefers-reduced-motion: reduce` (`0ms` collapse).
+
+### 6.2 Event-Driven Modal Open/Close Lifecycle (`modal.machine.svelte.ts` & `UiModalShell.svelte`)
+
+Fix abrupt modal snapping by driving modal visibility through an explicit 4-phase event-driven state machine inside `UiWireBroker`:
+
+* **Lifecycle Phases:** `'CLOSED' -> 'OPENING' -> 'OPEN' -> 'CLOSING' -> 'CLOSED'`.
+* **Intent Flow:**
+* Opening dispatches `UI_OPEN_MODAL` $\to$ sets `phase = 'OPENING'`, mounts backdrop + modal hull executing the configured `MODAL` enter transition (backdrop opacity fade + shape-matched `CYBER_UNFOLD` / `SCALE_SPRING` / `IRIS_EXPAND` / `FADE` choreography) $\to$ emits `UI_MODAL_OPENED` (`phase = 'OPEN'`) on `onintroend`.
+* Closing (via `[×]`, `Done`, `Escape`, backdrop click, or MCP `ui_close_modal`) dispatches `UI_CLOSE_MODAL` $\to$ sets `phase = 'CLOSING'`, plays the full symmetric exit animation (`out:uiTransition` + backdrop fade-out) **before** unmounting DOM $\to$ emits `UI_MODAL_CLOSED` (`phase = 'CLOSED'`, `activeModal = null`) on `onoutroend` (with a deterministic safety fallback timer bound to `effectiveDuration + 40ms` so interrupted transitions can never wedge a modal).
+
+
+
+### 6.3 Lazy, Event-Driven Sequential HUD Zone Reveal (`ASC` Order, `250ms`/Zone, One-Time + Replayable)
+
+Implement a clean, reusable **HUD Boot Choreographer** (`packages/chronos-ui/src/motion/hud.sequence.svelte.ts`):
+
+* **Default Hidden-Until-Revealed Lazy Mounting:** On first HUD presentation, all perimeter zones start hidden (`revealedZones = new Set(['WORLD_CANVAS'])` — only the background stage renders immediately, keeping initial DOM and paint ultra-lean).
+* **Sequential `ASC` Zone Dispatch (`250ms` Configurable Step):** Iterates the canonical ascending perimeter zone order (`Zone 1: TOP_LEFT` $\to$ `Zone 2: TOP_CENTER` $\to$ `Zone 3: PROJECT_TAB_DECK` $\to$ `Zone 4: TOP_RIGHT` $\to$ `Zone 5: RIGHT_EDGE` $\to$ `Zone 6: BOTTOM_RIGHT` $\to$ `Zone 7: BOTTOM_CENTER` $\to$ `Zone 8: BOTTOM_LEFT` $\to$ `Zone 9: LEFT_EDGE`), dispatching the **exact existing zone reveal intent** (`UI_REVEAL_ZONE` / `UI_SET_ZONE_VISIBILITY`) every `motionConfig.hudZoneStaggerMs` (default `250ms`, `0ms` when reduced-motion or `INSTANT` speed is active) with epoch-cancellable cleanup (`AbortController` / `sequenceEpoch`).
+* **One-Time Persistence & Settings Replay:** Persists `hasPlayedHudBootSequence: true` in `localStorage` / session state so subsequent reloads or toggles mount immediately without delaying power users. Add a dedicated **`[ Replay HUD Boot Sequence ]`** button inside `Settings -> Visuals & Motion` (and MCP tool `ui_replay_hud_sequence`) that closes Settings cleanly via `UI_CLOSE_MODAL` and replays the full `ASC` `250ms` zone reveal live on screen.
+
+---
+
+## 7. Universal Tooltip Coverage & Priority `infoLevel` (`0–100`) Engine
+
+Upgrade `tooltip.machine.svelte.ts` and `UiCyberTooltip.svelte` into a complete, user-tunable contextual guidance layer:
+
+1. **Numeric `infoLevel` (`0–100`) Priority Scale (`tooltip.types.ts`):**
+* Attach `data-ui-tip-level="<0..100>"` (default `50` if omitted) alongside every `data-ui-tip` attribute across `@chronos-ui/svelte` and Studio:
+* **`0–20` (Essential / Safety):** Disabled-state explanations, destructive resets, save status, error indicators.
+* **`21–50` (Core Actions):** Primary tools (`Studio HUD`, `Undo`, `Redo`, `Save`, `Build`, `Wireframe`, `Settings`, `Help`, edge-rail tabs, modal controls).
+* **`51–80` (Power Hints & Shortcuts):** Keyboard/Gamepad shortcut hints, corner/shape parameter notes, density/motion explanations.
+* **`81–100` (Novice / Architectural Deep Lore):** Extended multi-paragraph design guidance and starter-sample descriptions.
+
+
+
+
+2. **Global Filtering & Settings Knob (`tooltipInfoLevel: 0..100`, default `60`):**
+* `tooltip.machine.svelte.ts` evaluates `tip.infoLevel <= broker.state.studioDefaults.tooltipInfoLevel` before showing any tooltip (setting `0` silences all non-critical hints cleanly; `100` reveals full verbose guidance).
+* Expose a semantic `UiSlider` (`Tooltip Detail Level: 0..100` with live tier label `Silent | Essential | Standard | Guided | Verbose`) inside `Settings -> Visuals & Motion` + `UI_SET_TOOLTIP_INFO_LEVEL` intent + MCP `ui_set_tooltip_info_level`.
+
+
+3. **100% Interactive Element Coverage Audit:** Audit every button, icon trigger, tab, slider, select, edge-rail icon, radar control, and assistant action across Studio to ensure **every** interactive control carries a meaningful, multi-paragraph-capable `data-ui-tip` and calibrated `data-ui-tip-level`.
+
+---
+
+## 8. 100% Real-Action Interactive Intent Audit (Zero Cosmetic / Dead Controls)
+
+Perform a strict sweep across every painted interactive element in `studio/src/client/` and `packages/chronos-ui/` enforcing the rule: **every clickable control MUST dispatch a typed `DagEnvelope` through `UiWireBroker`, and every dispatched intent MUST produce a real client mutation or a controlled server round-trip emitting a verified response event**:
+
+* **Fix `TOP_CENTER` View Tabs (`Workbench`, `Tokens`, `Decks`, `Twin MCP`):**
+* `Workbench`: Focuses live interactive canvas composition (`Layer B/C`).
+* `Tokens`: Opens/focuses live semantic theme & WCAG contrast inspection (`RIGHT_EDGE -> Themes` + live token telemetry banner).
+* `Decks`: Switches stage focus to blueprint/sample deck comparison & quick-launch matrix.
+* `Twin MCP`: Opens live MCP server telemetry & `Wire Tap` / session sync panel (fetching live `/api/mcp/manifest` + `/api/wire/traces` from the Bun server and emitting a controlled `SERVER_MANIFEST_SYNCED` event into `UiWireBroker`).
+
+
+* **Fix `TOP_RIGHT` `DAG` / `Tour` / `Cursor` / `User` Controls & All Modal Buttons:** Verify every single trigger routes through `UiWireBroker`, records a `WireTraceRecord` in `LIVE STREAM`, and executes concrete, observable state changes (with zero orphan `onclick` stubs or silent no-ops).
+
+---
+
+## 9. Lean 4-Stage Verification Gate (`<= 25m` Target / `32m` Freeze / `<= 15%` QA / `0` Screenshots)
+
+Iterate strictly with **`bun run qa:fast`** (`< 3s` target, max `2` runs mid-sprint) and run **`bun run qa:release`** + **`bun run qa:harness --scenario=latest`** once at close:
+
+1. **Stage 1 — Static & Hygiene Audit (`qa_audit.ts --full`):** Confirm `VERSION === "0.1.1"`, `0` violations across tabs, `<= 42 LoC` fn, `<= 150 LoC` code, `<= 100 LoC` docs (0 fences), `0` folders at `10/10` (decongested touched dirs `<= 8`), `100%` barrels, `0` runtime deps in `@chronos-ui/svelte`, `0` `../..`, `0` emojis, `0` `<svelte:component>`, and all 5 domain skills + `docs/01..06` synced.
+2. **Stage 2 — Scoped `v0.1.1` Suite (`studio/src/tests/releases/v0101_motion_cursors_history.test.ts`) + Final Full `bun test`:**
+* Proves all **21 bespoke CSS cursor silhouettes** have distinct path geometries (no two distinct semantic groups share an identical arrow+badge template), concrete `%23rrggbb` hexes (`0` `var(--`), valid `32×32` dimensions, and calibrated hotspots.
+* Proves IndexedDB-backed `HistoryStore` enforces `default: 5`, configurable `1..128` cap eviction, symmetric `Undo` / `Redo` stack invariants, and disabled flags (`canUndo`, `canRedo`).
+* Proves `hud.sequence.svelte.ts` emits all perimeter zones strictly in `ASC` order with configurable `250ms` interval, epoch cancellation, and one-time + replay semantics.
+* Proves `modal.machine.svelte.ts` transitions cleanly through `CLOSED -> OPENING -> OPEN -> CLOSING -> CLOSED` emitting `UI_MODAL_OPENED` / `UI_MODAL_CLOSED`.
+* Proves `tooltipInfoLevel` (`0..100`) filters tooltips deterministically and `controlConfig` persists cleanly.
+
+
+3. **Stage 3 — Typecheck, SSG Tome & Production Build (`qa:release` + `lint_applet`):** `0` Svelte/TS errors, `0` warnings, `.d.ts` emit green, full `:memory:` SQLite suite passing, main Vite chunk `< 200 kB`.
+4. **Stage 4 — Zero-Screenshot Browser Harness (`bun run qa:harness --scenario=latest --json`):**
+* Verifies `Undo` and `Redo` buttons remain mounted and visible at all times, transitioning cleanly between `disabled` (grayed) and enabled states across live node spawn $\to$ Undo $\to$ Redo.
+* Verifies `Modal` open/close triggers `OPENING -> OPEN -> CLOSING -> CLOSED` lifecycle phases with non-zero computed transition duration.
+* Verifies `Replay HUD Boot Sequence` sequentially reveals zones in `ASC` order and logs real `UI_REVEAL_ZONE` wire events.
+* Verifies `tooltipInfoLevel = 20` hides an `infoLevel = 85` tooltip while showing an `infoLevel = 15` tooltip, and `tooltipInfoLevel = 100` reveals both.
+* Verifies thin themed scrollbars (`scrollbar-width: thin`), Chromium `Image.decode() === 32×32` on bespoke `default` + `pointer` + `text` + `grab` cursors, real action execution on `Workbench / Tokens / Decks / Twin MCP`, `0` console/page errors, `cleanTeardown: true`, and `screenshotsTaken: 0`.
+
+
+
+---
+
+## 10. Concise High-Signal Closing Report Contract (`<= 65 lines`)
+
+1. **`qa:timer` Phase Ledger & 85/15 Impl-vs-QA Breakdown** (proving warm `qa:fast < 3s` and total sprint `<= 32m`).
+2. **All 5 Skills Synced, Docs Updated & S0/S1/S2 Audit Refactor Summary** (including folder decongestion counts).
+3. **Delta-Only File List** (grouped by `packages/chronos-ui/`, `studio/`, `docs/`, `docs/skills/`).
+4. **4-Stage Quantitative Verification Table** (including distinct 21-cursor silhouette proof, IDB undo/redo `5..128` proof, `ASC` `250ms` HUD sequence proof, modal `OPENING/CLOSING` proof, `infoLevel` filter proof, and `screenshotsTaken = 0`).
+5. **Decongested Repository Tree Summary** (showing folder counts cleanly `<= 8–9`).
+6. **Candid Constraints & `v0.1.1` Release Sign-Off.**

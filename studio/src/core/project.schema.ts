@@ -1,9 +1,9 @@
 import {
-	COMPONENT_CATALOG, CORNER_ANIMATIONS, CORNER_EMBELLISHMENTS, CORNER_MODES,
-	HUD_ZONES, UI_FRAME_SHAPES,
-	type CornerAnimation, type CornerEmbellishment, type CornerKind, type CornerTuple,
-	type HudZoneId, type UiComponentKind, type UiFrameShape, type UiNode,
-	type UiNodeLifecycle, type UiNodeTree, type UiProjectBuildConfig, type UiProjectDefinition
+	clampControlConfig, COMPONENT_CATALOG, CORNER_ANIMATIONS, CORNER_EMBELLISHMENTS, CORNER_MODES,
+	DEFAULT_DARK_THEME_ID, HUD_ZONES, UI_FRAME_SHAPES,
+	type ButtonControlConfig, type CornerAnimation, type CornerEmbellishment, type CornerKind, type CornerTuple,
+	type FormControlConfig, type HudZoneId, type PartialStudioControlConfig, type UiComponentKind, type UiFrameShape,
+	type UiNode, type UiNodeLifecycle, type UiNodeTree, type UiProjectBuildConfig, type UiProjectDefinition
 } from '@chronos-ui/svelte';
 
 const VALID_ZONES = new Set<string>(HUD_ZONES);
@@ -15,11 +15,7 @@ const VALID_EMBELLISHMENTS = new Set<string>(CORNER_EMBELLISHMENTS);
 const VALID_ANIMATIONS = new Set<string>(CORNER_ANIMATIONS);
 
 export const DEFAULT_BUILD_CONFIG: UiProjectBuildConfig = {
-	protocol: 'https',
-	basePath: '/',
-	apiEndpoint: '',
-	secretRefs: [],
-	inlineBundle: false
+	protocol: 'https', basePath: '/', apiEndpoint: '', secretRefs: [], inlineBundle: false
 };
 
 export type NodeValidationResult = { ok: true; node: UiNode } | { ok: false; error: string };
@@ -27,19 +23,40 @@ export type ProjectValidationResult = { ok: true; project: UiProjectDefinition }
 
 function parseCornerTuple(raw: unknown): CornerTuple | undefined {
 	if (!Array.isArray(raw) || raw.length !== 4) return undefined;
-	if (!raw.every((c) => typeof c === 'string' && VALID_CORNERS.has(c))) return undefined;
-	return raw as unknown as CornerTuple;
+	return raw.every((c) => typeof c === 'string' && VALID_CORNERS.has(c)) ? (raw as unknown as CornerTuple) : undefined;
+}
+
+function parseNodeControlConfig(raw: unknown): PartialStudioControlConfig | undefined {
+	if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+	const obj = raw as { buttonConfig?: Partial<ButtonControlConfig>; formConfig?: Partial<FormControlConfig> };
+	const hasBtn = Boolean(obj.buttonConfig && typeof obj.buttonConfig === 'object');
+	const hasForm = Boolean(obj.formConfig && typeof obj.formConfig === 'object');
+	if (!hasBtn && !hasForm) return undefined;
+	const clamped = clampControlConfig(obj);
+	return {
+		...(hasBtn ? { buttonConfig: Object.fromEntries(Object.keys(obj.buttonConfig!).map((k) => [k, clamped.buttonConfig[k as keyof ButtonControlConfig]])) as Partial<ButtonControlConfig> } : {}),
+		...(hasForm ? { formConfig: Object.fromEntries(Object.keys(obj.formConfig!).map((k) => [k, clamped.formConfig[k as keyof FormControlConfig]])) as Partial<FormControlConfig> } : {})
+	};
 }
 
 function parseNodeVisualMeta(o: Record<string, unknown>) {
 	const corners = parseCornerTuple(o.corners);
+	const cornerRadiusRem = typeof o.cornerRadiusRem === 'number' && Number.isFinite(o.cornerRadiusRem) ? o.cornerRadiusRem : undefined;
 	const shape = typeof o.shape === 'string' && VALID_SHAPES.has(o.shape) ? (o.shape as UiFrameShape) : undefined;
 	const cornerEmbellishment = typeof o.cornerEmbellishment === 'string' && VALID_EMBELLISHMENTS.has(o.cornerEmbellishment) ? (o.cornerEmbellishment as CornerEmbellishment) : undefined;
 	const cornerAnimation = typeof o.cornerAnimation === 'string' && VALID_ANIMATIONS.has(o.cornerAnimation) ? (o.cornerAnimation as CornerAnimation) : undefined;
 	const emb = o.embellishmentConfig as Record<string, unknown> | undefined;
 	const embellishmentConfig = emb && typeof emb.offsetRem === 'number' && typeof emb.amplitudeRem === 'number' && typeof emb.periodMs === 'number'
 		? { offsetRem: emb.offsetRem, amplitudeRem: emb.amplitudeRem, periodMs: emb.periodMs } : undefined;
-	return { corners, shape, cornerEmbellishment, cornerAnimation, embellishmentConfig };
+	const controlConfig = parseNodeControlConfig(o.controlConfig);
+	return {
+		...(corners ? { corners } : {}), ...(cornerRadiusRem !== undefined ? { cornerRadiusRem } : {}),
+		...(shape ? { shape } : {}), ...(cornerEmbellishment ? { cornerEmbellishment } : {}),
+		...(cornerAnimation ? { cornerAnimation } : {}), ...(embellishmentConfig ? { embellishmentConfig } : {}),
+		...(controlConfig ? { controlConfig } : {}),
+		...(typeof o.locked === 'boolean' ? { locked: o.locked } : {}),
+		...(typeof o.visible === 'boolean' ? { visible: o.visible } : {})
+	};
 }
 
 export function validateUiNode(raw: unknown): NodeValidationResult {
@@ -89,17 +106,12 @@ export function validateProjectDefinition(raw: unknown): ProjectValidationResult
 		ok: true,
 		project: {
 			id: typeof o.id === 'string' && o.id.trim() ? o.id.trim() : `proj-${slug}-${Date.now().toString(36)}`,
-			slug,
-			name: o.name.trim(),
-			description: typeof o.description === 'string' ? o.description : '',
-			themeId: typeof o.themeId === 'string' ? o.themeId : 'obsidian-brass',
-			cornerMode,
+			slug, name: o.name.trim(), description: typeof o.description === 'string' ? o.description : '',
+			themeId: typeof o.themeId === 'string' ? o.themeId : DEFAULT_DARK_THEME_ID, cornerMode,
 			...(typeof o.activeCursorPackId === 'string' && o.activeCursorPackId ? { activeCursorPackId: o.activeCursorPackId } : {}),
 			activeRevisionId: typeof o.activeRevisionId === 'string' ? o.activeRevisionId : 'rev-0',
 			nodes: treeCheck.nodes,
-			buildConfig: (o.buildConfig && typeof o.buildConfig === 'object')
-				? { ...DEFAULT_BUILD_CONFIG, ...(o.buildConfig as Partial<UiProjectBuildConfig>) }
-				: DEFAULT_BUILD_CONFIG,
+			buildConfig: (o.buildConfig && typeof o.buildConfig === 'object') ? { ...DEFAULT_BUILD_CONFIG, ...(o.buildConfig as Partial<UiProjectBuildConfig>) } : DEFAULT_BUILD_CONFIG,
 			updatedAt: typeof o.updatedAt === 'number' ? o.updatedAt : Date.now()
 		}
 	};

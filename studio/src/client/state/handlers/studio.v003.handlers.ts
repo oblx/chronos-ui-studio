@@ -1,17 +1,22 @@
 import {
-	applyAccessibilityPrefs, clamp, clampHistoryLimit, generateUuidV7, HUD_METRICS,
+	applyAccessibilityPrefs, clamp, DEFAULT_VIEWPORT, generateUuidV7, HUD_METRICS, ROOT_FONT_PX,
 	type HudZoneId, type SemanticInputAction, type UiComponentKind, type UiNode, type UiWireBroker
 } from '@chronos-ui/svelte';
 import { CAPABILITY_BITS, findStarterSample, SAMPLE_LOAD_CHOREOGRAPHY, sortNodesForChoreography } from '@studio/config';
 import {
-	applyJsonPatchWithInverse, derivePrototypeFromNode, documentGraphToNodeTree,
-	evaluateGovernanceGate, instantiateFromPrototype, nodeTreeToDocumentGraph, STUDIO_ROLE_MASKS,
+	applyJsonPatchWithInverse, derivePrototypeFromNode, documentGraphToNodeTree, evaluateGovernanceGate,
+	findNodeInTreeByUuid, instantiateFromPrototype, nodeTreeToDocumentGraph, STUDIO_ROLE_MASKS,
 	type JsonPatchOp, type UiComponentPrototype
 } from '@studio/core/engine';
-import { resolveRootFontPx, syncThemeAndCursor } from '../lifecycle';
+import { persistActiveHistory, pushUndoSnapshot, resolveActiveProject, resolveRootFontPx, syncThemeAndCursor } from '../lifecycle';
 import { apiCommitRevision } from '../studio.project.api';
 import type { StudioModalId, StudioState } from '../studio.types';
-import { persistActiveHistory } from './studio.v011.handlers';
+
+const FALLBACK_VW_REM = DEFAULT_VIEWPORT.width / ROOT_FONT_PX;
+const FALLBACK_VH_REM = DEFAULT_VIEWPORT.height / ROOT_FONT_PX;
+const ASSISTANT_COLLAPSED_H_REM = 4;
+const ASSISTANT_EXPANDED_RESERVE_REM = 20;
+const FLOAT_NUDGE_DY_PX = -24;
 
 export interface ChoreographyEpochGuard { epoch: number; controller: AbortController | null; timers: ReturnType<typeof setTimeout>[]; }
 export function cancelChoreographyEpoch(guard: ChoreographyEpochGuard): number {
@@ -22,10 +27,10 @@ export function cancelChoreographyEpoch(guard: ChoreographyEpochGuard): number {
 
 function moveAssistantDockState(s: StudioState, dxPx: number, dyPx: number, rect?: { left: number; top: number; width: number; height: number }): StudioState {
 	const rootPx = resolveRootFontPx();
-	const vwRem = typeof window !== 'undefined' ? window.innerWidth / rootPx : 90;
-	const vhRem = typeof window !== 'undefined' ? window.innerHeight / rootPx : 56.25;
+	const vwRem = typeof window !== 'undefined' ? window.innerWidth / rootPx : FALLBACK_VW_REM;
+	const vhRem = typeof window !== 'undefined' ? window.innerHeight / rootPx : FALLBACK_VH_REM;
 	const panelWRem = rect ? rect.width / rootPx : HUD_METRICS.assistantWidthRem;
-	const panelHRem = rect ? rect.height / rootPx : 4;
+	const panelHRem = rect ? rect.height / rootPx : ASSISTANT_COLLAPSED_H_REM;
 	const m = HUD_METRICS.viewportMarginRem;
 	const baseX = s.assistantDock.mode === 'FLOATING' ? s.assistantDock.xRem : (rect ? rect.left / rootPx : (vwRem - panelWRem) / 2);
 	const baseY = s.assistantDock.mode === 'FLOATING' ? s.assistantDock.yRem : (rect ? rect.top / rootPx : vhRem - panelHRem - m);
@@ -36,7 +41,7 @@ function registerAssistantDockHandlers(broker: UiWireBroker<StudioState>): void 
 	broker.register<{ dxPx: number; dyPx: number; rect?: { left: number; top: number; width: number; height: number } }>('UI_ASSISTANT_MOVE', { tier: 'TIER_0_LOCAL_UI', reduce: (s, env) => moveAssistantDockState(s, env.payload.dxPx, env.payload.dyPx, env.payload.rect) });
 	broker.register('UI_ASSISTANT_DROP', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => ({ ...s, assistantDock: { ...s.assistantDock, mode: 'FLOATING' } }), summarize: () => 'Anchored floating assistant dock' });
 	broker.register('UI_ASSISTANT_DOCK', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => ({ ...s, assistantDock: { ...s.assistantDock, mode: 'DOCKED', xRem: 0, yRem: 0 } }), summarize: () => 'Returned assistant dock to BOTTOM_CENTER' });
-	broker.register<{ rect?: { left: number; top: number; width: number; height: number } }>('UI_ASSISTANT_TOGGLE_FLOAT', { tier: 'TIER_0_LOCAL_UI', reduce: (s, env) => s.assistantDock.mode === 'FLOATING' ? { ...s, assistantDock: { ...s.assistantDock, mode: 'DOCKED', xRem: 0, yRem: 0 } } : moveAssistantDockState(s, 0, -24, env.payload.rect), summarize: () => 'Toggled assistant dock float/dock' });
+	broker.register<{ rect?: { left: number; top: number; width: number; height: number } }>('UI_ASSISTANT_TOGGLE_FLOAT', { tier: 'TIER_0_LOCAL_UI', reduce: (s, env) => s.assistantDock.mode === 'FLOATING' ? { ...s, assistantDock: { ...s.assistantDock, mode: 'DOCKED', xRem: 0, yRem: 0 } } : moveAssistantDockState(s, 0, FLOAT_NUDGE_DY_PX, env.payload.rect), summarize: () => 'Toggled assistant dock float/dock' });
 	broker.register<{ projectId?: string }>('UI_ASSISTANT_SUBMIT', { tier: 'TIER_0_LOCAL_UI', reduce: (s, env) => ({ ...s, projects: s.projects.map((p) => (p.id === (env.payload.projectId ?? s.activeProjectId) ? { ...p, hasBuiltOnce: true } : p)) }), summarize: () => 'Assistant build -> send lifecycle active' });
 	broker.register<Record<string, unknown>>('UI_STATION_PREVIEW_UPDATE', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => s, summarize: () => 'Station live preview synced' });
 	broker.register<{ expanded?: boolean }>('UI_ASSISTANT_EXPAND', {
@@ -44,7 +49,7 @@ function registerAssistantDockHandlers(broker: UiWireBroker<StudioState>): void 
 		reduce: (s, env) => {
 			const expanded = env.payload.expanded ?? !s.assistantDock.expanded;
 			if (!expanded || s.assistantDock.mode !== 'FLOATING') return { ...s, assistantDock: { ...s.assistantDock, expanded } };
-			const yRem = Number(Math.min(s.assistantDock.yRem, Math.max(HUD_METRICS.viewportMarginRem, (typeof window !== 'undefined' ? window.innerHeight / resolveRootFontPx() : 56.25) - 20)).toFixed(3));
+			const yRem = Number(Math.min(s.assistantDock.yRem, Math.max(HUD_METRICS.viewportMarginRem, (typeof window !== 'undefined' ? window.innerHeight / resolveRootFontPx() : FALLBACK_VH_REM) - ASSISTANT_EXPANDED_RESERVE_REM)).toFixed(3));
 			return { ...s, assistantDock: { ...s.assistantDock, expanded, yRem } };
 		}
 	});
@@ -55,8 +60,8 @@ export function registerV003Handlers(broker: UiWireBroker<StudioState>): void {
 	broker.register<{ nodeId: string; name: string }>('UI_DERIVE_BLUEPRINT', {
 		tier: 'TIER_0_LOCAL_UI',
 		reduce: (s, env) => {
-			const proj = s.projects.find((p) => p.id === s.activeProjectId) ?? s.projects[0];
-			const node = proj?.nodes.find((n) => n.id === env.payload.nodeId);
+			const proj = resolveActiveProject(s);
+			const node = proj ? findNodeInTreeByUuid(proj.nodes, env.payload.nodeId) : null;
 			return node ? { ...s, prototypes: [...s.prototypes, derivePrototypeFromNode(node, env.payload.name)] } : s;
 		},
 		summarize: (env) => `Derived reusable blueprint: ${env.payload.name}`
@@ -64,15 +69,14 @@ export function registerV003Handlers(broker: UiWireBroker<StudioState>): void {
 	broker.register<{ patches: readonly JsonPatchOp[] }>('UI_PATCH_DOCUMENT', {
 		tier: 'TIER_1_COALESCED_PERSIST',
 		reduce: (s, env) => {
-			const proj = s.projects.find((p) => p.id === s.activeProjectId) ?? s.projects[0];
+			const proj = resolveActiveProject(s);
 			if (!proj) return s;
 			const { doc } = applyJsonPatchWithInverse(nodeTreeToDocumentGraph(proj.nodes, s.prototypes), env.payload.patches);
 			if (!evaluateGovernanceGate({ graph: doc, actorCapabilityMask: s.user?.capabilityMask ?? STUDIO_ROLE_MASKS.ARCHITECT, requiredCapabilityBit: CAPABILITY_BITS.WRITE_BLUEPRINTS }).ok) return s;
 			const nextNodes = documentGraphToNodeTree(doc);
-			const cap = clampHistoryLimit(s.studioDefaults.historyLimit);
-			return { ...s, projectPersistence: { ...s.projectPersistence, isDirty: true, status: 'DIRTY' }, undoStack: [...s.undoStack, proj.nodes].slice(-cap), redoStack: [], projects: s.projects.map((p) => (p.id === proj.id ? { ...p, nodes: nextNodes, updatedAt: Date.now() } : p)) };
+			return { ...s, projectPersistence: { ...s.projectPersistence, isDirty: true, status: 'DIRTY' }, ...pushUndoSnapshot(s, proj.nodes), projects: s.projects.map((p) => (p.id === proj.id ? { ...p, nodes: nextNodes, updatedAt: Date.now() } : p)) };
 		},
-		effect: (s, env) => { persistActiveHistory(s); const cur = s.projects.find((p) => p.id === s.activeProjectId); if (cur) void apiCommitRevision(cur.id, cur.nodes, env.origin); },
+		effect: (s, env) => { persistActiveHistory(s); const cur = resolveActiveProject(s); if (cur) void apiCommitRevision(cur.id, cur.nodes, env.origin); },
 		summarize: (env) => `Applied ${env.payload.patches.length} RFC 6902 patch op(s)`
 	});
 	broker.register<{ action: SemanticInputAction }>('UI_INPUT_ACTION', { tier: 'TIER_0_LOCAL_UI', reduce: (s, env) => ({ ...s, inputModality: env.payload.action.modality }), summarize: (env) => `${env.payload.action.modality}: ${env.payload.action.type}` });
@@ -84,7 +88,7 @@ const cloneWithFreshUuids = (nodes: readonly UiNode[]): readonly UiNode[] =>
 
 function scheduleSampleAssembly(broker: UiWireBroker<StudioState>, sampleId: string, guard: ChoreographyEpochGuard, pushToast: (msg: string, tone?: 'info' | 'success' | 'warning' | 'error') => void): void {
 	const sample = findStarterSample(sampleId);
-	const cur = broker.state.projects.find((p) => p.id === broker.state.activeProjectId) ?? broker.state.projects[0];
+	const cur = resolveActiveProject(broker.state);
 	if (!sample || !cur) return;
 	const epoch = cancelChoreographyEpoch(guard);
 	const controller = new AbortController(); guard.controller = controller;
@@ -92,7 +96,7 @@ function scheduleSampleAssembly(broker: UiWireBroker<StudioState>, sampleId: str
 	const reduced = !broker.state.accessibility.kineticMotion || (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 	broker.patchState((s) => ({
 		...s, activeThemeId: sample.themeId, selectedNodeId: null, accessibility: { ...s.accessibility, cornerMode: sample.cornerMode },
-		projectPersistence: { ...s.projectPersistence, isDirty: true, status: 'DIRTY' }, undoStack: [...s.undoStack, cur.nodes].slice(-clampHistoryLimit(s.studioDefaults.historyLimit)), redoStack: [],
+		projectPersistence: { ...s.projectPersistence, isDirty: true, status: 'DIRTY' }, ...pushUndoSnapshot(s, cur.nodes),
 		projects: s.projects.map((p) => (p.id === cur.id ? { ...p, themeId: sample.themeId, cornerMode: sample.cornerMode, nodes: reduced ? ordered : [] } : p))
 	}));
 	persistActiveHistory(broker.state);

@@ -1,6 +1,6 @@
 import type { Action } from 'svelte/action';
 import { getActiveStudioDefaults } from '@ui/motion';
-import { TOOLTIP_LEVEL_BOUNDS } from '@ui/tokens';
+import { TOOLTIP_LEVEL_BOUNDS, TOOLTIP_TIER_THRESHOLDS } from '@ui/tokens';
 import type { IntentKind, WireMiddleware } from '@ui/wire';
 import {
 	DEFAULT_TIP_LEVEL, parseTooltipInfoLevel, shouldDisplayTooltip,
@@ -47,7 +47,7 @@ function bindZeroTimerTipListeners(onShow: (el: HTMLElement) => void, onHide: ()
 		if (!el) { deferHide(); return; }
 		const disabled = el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true';
 		const level = parseTooltipInfoLevel(el.getAttribute(TIP_LEVEL_ATTR));
-		if (!disabled || level <= 20) onShow(el);
+		if (!disabled || level <= TOOLTIP_TIER_THRESHOLDS.essential) onShow(el);
 		else deferHide();
 	};
 	const onOut = (e: Event): void => {

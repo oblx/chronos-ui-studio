@@ -48,7 +48,7 @@ export function buildVectorCursorDataUrl(
 	fill: string,
 	stroke: string,
 	accent: string,
-	danger = '#ef4444',
+	danger = THEME_PACKS[0].tokens['--ui-error'],
 	style: CursorPackStyleId = 'cyber-reticle'
 ): string {
 	const sz = CURSOR_LIMITS.normalizedPx;

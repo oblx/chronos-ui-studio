@@ -37,6 +37,7 @@ export const SLIDER_TRACK_STYLES: readonly SliderTrackStyle[] = ['HAIRLINE', 'SE
 
 export const HISTORY_LIMIT_BOUNDS = { defaultLimit: 5, minLimit: 1, maxLimit: 128 } as const;
 export const TOOLTIP_LEVEL_BOUNDS = { defaultLevel: 60, minLevel: 0, maxLevel: 100 } as const;
+export const TOOLTIP_TIER_THRESHOLDS = { silent: 0, essential: 20, standard: 50, guided: 80 } as const;
 export const HUD_STAGGER_BOUNDS = { defaultMs: 250, minMs: 0, maxMs: 1000, stepMs: 25 } as const;
 
 export const DEFAULT_CONTROL_CONFIG: StudioControlConfig = {
@@ -69,15 +70,20 @@ export function clampTooltipInfoLevel(value?: number): number {
 
 export function resolveTooltipTierLabel(level: number): 'Silent' | 'Essential' | 'Standard' | 'Guided' | 'Verbose' {
 	const n = clampTooltipInfoLevel(level);
-	if (n <= 0) return 'Silent';
-	if (n <= 20) return 'Essential';
-	if (n <= 50) return 'Standard';
-	if (n <= 80) return 'Guided';
+	if (n <= TOOLTIP_TIER_THRESHOLDS.silent) return 'Silent';
+	if (n <= TOOLTIP_TIER_THRESHOLDS.essential) return 'Essential';
+	if (n <= TOOLTIP_TIER_THRESHOLDS.standard) return 'Standard';
+	if (n <= TOOLTIP_TIER_THRESHOLDS.guided) return 'Guided';
 	return 'Verbose';
 }
 
+export type PartialStudioControlConfig = Partial<{
+	readonly buttonConfig?: Partial<ButtonControlConfig>;
+	readonly formConfig?: Partial<FormControlConfig>;
+}>;
+
 export function clampControlConfig(
-	patch?: Partial<{ buttonConfig?: Partial<ButtonControlConfig>; formConfig?: Partial<FormControlConfig> }>,
+	patch?: PartialStudioControlConfig,
 	base: StudioControlConfig = DEFAULT_CONTROL_CONFIG
 ): StudioControlConfig {
 	const bp = patch?.buttonConfig ?? {};
@@ -101,20 +107,29 @@ export function clampControlConfig(
 	};
 }
 
+export function buildControlHtmlAttrs(patch?: PartialStudioControlConfig): Readonly<Record<string, string>> {
+	if (!patch) return {};
+	const out: Record<string, string> = {};
+	const bp = patch.buttonConfig;
+	const fp = patch.formConfig;
+	if (bp?.variant) out['data-ui-btn-variant'] = bp.variant;
+	if (bp?.density) out['data-ui-btn-density'] = bp.density;
+	if (bp?.hoverEffect) out['data-ui-btn-hover'] = bp.hoverEffect;
+	if (typeof bp?.pressDetent === 'boolean') out['data-ui-btn-detent'] = bp.pressDetent ? 'on' : 'off';
+	if (typeof bp?.uppercaseLabels === 'boolean') out['data-ui-btn-upper'] = bp.uppercaseLabels ? 'on' : 'off';
+	if (bp?.iconPosition) out['data-ui-btn-icon-pos'] = bp.iconPosition;
+	if (fp?.surfaceStyle) out['data-ui-form-surface'] = fp.surfaceStyle;
+	if (fp?.density) out['data-ui-form-density'] = fp.density;
+	if (typeof fp?.focusGlow === 'boolean') out['data-ui-form-focus-glow'] = fp.focusGlow ? 'on' : 'off';
+	if (typeof fp?.showValidationInline === 'boolean') out['data-ui-form-inline-val'] = fp.showValidationInline ? 'on' : 'off';
+	if (fp?.sliderTrackStyle) out['data-ui-slider-track'] = fp.sliderTrackStyle;
+	return out;
+}
+
 export function applyControlConfigToRoot(
 	cfg: StudioControlConfig,
 	target: HTMLElement | null = typeof document !== 'undefined' ? document.documentElement : null
 ): void {
 	if (!target) return;
-	target.dataset.uiBtnVariant = cfg.buttonConfig.variant;
-	target.dataset.uiBtnDensity = cfg.buttonConfig.density;
-	target.dataset.uiBtnHover = cfg.buttonConfig.hoverEffect;
-	target.dataset.uiBtnDetent = cfg.buttonConfig.pressDetent ? 'on' : 'off';
-	target.dataset.uiBtnUpper = cfg.buttonConfig.uppercaseLabels ? 'on' : 'off';
-	target.dataset.uiBtnIconPos = cfg.buttonConfig.iconPosition;
-	target.dataset.uiFormSurface = cfg.formConfig.surfaceStyle;
-	target.dataset.uiFormDensity = cfg.formConfig.density;
-	target.dataset.uiFormFocusGlow = cfg.formConfig.focusGlow ? 'on' : 'off';
-	target.dataset.uiFormInlineVal = cfg.formConfig.showValidationInline ? 'on' : 'off';
-	target.dataset.uiSliderTrack = cfg.formConfig.sliderTrackStyle;
+	for (const [attr, val] of Object.entries(buildControlHtmlAttrs(cfg))) target.setAttribute(attr, val);
 }

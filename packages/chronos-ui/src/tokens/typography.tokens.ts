@@ -114,17 +114,23 @@ export function applyAccessibilityPrefs(prefs: AccessibilityPrefs, target: HTMLE
 	target.setAttribute('data-ui-dyslexia', prefs.dyslexiaSpacing ? 'on' : 'off');
 }
 
+export function buildStudioDefaultCssVars(defaults: StudioDefaultsConfig): Readonly<Record<string, string>> {
+	return {
+		'--ui-corner-cut': `${defaults.baseCornerCutRem}rem`,
+		'--ui-station-cut': `${defaults.stationCornerCutRem}rem`,
+		'--ui-control-cut': `${defaults.controlCornerCutRem}rem`,
+		'--ui-stroke-w': `${defaults.borderStrokePx}px`,
+		'--ui-hairline': `${defaults.borderStrokePx}px`,
+		'--ui-orn-offset': `${defaults.ornamentOffsetRem}rem`,
+		'--ui-orn-amp': `${defaults.ornamentDriftAmpRem}rem`,
+		'--ui-orn-period': `${defaults.ornamentPeriodMs}ms`,
+		'--ui-perimeter-gutter': `${defaults.perimeterGutterRem}rem`,
+		'--ui-stagger-zone-ms': `${defaults.hudZoneStaggerMs ?? HUD_STAGGER_BOUNDS.defaultMs}ms`
+	};
+}
+
 export function applyStudioDefaults(defaults: StudioDefaultsConfig, target: HTMLElement | null = typeof document !== 'undefined' ? document.documentElement : null): void {
 	if (!target) return;
-	target.style.setProperty('--ui-corner-cut', `${defaults.baseCornerCutRem}rem`);
-	target.style.setProperty('--ui-station-cut', `${defaults.stationCornerCutRem}rem`);
-	target.style.setProperty('--ui-control-cut', `${defaults.controlCornerCutRem}rem`);
-	target.style.setProperty('--ui-stroke-w', `${defaults.borderStrokePx}px`);
-	target.style.setProperty('--ui-hairline', `${defaults.borderStrokePx}px`);
-	target.style.setProperty('--ui-orn-offset', `${defaults.ornamentOffsetRem}rem`);
-	target.style.setProperty('--ui-orn-amp', `${defaults.ornamentDriftAmpRem}rem`);
-	target.style.setProperty('--ui-orn-period', `${defaults.ornamentPeriodMs}ms`);
-	target.style.setProperty('--ui-perimeter-gutter', `${defaults.perimeterGutterRem}rem`);
-	target.style.setProperty('--ui-stagger-zone-ms', `${defaults.hudZoneStaggerMs ?? HUD_STAGGER_BOUNDS.defaultMs}ms`);
+	for (const [k, v] of Object.entries(buildStudioDefaultCssVars(defaults))) target.style.setProperty(k, v);
 	applyControlConfigToRoot(defaults.controlConfig ?? DEFAULT_CONTROL_CONFIG, target);
 }

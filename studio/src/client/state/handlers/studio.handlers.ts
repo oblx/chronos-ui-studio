@@ -1,8 +1,9 @@
 import {
-	applyAccessibilityPrefs, findThemePack, type AccessibilityPrefs, type CornerKind, type UiWireBroker
+	applyAccessibilityPrefs, DEFAULT_DARK_THEME_ID, DEFAULT_LIGHT_THEME_ID, findThemePack,
+	type AccessibilityPrefs, type CornerKind, type UiWireBroker
 } from '@chronos-ui/svelte';
 import type { UiBlueprint } from '@studio/config';
-import { registerLifecycleAndCursorHandlers, syncThemeAndCursor } from '../lifecycle';
+import { registerLifecycleAndCursorHandlers, resolveActiveTheme, syncThemeAndCursor } from '../lifecycle';
 import { apiFetchMcpManifest, apiFetchServerTraces, apiSaveBlueprint } from '../studio.api';
 import { registerDrawerAndStageHandlers } from './studio.drawer.handlers';
 import { registerProjectHandlers } from './studio.project.handlers';
@@ -25,9 +26,9 @@ function registerThemeHandlers(broker: UiWireBroker<StudioState>): void {
 	broker.register('UI_TOGGLE_POLARITY', {
 		tier: 'TIER_0_LOCAL_UI',
 		reduce: (s) => {
-			const current = s.themes.find((t) => t.id === s.activeThemeId) ?? findThemePack(s.activeThemeId);
+			const current = resolveActiveTheme(s);
 			const nextPolar = current.polarity === 'dark' ? 'light' : 'dark';
-			const target = s.themes.find((t) => t.polarity === nextPolar) ?? findThemePack(nextPolar === 'dark' ? 'obsidian-brass' : 'alabaster-lab');
+			const target = s.themes.find((t) => t.polarity === nextPolar) ?? findThemePack(nextPolar === 'dark' ? DEFAULT_DARK_THEME_ID : DEFAULT_LIGHT_THEME_ID);
 			return { ...s, activeThemeId: target.id };
 		},
 		effect: (s) => syncThemeAndCursor(s),

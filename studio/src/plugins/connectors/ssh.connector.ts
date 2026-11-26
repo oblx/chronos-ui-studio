@@ -1,3 +1,4 @@
+import { DEFAULT_DARK_THEME_ID } from '@chronos-ui/svelte';
 import { DEFAULT_BUILD_CONFIG } from '@studio/core';
 import { registerInputConnector } from '../registry';
 import type { ProjectImportResult } from './json.connector';
@@ -35,7 +36,7 @@ export function ingestSshRemote(input: SshRemoteInput): ProjectImportResult {
 			slug: name.toLowerCase().replace(/[^a-z0-9-]+/g, '-'),
 			name: `${name} (SSH)`,
 			description: `Validated SSH remote ${host}:${repoPath} (vault key ${input.keyProfileId}, mode=${input.dryRun ? 'dry-run' : 'live'}).`,
-			themeId: 'obsidian-brass',
+			themeId: DEFAULT_DARK_THEME_ID,
 			cornerMode: 'CHAMFER',
 			activeRevisionId: 'rev-ssh-1',
 			nodes: [{

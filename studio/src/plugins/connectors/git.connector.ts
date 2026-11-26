@@ -1,3 +1,4 @@
+import { DEFAULT_DARK_THEME_ID } from '@chronos-ui/svelte';
 import { assertSafeWebhookUrl, DEFAULT_BUILD_CONFIG } from '@studio/core';
 import { registerInputConnector } from '../registry';
 import type { ProjectImportResult } from './json.connector';
@@ -36,7 +37,7 @@ export async function ingestGitRemote(input: GitRemoteInput): Promise<ProjectImp
 				slug: repoSlug.toLowerCase().replace(/[^a-z0-9-]+/g, '-'),
 				name: `${repoSlug} (${forge})`,
 				description: `Imported via Smart HTTP v2 from ${parsed.origin}/${cleanPath} @ ${headRef}.`,
-				themeId: 'obsidian-brass',
+				themeId: DEFAULT_DARK_THEME_ID,
 				cornerMode: 'CHAMFER',
 				activeRevisionId: 'rev-git-1',
 				nodes: [{

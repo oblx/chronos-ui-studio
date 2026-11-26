@@ -1,19 +1,14 @@
 import {
 	applyControlConfigToRoot, applyStudioDefaults, clampControlConfig, clampHistoryLimit,
-	clampTooltipInfoLevel, DEFAULT_CONTROL_CONFIG, DEFAULT_STUDIO_DEFAULTS, resolveTooltipTierLabel, setActiveStudioDefaults,
+	clampTooltipInfoLevel, DEFAULT_CONTROL_CONFIG, DEFAULT_STUDIO_DEFAULTS, HUD_STAGGER_BOUNDS,
+	resolveTooltipTierLabel, setActiveStudioDefaults, VERSION,
 	type ButtonControlConfig, type FormControlConfig, type HudZoneId, type StudioControlConfig, type UiWireBroker
 } from '@chronos-ui/svelte';
-import { historyIdbStore, trimHistoryStacks } from '@studio/lib/history.idb';
-import { apiPatchProjectStudioDefaults } from '../lifecycle';
+import { trimHistoryStacks } from '@studio/lib/history.idb';
+import { apiPatchProjectStudioDefaults, persistActiveHistory } from '../lifecycle';
 import type { StudioState } from '../studio.types';
 
-export function persistActiveHistory(state: StudioState): void {
-	if (typeof window === 'undefined') return;
-	const proj = state.projects.find((p) => p.id === state.activeProjectId) ?? state.projects[0];
-	if (!proj) return;
-	const historyLimit = clampHistoryLimit(state.studioDefaults.historyLimit);
-	void historyIdbStore.save(proj.id, { undoStack: state.undoStack, redoStack: state.redoStack, historyLimit });
-}
+export { persistActiveHistory };
 
 function updateStudioDefaults(state: StudioState, patch: Partial<StudioState['studioDefaults']>): StudioState {
 	const nextDefaults = { ...DEFAULT_STUDIO_DEFAULTS, ...state.studioDefaults, ...patch };
@@ -80,11 +75,11 @@ function registerMotionAndSyncHandlers(broker: UiWireBroker<StudioState>): void 
 	broker.register<{ intervalMs?: number }>('UI_REPLAY_HUD_SEQUENCE', {
 		tier: 'TIER_0_LOCAL_UI',
 		reduce: (s) => ({ ...s, studioChromeVisible: true, revealedZones: ['WORLD_CANVAS'], hudBootRunning: true }),
-		summarize: (env) => `Replaying HUD sequence (${env.payload.intervalMs ?? 250}ms ASC)`
+		summarize: (env) => `Replaying HUD sequence (${env.payload.intervalMs ?? HUD_STAGGER_BOUNDS.defaultMs}ms ASC)`
 	});
 	broker.register<{ toolCount: number; syncedAt: number; version?: string }>('SERVER_MANIFEST_SYNCED', {
 		tier: 'TIER_0_LOCAL_UI',
-		reduce: (s, env) => ({ ...s, mcpManifestSyncedAt: env.payload.syncedAt, mcpToolCount: env.payload.toolCount, lastMcpActivity: `Synced ${env.payload.toolCount} MCP tools (v${env.payload.version ?? '0.1.1'})` }),
+		reduce: (s, env) => ({ ...s, mcpManifestSyncedAt: env.payload.syncedAt, mcpToolCount: env.payload.toolCount, lastMcpActivity: `Synced ${env.payload.toolCount} MCP tools (v${env.payload.version ?? VERSION})` }),
 		summarize: (env) => `Synced MCP manifest (${env.payload.toolCount} tools)`
 	});
 }

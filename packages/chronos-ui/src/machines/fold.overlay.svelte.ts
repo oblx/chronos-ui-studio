@@ -40,6 +40,17 @@ export interface FoldGripParams {
 
 export type DrawerGripParams = FoldGripParams;
 
+export function clampFloatCoords(
+	x: number,
+	y: number,
+	vw = STAGE_LIMITS.defaultMaxWidthPx + STAGE_LIMITS.floatPadRightPx,
+	vh = STAGE_LIMITS.defaultMaxHeightPx + STAGE_LIMITS.floatPadBottomPx
+): { floatX: number; floatY: number } {
+	const maxW = Math.max(STAGE_LIMITS.floatMarginLeftPx, vw - STAGE_LIMITS.floatPadRightPx);
+	const maxH = Math.max(STAGE_LIMITS.floatMarginTopPx, vh - STAGE_LIMITS.floatPadBottomPx);
+	return { floatX: clamp(x, STAGE_LIMITS.floatMarginLeftPx, maxW), floatY: clamp(y, STAGE_LIMITS.floatMarginTopPx, maxH) };
+}
+
 export function createFoldOverlayMachine(config: FoldOverlayConfig) {
 	let state: FoldOverlayState = {
 		axis: config.axis,
@@ -64,10 +75,8 @@ export function createFoldOverlayMachine(config: FoldOverlayConfig) {
 		state = { ...state, railOffsetPx: clamp(state.railOffsetPx + deltaPrimary, -limitPx, limitPx) };
 		return state;
 	};
-	const moveFloat = (dx: number, dy: number, vw = STAGE_LIMITS.defaultMaxWidthPx + STAGE_LIMITS.floatPadRightPx, vh = STAGE_LIMITS.defaultMaxHeightPx + STAGE_LIMITS.floatPadBottomPx): FoldOverlayState => {
-		const maxW = Math.max(STAGE_LIMITS.floatMarginLeftPx, vw - STAGE_LIMITS.floatPadRightPx);
-		const maxH = Math.max(STAGE_LIMITS.floatMarginTopPx, vh - STAGE_LIMITS.floatPadBottomPx);
-		state = { ...state, mode: 'FLOATING', floatX: clamp(state.floatX + dx, STAGE_LIMITS.floatMarginLeftPx, maxW), floatY: clamp(state.floatY + dy, STAGE_LIMITS.floatMarginTopPx, maxH) };
+	const moveFloat = (dx: number, dy: number, vw?: number, vh?: number): FoldOverlayState => {
+		state = { ...state, mode: 'FLOATING', ...clampFloatCoords(state.floatX + dx, state.floatY + dy, vw, vh) };
 		return state;
 	};
 	return {

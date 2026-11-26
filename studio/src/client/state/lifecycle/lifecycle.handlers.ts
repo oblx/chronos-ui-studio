@@ -1,10 +1,10 @@
 import {
-	applyCursorPackToDocument, clampHistoryLimit, CSS_CURSOR_STATES, DEFAULT_EMBELLISHMENT_CONFIG, findThemePack,
+	applyCursorPackToDocument, CSS_CURSOR_STATES, DEFAULT_EMBELLISHMENT_CONFIG,
 	resetCursorPackOnDocument, resolveThemeCursorPalette,
 	type CssCursorState, type CursorPackDefinition, type EmbellishmentConfig, type UiWireBroker
 } from '@chronos-ui/svelte';
-import { historyIdbStore } from '@studio/lib/history.idb';
 import type { StudioState } from '../studio.types';
+import { persistActiveHistory, pushUndoSnapshot, resolveActiveProject, resolveActiveTheme } from './dom.sync';
 import {
 	apiCleanProject, apiCreateCursorPack, apiDeriveCursorPackStates,
 	apiPatchProjectCursor, apiSaveProject, apiUpdateCursorStateAsset
@@ -25,18 +25,15 @@ function registerWorkspaceLifecycleHandlers(broker: UiWireBroker<StudioState>): 
 	broker.register('UI_PROJECT_CLEAN', {
 		tier: 'TIER_1_COALESCED_PERSIST',
 		reduce: (s) => {
-			const cur = s.projects.find((p) => p.id === s.activeProjectId) ?? s.projects[0];
+			const cur = resolveActiveProject(s);
 			if (!cur) return s;
-			const cap = clampHistoryLimit(s.studioDefaults.historyLimit);
 			return {
-				...s, selectedNodeId: null, chatMessages: [], undoStack: [...s.undoStack, cur.nodes].slice(-cap), redoStack: [],
+				...s, selectedNodeId: null, chatMessages: [], ...pushUndoSnapshot(s, cur.nodes),
 				projectPersistence: { ...s.projectPersistence, isDirty: false, lastSavedAt: Date.now(), status: 'SAVED' },
 				projects: s.projects.map((p) => (p.id === cur.id ? { ...p, nodes: [], hasBuiltOnce: false, updatedAt: Date.now() } : p))
 			};
 		},
-		effect: (s) => {
-			if (typeof window !== 'undefined') void historyIdbStore.save(s.activeProjectId, { undoStack: s.undoStack, redoStack: s.redoStack, historyLimit: clampHistoryLimit(s.studioDefaults.historyLimit) });
-		},
+		effect: persistActiveHistory,
 		summarize: () => 'Cleaned workspace to Calm Empty Stage'
 	});
 	broker.register('UI_WORKSPACE_RESET_DEFAULT', {
@@ -61,8 +58,7 @@ function registerCursorPackHandlers(broker: UiWireBroker<StudioState>): void {
 		reduce: (s, env) => ({ ...s, activeCursorPackId: env.payload.packId, projects: s.projects.map((p) => (p.id === s.activeProjectId ? { ...p, activeCursorPackId: env.payload.packId } : p)) }),
 		effect: (s, env) => {
 			const pack = s.cursorPacks.find((c) => c.uuid === env.payload.packId || c.slug === env.payload.packId);
-			const theme = s.themes.find((t) => t.id === s.activeThemeId) ?? findThemePack(s.activeThemeId);
-			if (pack) applyCursorPackToDocument(pack, resolveThemeCursorPalette(theme));
+			if (pack) applyCursorPackToDocument(pack, resolveThemeCursorPalette(resolveActiveTheme(s)));
 			void apiPatchProjectCursor(s.activeProjectId, pack?.uuid ?? env.payload.packId);
 		},
 		summarize: (env) => `Applied cursor pack -> ${env.payload.packId}`
@@ -88,7 +84,7 @@ type ToastFn = (msg: string, tone?: 'info' | 'success' | 'warning' | 'error') =>
 
 function createProjectSaveCleanOps(broker: UiWireBroker<StudioState>, pushToast: ToastFn) {
 	const saveProject = async (): Promise<void> => {
-		const cur = broker.state.projects.find((p) => p.id === broker.state.activeProjectId) ?? broker.state.projects[0];
+		const cur = resolveActiveProject(broker.state);
 		if (!cur) return;
 		broker.patchState((s) => ({ ...s, projectPersistence: { ...s.projectPersistence, status: 'SAVING' } }));
 		try {
@@ -112,8 +108,7 @@ function createProjectSaveCleanOps(broker: UiWireBroker<StudioState>, pushToast:
 }
 
 function applyPackWithActiveTheme(broker: UiWireBroker<StudioState>, pack: CursorPackDefinition): void {
-	const theme = broker.state.themes.find((t) => t.id === broker.state.activeThemeId) ?? findThemePack(broker.state.activeThemeId);
-	applyCursorPackToDocument(pack, resolveThemeCursorPalette(theme));
+	applyCursorPackToDocument(pack, resolveThemeCursorPalette(resolveActiveTheme(broker.state)));
 }
 
 function createCursorPackOps(broker: UiWireBroker<StudioState>, pushToast: ToastFn) {

@@ -1,5 +1,6 @@
-import { buildCursorPackCssSheet } from '@chronos-ui/svelte';
+import { buildCursorPackCssSheet, CSS_CURSOR_STATES } from '@chronos-ui/svelte';
 import { eq } from 'drizzle-orm';
+import { STUDIO_CONFIG } from '@studio/config';
 import { getStudioDb, uiProjects } from '@studio/lib';
 import { deriveCursorStatesForPack, listCursorPacks, loadCursorPackById } from '@studio/server/routes/routes.cursors';
 import { cleanProjectWorkspace, saveProjectSnapshot } from '@studio/server/routes/routes.lifecycle';
@@ -8,12 +9,12 @@ import type { EntityMcpToolFn } from './mcp.entity.tools';
 export function buildWorkspaceCursorMcpTools(): readonly [string, EntityMcpToolFn][] {
 	return [
 		['ui_save_project', async (args) => {
-			const pid = String(args.projectId ?? args.slug ?? 'proj-genesis');
+			const pid = String(args.projectId ?? args.slug ?? STUDIO_CONFIG.defaultProjectId);
 			const saved = await saveProjectSnapshot(pid, { name: typeof args.name === 'string' ? args.name : undefined });
 			return { summary: `saved ${saved.project.slug}`, ...saved };
 		}],
 		['ui_clean_project', async (args) => {
-			const pid = String(args.projectId ?? args.slug ?? 'proj-genesis');
+			const pid = String(args.projectId ?? args.slug ?? STUDIO_CONFIG.defaultProjectId);
 			const cleaned = await cleanProjectWorkspace(pid);
 			return { summary: `cleaned ${cleaned.project.slug} to empty stage`, ...cleaned };
 		}],
@@ -23,7 +24,7 @@ export function buildWorkspaceCursorMcpTools(): readonly [string, EntityMcpToolF
 			return { count: packs.length, packs: packs.map((p) => ({ uuid: p.uuid, slug: p.slug, name: p.name, isBuiltin: p.isBuiltin })) };
 		}],
 		['ui_apply_cursor_pack', async (args) => {
-			const pid = String(args.projectId ?? args.slug ?? 'proj-genesis');
+			const pid = String(args.projectId ?? args.slug ?? STUDIO_CONFIG.defaultProjectId);
 			const packKey = String(args.packId ?? '');
 			const pack = packKey && packKey !== 'none' ? await loadCursorPackById(packKey) : null;
 			if (packKey && packKey !== 'none' && !pack) throw new Error(`Cursor pack not found: ${packKey}`);
@@ -35,7 +36,8 @@ export function buildWorkspaceCursorMcpTools(): readonly [string, EntityMcpToolF
 		['ui_derive_cursor_states', async (args) => {
 			const packId = String(args.packId ?? '');
 			const pack = await deriveCursorStatesForPack(packId, { accentColor: typeof args.accentColor === 'string' ? args.accentColor : undefined, useAiLabel: true });
-			return { summary: `derived 17 states for ${pack.slug}`, pack, derivedCount: 16 };
+			const derivedCount = CSS_CURSOR_STATES.length - 1;
+			return { summary: `derived ${CSS_CURSOR_STATES.length} states for ${pack.slug}`, pack, derivedCount };
 		}]
 	];
 }

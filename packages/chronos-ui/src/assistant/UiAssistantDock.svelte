@@ -3,7 +3,7 @@
 	import type { InputModality } from '../input';
 	import { uiFoldGrip, uiSpotlight } from '../machines';
 	import { UiAnimatedResizeBody } from '../molecules';
-	import { HUD_METRICS, ZONE_CORNER_PRESETS, Z_LAYERS, type CornerKind, type UiIconName } from '../tokens';
+	import { HISTORY_LIMIT_BOUNDS, HUD_METRICS, ZONE_CORNER_PRESETS, Z_LAYERS, type CornerKind, type UiIconName } from '../tokens';
 	import type { AssistantDockState, AssistantMessage, AssistantOcularState, AssistantQuickAction } from './assistant.types';
 	import UiRobotEmblem from './UiRobotEmblem.svelte';
 
@@ -23,7 +23,7 @@
 	let {
 		cornerMode = 'CHAMFER', dockState, studioChromeVisible = false, ocularState = 'IDLE', modelLabel = 'LOCAL AGENT',
 		inputModality = 'KEYBOARD', voiceListening = false, voiceSupported = true, interimTranscript = '',
-		messages = [], quickActions = [], canUndo = false, canRedo = false, undoCount = 0, redoCount = 0, historyLimit = 5,
+		messages = [], quickActions = [], canUndo = false, canRedo = false, undoCount = 0, redoCount = 0, historyLimit = HISTORY_LIMIT_BOUNDS.defaultLimit,
 		busy = false, hasBuiltOnce = false,
 		onSubmit, onMoveFloat, onDropFloat, onDock, onToggleFloat, onToggleExpand, onToggleVoice, onTogglePalette, onUndoStep, onRedoStep
 	}: Props = $props();

@@ -3,8 +3,8 @@ import {
 	DEFAULT_STUDIO_DEFAULTS, type StudioDefaultsConfig
 } from '../tokens';
 import {
-	applyMotionTokensToRoot, DEFAULT_MOTION_SENSORY, resolveMotionTierMs,
-	type MotionDurationTier, type MotionProfileId, type MotionSensoryConfig
+	applyMotionTokensToRoot, DEFAULT_MOTION_SENSORY, resolveMotionTierMs, resolveSurfaceMotionMs,
+	type MotionDurationTier, type MotionProfileId, type MotionSensoryConfig, type MotionSurfaceId
 } from './motion.tokens';
 import { DEFAULT_MOTION_CONFIG, type MotionConfig } from './motion.types';
 
@@ -70,6 +70,10 @@ export function resolveDurationMs(tier: MotionDurationTier, prefersReduced?: boo
 	return resolveMotionTierMs(tier, activeMotionSensory, isEffectiveReduced(prefersReduced));
 }
 
+export function resolveActiveSurfaceMs(surface: MotionSurfaceId, phase: 'enter' | 'exit', prefersReduced?: boolean): number {
+	return resolveSurfaceMotionMs(surface, phase, activeMotionSensory, isEffectiveReduced(prefersReduced));
+}
+
 export function getActiveCornerRadiusRem(): number { return activeCornerRadiusRem; }
 
 export function setActiveCornerRadiusRem(value: number): number {
@@ -84,6 +88,10 @@ export function getActiveStudioDefaults(): StudioDefaultsConfig { return activeS
 export function setActiveStudioDefaults(patch: Partial<StudioDefaultsConfig>): StudioDefaultsConfig {
 	activeStudioDefaults = clampStudioDefaults(patch, activeStudioDefaults);
 	activeCornerRadiusRem = activeStudioDefaults.baseCornerCutRem;
+	if (activeStudioDefaults.hudZoneStaggerMs !== undefined) {
+		activeMotionSensory = { ...activeMotionSensory, hudZoneStaggerMs: activeStudioDefaults.hudZoneStaggerMs };
+		applyMotionTokensToRoot(activeMotionSensory, isEffectiveReduced());
+	}
 	applyStudioDefaults(activeStudioDefaults);
 	notifyMotionListeners();
 	return activeStudioDefaults;
@@ -92,6 +100,8 @@ export function setActiveStudioDefaults(patch: Partial<StudioDefaultsConfig>): S
 export function resetActiveStudioDefaults(): StudioDefaultsConfig {
 	activeStudioDefaults = { ...DEFAULT_STUDIO_DEFAULTS };
 	activeCornerRadiusRem = activeStudioDefaults.baseCornerCutRem;
+	activeMotionSensory = { ...activeMotionSensory, hudZoneStaggerMs: activeStudioDefaults.hudZoneStaggerMs };
+	applyMotionTokensToRoot(activeMotionSensory, isEffectiveReduced());
 	applyStudioDefaults(activeStudioDefaults);
 	notifyMotionListeners();
 	return activeStudioDefaults;

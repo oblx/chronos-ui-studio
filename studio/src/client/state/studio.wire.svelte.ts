@@ -1,14 +1,15 @@
 import {
-	applyAccessibilityPrefs, applyControlConfigToRoot, applyCursorPackToDocument, applyMotionTokensToRoot, applyStudioDefaults, applyThemeToRoot,
+	applyAccessibilityPrefs, applyControlConfigToRoot, applyCursorPackToDocument, applyMotionTokensToRoot, applyThemeToRoot,
 	BUILTIN_CURSOR_PACKS, clampCornerRadiusRem, clampStudioDefaults, createHudBootChoreographer, createModalMachine,
 	createMultimodalInputManager, createOverlayDismissMiddleware, createSpotlightMachine, createTooltipController,
 	createUiEntityRegistry, createUiWireBroker, DEFAULT_ACCESSIBILITY_PREFS, DEFAULT_CONTROL_CONFIG, DEFAULT_STUDIO_DEFAULTS,
-	probeEnvironmentCapabilities, resolveThemeCursorPalette, setActiveStudioDefaults, THEME_PACKS,
+	HUD_STAGGER_BOUNDS, probeEnvironmentCapabilities, resolveActiveSurfaceMs, resolveThemeCursorPalette, setActiveStudioDefaults,
+	THEME_PACKS, TOOLTIP_LEVEL_BOUNDS,
 	type GamepadProfileId, type HudZoneId, type IntentKind, type ThemePack, type ViewportTier, type VoiceCaptureMode
 } from '@chronos-ui/svelte';
 import { STARTER_BLUEPRINTS, STUDIO_SPOTLIGHT_STEPS, type UiBlueprint } from '@studio/config';
 import { historyIdbStore } from '@studio/lib/history.idb';
-import { apiFetchCursorPacks, createInitialStudioState, createLifecycleActions, GENESIS_FALLBACK, readSessionSnapshot, STUDIO_INITIAL_LAYOUT, syncCorridorForState, syncThemeAndCursor, writeSessionSnapshot } from './lifecycle';
+import { apiFetchCursorPacks, createInitialStudioState, createLifecycleActions, GENESIS_FALLBACK, readSessionSnapshot, resolveActiveProject, STUDIO_INITIAL_LAYOUT, syncCorridorForState, syncThemeAndCursor, writeSessionSnapshot } from './lifecycle';
 import { apiBroadcastCollabEvent, apiCloneBlueprint, apiCreateTheme, apiDeleteBlueprint, apiFetchAuthMe, apiFetchBlueprints, apiFetchServerTraces, apiFetchThemes, apiPollCollab, apiSaveBlueprint, apiToggleThemeStar } from './studio.api';
 import { executeStudioCommand } from './studio.commands';
 import { createV003Actions, registerStudioIntentHandlers } from './handlers';
@@ -47,8 +48,8 @@ function createStudioOps(broker: ReturnType<typeof createUiWireBroker<StudioStat
 		const activeTheme = (themes.length ? themes : THEME_PACKS).find((t) => t.id === activeProj.themeId) ?? THEME_PACKS[0];
 		const studioDefaults = clampStudioDefaults(activeProj.studioDefaults ?? saved?.studioDefaults, { ...DEFAULT_STUDIO_DEFAULTS, baseCornerCutRem: clampCornerRadiusRem(activeProj.cornerRadiusRem) });
 		const nextAccess = { ...broker.state.accessibility, cornerMode: activeProj.cornerMode, cornerRadiusRem: studioDefaults.baseCornerCutRem };
-		setActiveStudioDefaults(studioDefaults); applyStudioDefaults(studioDefaults); applyControlConfigToRoot(studioDefaults.controlConfig ?? DEFAULT_CONTROL_CONFIG); applyAccessibilityPrefs(nextAccess); applyMotionTokensToRoot();
-		broker.patchState((s) => ({ ...s, themes: themes.length ? themes : THEME_PACKS, activeThemeId: activeTheme.id, blueprints: blueprints.length ? blueprints : STARTER_BLUEPRINTS, activeBlueprintId: blueprints[0]?.id ?? STARTER_BLUEPRINTS[0].id, projects: projects.length ? projects : [GENESIS_FALLBACK], activeProjectId: activeProj.id, undoStack: idbHistory?.undoStack ?? [], redoStack: idbHistory?.redoStack ?? [], layoutDensity: 'CALM', studioChromeVisible: false, toolPaletteOpen: false, leftDrawer: { ...s.leftDrawer, open: false }, rightDrawer: { ...s.rightDrawer, open: false }, assistantDock: { mode: 'DOCKED', expanded: false, xRem: 0, yRem: 0 }, accessibility: nextAccess, studioDefaults, cursorPacks: nextPacks, activeCursorPackId: matchedPack.uuid, aiProfiles: aiProfiles.length ? aiProfiles : s.aiProfiles, chatMessages, user, envCapabilities, activeAdapterBadge: customDef ? customDef.modelId : envCapabilities.badgeLabel }));
+		setActiveStudioDefaults(studioDefaults); applyAccessibilityPrefs(nextAccess);
+		broker.patchState((s) => ({ ...s, themes: themes.length ? themes : THEME_PACKS, activeThemeId: activeTheme.id, blueprints: blueprints.length ? blueprints : STARTER_BLUEPRINTS, activeBlueprintId: blueprints[0]?.id ?? STARTER_BLUEPRINTS[0].id, projects: projects.length ? projects : [GENESIS_FALLBACK], activeProjectId: activeProj.id, undoStack: s.undoStack.length ? s.undoStack : (idbHistory?.undoStack ?? []), redoStack: s.redoStack.length ? s.redoStack : (idbHistory?.redoStack ?? []), accessibility: nextAccess, studioDefaults, cursorPacks: nextPacks, activeCursorPackId: matchedPack.uuid, aiProfiles: aiProfiles.length ? aiProfiles : s.aiProfiles, chatMessages, user, envCapabilities, activeAdapterBadge: customDef ? customDef.modelId : envCapabilities.badgeLabel }));
 		syncThemeAndCursor(broker.state);
 		syncCorridorForState(broker.state);
 	};
@@ -91,7 +92,7 @@ function createCatalogActions(broker: ReturnType<typeof createUiWireBroker<Studi
 		deleteBlueprint: async (id: string) => { if (broker.state.blueprints.length <= 1) { ops.pushToast('At least one blueprint must remain active', 'warning'); return; } await mutate(() => apiDeleteBlueprint(id), 'Blueprint deleted'); },
 		toggleThemeStar: (id: string) => mutate(() => apiToggleThemeStar(id)),
 		createCustomTheme: (pack: ThemePack) => mutate(() => apiCreateTheme(pack), `Published theme: ${pack.name}`),
-		refreshServerTraces: async () => { const r = await apiFetchServerTraces(); if (r.traces) broker.ingestServerTraces(r.traces); return r; }
+		refreshServerTraces: async () => { if (!broker.state.user) return { forbidden: true }; const r = await apiFetchServerTraces(); if (r.traces) broker.ingestServerTraces(r.traces); return r; }
 	};
 }
 
@@ -100,7 +101,7 @@ function attachEntityMiddleware(broker: ReturnType<typeof createUiWireBroker<Stu
 	broker.use((env, _s, next) => {
 		if (env.kind === 'UI_UNDO_REVISION' || env.kind === 'UI_REDO_REVISION' || env.kind === 'UI_SWITCH_PROJECT') clearSampleTimers();
 		next();
-		const proj = broker.state.projects.find((p) => p.id === broker.state.activeProjectId) ?? broker.state.projects[0];
+		const proj = resolveActiveProject(broker.state);
 		if (proj && (proj.id !== lastProjId || proj.nodes !== lastNodesRef)) { lastProjId = proj.id; lastNodesRef = proj.nodes; entityRegistry.syncProjectNodes(proj.id, proj.nodes, String(env.timestamp)); }
 		const p = (env.payload ?? {}) as Record<string, unknown>;
 		if (env.kind === 'UI_OPEN_MODAL' && typeof p.id === 'string') modal.open({ id: p.id, lockSeconds: typeof p.lockSeconds === 'number' ? p.lockSeconds : 0 });
@@ -117,9 +118,9 @@ function attachEntityMiddleware(broker: ReturnType<typeof createUiWireBroker<Stu
 
 export function createStudioController() {
 	const broker = createUiWireBroker<StudioState>(createInitialStudioState());
-	const modal = createModalMachine({ onOpened: (id) => broker.dispatch('UI_MODAL_OPENED', { id }), onClosed: (id) => broker.dispatch('UI_MODAL_CLOSED', { id }) });
-	const hudBoot = createHudBootChoreographer({ getStaggerMs: () => broker.state.studioDefaults.hudZoneStaggerMs ?? 250, isReducedMotion: () => !broker.state.accessibility.kineticMotion, onRevealZone: (zoneId, index, total, immediate) => broker.dispatch('UI_REVEAL_ZONE', { zoneId, index, total, immediate }) });
-	const spotlight = createSpotlightMachine(), tooltip = createTooltipController(() => broker.state.studioDefaults.tooltipInfoLevel ?? 60), entityRegistry = createUiEntityRegistry();
+	const modal = createModalMachine({ onOpened: (id) => broker.dispatch('UI_MODAL_OPENED', { id }), onClosed: (id) => broker.dispatch('UI_MODAL_CLOSED', { id }), getDurationMs: (dir) => resolveActiveSurfaceMs('MODAL', dir) });
+	const hudBoot = createHudBootChoreographer({ getStaggerMs: () => broker.state.studioDefaults.hudZoneStaggerMs ?? HUD_STAGGER_BOUNDS.defaultMs, isReducedMotion: () => !broker.state.accessibility.kineticMotion, onRevealZone: (zoneId, index, total, immediate) => broker.dispatch('UI_REVEAL_ZONE', { zoneId, index, total, immediate }) });
+	const spotlight = createSpotlightMachine(), tooltip = createTooltipController(() => broker.state.studioDefaults.tooltipInfoLevel ?? TOOLTIP_LEVEL_BOUNDS.defaultLevel), entityRegistry = createUiEntityRegistry();
 	const sessionId = `studio-${Math.random().toString(36).slice(2, 8)}`;
 	registerStudioIntentHandlers(broker);
 	broker.use(createOverlayDismissMiddleware(() => tooltip.hide()));

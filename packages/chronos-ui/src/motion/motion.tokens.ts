@@ -65,6 +65,8 @@ export const DEFAULT_SURFACE_MOTION_PROFILES: Readonly<Record<MotionSurfaceId, M
 } as const;
 
 export const MOTION_PROFILES: readonly MotionProfileId[] = ['CALM_SLOW', 'BALANCED', 'SNAPPY', 'REDUCED_ZERO'] as const;
+export const MOTION_SURFACES: readonly MotionSurfaceId[] = ['MODAL', 'DRAWER', 'HUD_ZONE', 'TOOLTIP', 'NODE', 'CONTROL'] as const;
+export const SURFACE_MOTION_BOUNDS = { minMs: 0, maxMs: 800, stepMs: 40 } as const;
 export const SIGNAL_FLOW_SPEEDS: readonly SignalFlowSpeed[] = [0.25, 0.5, 1, 1.5] as const;
 
 export const MOTION_PROFILE_SPECS: Readonly<Record<MotionProfileId, MotionProfileSpec>> = {
@@ -107,11 +109,17 @@ export function buildMotionCssVars(sensory: MotionSensoryConfig = DEFAULT_MOTION
 	const base = resolveMotionTierMs('base', sensory, prefersReduced);
 	const morph = resolveMotionTierMs('morph', sensory, prefersReduced);
 	const ambient = resolveMotionTierMs('ambient', sensory, prefersReduced);
+	const modalEnter = sensory.modalMorphEnabled ? resolveSurfaceMotionMs('MODAL', 'enter', sensory, prefersReduced) : 0;
+	const modalExit = sensory.modalMorphEnabled ? resolveSurfaceMotionMs('MODAL', 'exit', sensory, prefersReduced) : 0;
+	const hudEnter = resolveSurfaceMotionMs('HUD_ZONE', 'enter', sensory, prefersReduced);
 	return {
 		'--ui-dur-instant': `${MOTION_DESIGN_TOKENS.durInstantMs}ms`,
 		'--ui-dur-fast': `${reduced ? 0 : MOTION_DESIGN_TOKENS.durFastMs}ms`,
 		'--ui-dur-normal': `${reduced ? 0 : MOTION_DESIGN_TOKENS.durNormalMs}ms`,
 		'--ui-dur-deliberate': `${reduced ? 0 : MOTION_DESIGN_TOKENS.durDeliberateMs}ms`,
+		'--ui-dur-modal-enter': `${modalEnter}ms`,
+		'--ui-dur-modal-exit': `${modalExit}ms`,
+		'--ui-dur-hud-enter': `${hudEnter}ms`,
 		'--ui-dur-micro': `${micro}ms`,
 		'--ui-dur-base': `${base}ms`,
 		'--ui-dur-morph': `${morph}ms`,

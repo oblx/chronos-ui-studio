@@ -1,6 +1,11 @@
 import type { CssCursorState } from './cursor.types';
 
 export type CursorPackStyleId = 'cyber-reticle' | 'archival-nib' | 'tactical-brass' | 'minimal-precision';
+export const CURSOR_PACK_STYLES: readonly CursorPackStyleId[] = ['cyber-reticle', 'archival-nib', 'tactical-brass', 'minimal-precision'] as const;
+
+export function resolveCursorPackStyle(slug?: string): CursorPackStyleId {
+	return CURSOR_PACK_STYLES.includes(slug as CursorPackStyleId) ? (slug as CursorPackStyleId) : 'cyber-reticle';
+}
 
 export interface CursorSilhouetteColors {
 	readonly fill: string;
@@ -20,23 +25,25 @@ export const CURSOR_CALIBRATED_HOTSPOTS: Readonly<Record<CssCursorState, readonl
 
 type SilhouetteFn = (c: CursorSilhouetteColors, sw: number, join: string) => string;
 
+const PACK_ACCENT_OVERLAYS: Readonly<Record<CursorPackStyleId, (state: CssCursorState, c: CursorSilhouetteColors) => string>> = {
+	'archival-nib': (state, c) => state === 'default' || state === 'progress'
+		? `<path d="M8.5 10.5l3.2 5.4" stroke="${c.accent}" stroke-width="1.35" stroke-linecap="round"/><circle cx="11.8" cy="16" r="1.2" fill="${c.accent}"/>`
+		: state === 'text'
+			? `<circle cx="16" cy="4.5" r="1.4" fill="${c.accent}"/><circle cx="16" cy="27.5" r="1.4" fill="${c.accent}"/>`
+			: `<circle cx="16" cy="16" r="1.5" fill="${c.accent}" opacity="0.88"/>`,
+	'tactical-brass': (state, c) => state === 'default'
+		? `<path d="M7.5 11.5h4.2M9.5 14.5h3.2" stroke="${c.accent}" stroke-width="1.5"/>`
+		: `<path d="M3 7V3h4M29 25v4h-4" fill="none" stroke="${c.accent}" stroke-width="1.4" opacity="0.85"/>`,
+	'minimal-precision': (state, c) => state === 'default'
+		? `<path d="M6.8 9.2l4.2 3.1" stroke="${c.accent}" stroke-width="1.2"/>`
+		: `<rect x="15" y="15" width="2" height="2" fill="${c.accent}"/>`,
+	'cyber-reticle': (state, c) => state === 'default'
+		? `<path d="M7 11l2.8 4.4-2.8 1.3z" fill="${c.accent}"/><path d="M23 4h5v5" fill="none" stroke="${c.accent}" stroke-width="1.3"/>`
+		: `<path d="M25 3h4v4M3 25v4h4" fill="none" stroke="${c.accent}" stroke-width="1.25" opacity="0.78"/>`
+};
+
 function packAccentOverlay(state: CssCursorState, c: CursorSilhouetteColors): string {
-	const st = c.style ?? 'cyber-reticle';
-	if (st === 'archival-nib') {
-		if (state === 'default' || state === 'progress') return `<path d="M8.5 10.5l3.2 5.4" stroke="${c.accent}" stroke-width="1.35" stroke-linecap="round"/><circle cx="11.8" cy="16" r="1.2" fill="${c.accent}"/>`;
-		if (state === 'text') return `<circle cx="16" cy="4.5" r="1.4" fill="${c.accent}"/><circle cx="16" cy="27.5" r="1.4" fill="${c.accent}"/>`;
-		return `<circle cx="16" cy="16" r="1.5" fill="${c.accent}" opacity="0.88"/>`;
-	}
-	if (st === 'tactical-brass') {
-		if (state === 'default') return `<path d="M7.5 11.5h4.2M9.5 14.5h3.2" stroke="${c.accent}" stroke-width="1.5"/>`;
-		return `<path d="M3 7V3h4M29 25v4h-4" fill="none" stroke="${c.accent}" stroke-width="1.4" opacity="0.85"/>`;
-	}
-	if (st === 'minimal-precision') {
-		if (state === 'default') return `<path d="M6.8 9.2l4.2 3.1" stroke="${c.accent}" stroke-width="1.2"/>`;
-		return `<rect x="15" y="15" width="2" height="2" fill="${c.accent}"/>`;
-	}
-	if (state === 'default') return `<path d="M7 11l2.8 4.4-2.8 1.3z" fill="${c.accent}"/><path d="M23 4h5v5" fill="none" stroke="${c.accent}" stroke-width="1.3"/>`;
-	return `<path d="M25 3h4v4M3 25v4h4" fill="none" stroke="${c.accent}" stroke-width="1.25" opacity="0.78"/>`;
+	return PACK_ACCENT_OVERLAYS[resolveCursorPackStyle(c.style)](state, c);
 }
 
 function renderPointerGroup(state: CssCursorState, c: CursorSilhouetteColors, sw: number, join: string): string | null {

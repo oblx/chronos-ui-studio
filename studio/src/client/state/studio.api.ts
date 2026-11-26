@@ -1,4 +1,4 @@
-import type { ThemePack, WireTraceRecord } from '@chronos-ui/svelte';
+import { VERSION, type ThemePack, type WireTraceRecord } from '@chronos-ui/svelte';
 import type { UiBlueprint } from '@studio/config';
 import { apiRequest as requestJson, fetchWithIdbFallback as fetchWithIdbMirror } from './lifecycle/http.client';
 import type { StudioUser } from './studio.types';
@@ -66,7 +66,7 @@ export async function apiFetchMcpManifest(): Promise<{ toolCount: number; versio
 	if (!r.ok || !r.data) return null;
 	return {
 		toolCount: r.data.spines?.builder?.tools?.length ?? 0,
-		version: String(r.data.version ?? '0.1.1')
+		version: String(r.data.version ?? VERSION)
 	};
 }
 

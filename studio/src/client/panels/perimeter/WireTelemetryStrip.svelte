@@ -38,7 +38,7 @@
 		</div>
 		<div class="flex flex-col gap-0.5 overflow-hidden">
 			{#each latest as item (`${item.spine}-${item.seq}-${item.envelopeId}`)}
-				<div class="ui-font-mono flex items-center justify-between gap-1.5 truncate text-[0.65rem]">
+				<div data-trace-kind={item.kind} class="ui-font-mono flex items-center justify-between gap-1.5 truncate text-[0.65rem]">
 					<span class="shrink-0" style="color: var(--ui-muted-content);">{formatTime(item.timestamp)}</span>
 					<span class="truncate" style="color: var(--ui-secondary);">[{item.kind.replace('UI_', '')}]</span>
 					<span class="shrink-0" style="color: var(--ui-muted-content);">{item.stageMs.toFixed(1)}ms</span>

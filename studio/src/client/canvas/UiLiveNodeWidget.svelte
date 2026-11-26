@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import {
-		UiBadge, UiBentoRadar, UiChamferButton, UiChamferFrame, UiMathFormula, UiProgressGauge,
+		buildControlHtmlAttrs, UiBadge, UiBentoRadar, UiChamferButton, UiChamferFrame, UiMathFormula, UiProgressGauge,
 		type CornerKind, type UiNode, type WireTraceRecord
 	} from '@chronos-ui/svelte';
 
@@ -28,6 +28,7 @@
 	let emb = $derived(node.cornerEmbellishment);
 	let anim = $derived(node.cornerAnimation ?? 'NONE');
 	let embCfg = $derived(node.embellishmentConfig);
+	let controlAttrs = $derived(buildControlHtmlAttrs(node.controlConfig));
 	let recentTraces = $derived(traces.slice(-3).reverse());
 </script>
 
@@ -39,7 +40,7 @@
 	{/if}
 {/snippet}
 
-<div role="button" tabindex="0" data-ui-interactive="true" data-testid={`live-node-${node.id}`} data-node-zone={node.zone} data-node-shape={shape}
+<div role="button" tabindex="0" data-ui-interactive="true" data-testid={`live-node-${node.id}`} data-node-zone={node.zone} data-node-shape={shape} {...controlAttrs}
 	onclick={(e) => { e.stopPropagation(); onSelect(node.id); }}
 	onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onSelect(node.id); } }}
 	class="ui-commit-morph cursor-pointer text-left"

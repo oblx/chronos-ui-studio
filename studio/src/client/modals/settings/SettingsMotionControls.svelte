@@ -1,9 +1,9 @@
 <script lang="ts">
 	import {
 		DEFAULT_SURFACE_MOTION_PROFILES, getActiveMotionSensory, HUD_STAGGER_BOUNDS, MOTION_PROFILES,
-		MOTION_PROFILE_SPECS, resolveSurfaceMotionMs, SIGNAL_FLOW_SPEEDS, subscribeMotionState,
-		UiChamferButton, UiSlider, type CornerKind, type MotionProfileId, type MotionSensoryConfig,
-		type MotionSurfaceId, type StudioDefaultsConfig
+		MOTION_PROFILE_SPECS, MOTION_SURFACES, resolveSurfaceMotionMs, SIGNAL_FLOW_SPEEDS, subscribeMotionState,
+		SURFACE_MOTION_BOUNDS, UiChamferButton, UiSlider, type CornerKind, type MotionProfileId,
+		type MotionSensoryConfig, type MotionSurfaceId, type StudioDefaultsConfig
 	} from '@chronos-ui/svelte';
 
 	interface Props {
@@ -12,8 +12,6 @@
 		onSetMotionProfile: (patch: Partial<MotionSensoryConfig>) => void;
 		onSetStudioDefaults?: (patch: Partial<StudioDefaultsConfig>) => void;
 	}
-
-	const SURFACES: readonly MotionSurfaceId[] = ['MODAL', 'DRAWER', 'HUD_ZONE', 'TOOLTIP', 'NODE', 'CONTROL'] as const;
 
 	let { cornerMode, studioDefaults, onSetMotionProfile, onSetStudioDefaults }: Props = $props();
 	let sensory = $state(getActiveMotionSensory());
@@ -28,12 +26,12 @@
 		onSetMotionProfile({ profile });
 	}
 	function updateStagger(ms: number): void {
-		onSetMotionProfile({ hudZoneStaggerMs: ms });
-		onSetStudioDefaults?.({ hudZoneStaggerMs: ms });
+		if (onSetStudioDefaults) onSetStudioDefaults({ hudZoneStaggerMs: ms });
+		else onSetMotionProfile({ hudZoneStaggerMs: ms });
 	}
 	function nudgeSurfaceEnter(delta: number): void {
 		const cur = sensory.surfaces?.[activeSurface] ?? DEFAULT_SURFACE_MOTION_PROFILES[activeSurface];
-		const enterMs = Math.max(0, Math.min(800, cur.enterMs + delta));
+		const enterMs = Math.max(SURFACE_MOTION_BOUNDS.minMs, Math.min(SURFACE_MOTION_BOUNDS.maxMs, cur.enterMs + delta));
 		onSetMotionProfile({ surfaces: { ...sensory.surfaces, [activeSurface]: { ...cur, enterMs } } });
 	}
 </script>
@@ -64,13 +62,13 @@
 			<span class="ui-font-mono text-[0.6rem]" style="color: var(--ui-secondary);">{activeSurface}: {surfaceEnterMs}ms / {surfaceExitMs}ms</span>
 		</div>
 		<div class="grid grid-cols-3 gap-1">
-			{#each SURFACES as sid (sid)}
+			{#each MOTION_SURFACES as sid (sid)}
 				<UiChamferButton {cornerMode} label={sid.replace('_', ' ')} active={activeSurface === sid} variant={activeSurface === sid ? 'secondary' : 'ghost'} onclick={() => { activeSurface = sid; }} className="w-full px-1 py-0.5 text-[0.56rem]" />
 			{/each}
 		</div>
 		<div class="grid grid-cols-2 gap-1">
-			<UiChamferButton {cornerMode} label="-40ms Enter" variant="ghost" onclick={() => nudgeSurfaceEnter(-40)} className="w-full py-0.5 text-[0.58rem]" />
-			<UiChamferButton {cornerMode} label="+40ms Enter" variant="ghost" onclick={() => nudgeSurfaceEnter(40)} className="w-full py-0.5 text-[0.58rem]" />
+			<UiChamferButton {cornerMode} label={`-${SURFACE_MOTION_BOUNDS.stepMs}ms Enter`} variant="ghost" onclick={() => nudgeSurfaceEnter(-SURFACE_MOTION_BOUNDS.stepMs)} className="w-full py-0.5 text-[0.58rem]" />
+			<UiChamferButton {cornerMode} label={`+${SURFACE_MOTION_BOUNDS.stepMs}ms Enter`} variant="ghost" onclick={() => nudgeSurfaceEnter(SURFACE_MOTION_BOUNDS.stepMs)} className="w-full py-0.5 text-[0.58rem]" />
 		</div>
 	</div>
 	<div class="grid grid-cols-2 gap-1.5">

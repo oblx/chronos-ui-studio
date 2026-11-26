@@ -1,23 +1,18 @@
 <script lang="ts">
-	import { findThemePack, fitNodesToSafeCorridor, HISTORY_LIMIT_BOUNDS, HUD_METRICS, shortUuid, UiAssistantDock, UiChamferButton, UiChamferFrame, UiCyberTooltip, UiEdgeDrawer, UiInteractiveCanvasStage, UiPerimeterHud, uiSpotlight, UiSpotlightVeil, UiToastStack, UiUtilityIconButton, UiVirtualCursors, ZONE_CORNER_PRESETS, type HudZoneId, type UiNode } from '@chronos-ui/svelte';
+	import { fitNodesToSafeCorridor, HISTORY_LIMIT_BOUNDS, HUD_METRICS, shortUuid, UiAssistantDock, UiChamferButton, UiChamferFrame, UiCyberTooltip, UiEdgeDrawer, UiInteractiveCanvasStage, UiPerimeterHud, uiSpotlight, UiSpotlightVeil, UiToastStack, UiUtilityIconButton, UiVirtualCursors, ZONE_CORNER_PRESETS, type HudZoneId } from '@chronos-ui/svelte';
 	import { STARTER_BLUEPRINTS, STUDIO_CONFIG, STUDIO_LEFT_TABS, STUDIO_RIGHT_TABS, STUDIO_UI_COPY, STUDIO_VIEWS } from '../config';
+	import { findNodeInTreeByUuid } from '@studio/core/engine';
 	import { CalmTopStrip, ClientDocumentRoot, StagingBuildLayer } from './canvas';
 	import StudioModalStack from './modals/StudioModalStack.svelte';
 	import { BentoRadarConsole, EdgeRailContent, TopPerimeterPods, WireTelemetryStrip } from './panels';
-	import { apiLogin, apiLogout, apiMintPat, apiRegister, createStudioController, GENESIS_FALLBACK, syncCorridorForState } from './state';
+	import { apiLogin, apiLogout, apiMintPat, apiRegister, createStudioController, GENESIS_FALLBACK, resolveActiveProject, resolveActiveTheme, syncCorridorForState } from './state';
 
 	const studio = createStudioController();
 
-	const findNodeById = (list: readonly UiNode[], id: string | null): UiNode | null => {
-		if (!id) return null;
-		for (const n of list) { if (n.id === id) return n; const hit = n.children ? findNodeById(n.children, id) : null; if (hit) return hit; }
-		return null;
-	};
-
 	let bp = $derived(studio.state.blueprints.find((b) => b.id === studio.state.activeBlueprintId) ?? STARTER_BLUEPRINTS[0]);
-	let project = $derived(studio.state.projects.find((p) => p.id === studio.state.activeProjectId) ?? studio.state.projects[0] ?? GENESIS_FALLBACK);
-	let activeTheme = $derived(studio.state.themes.find((t) => t.id === studio.state.activeThemeId) ?? findThemePack(studio.state.activeThemeId));
-	let selectedNode = $derived(findNodeById(project.nodes, studio.state.selectedNodeId));
+	let project = $derived(resolveActiveProject(studio.state) ?? GENESIS_FALLBACK);
+	let activeTheme = $derived(resolveActiveTheme(studio.state));
+	let selectedNode = $derived(findNodeInTreeByUuid(project.nodes, studio.state.selectedNodeId));
 	let hasStaging = $derived(project.nodes.some((n) => n.lifecycle === 'STAGING' || n.lifecycle === 'BUILDING'));
 	let hiddenZones = $derived(new Set<HudZoneId>(bp.zones.filter((z) => !z.visible).map((z) => z.id)));
 	let revealedZones = $derived(new Set<HudZoneId>(studio.state.revealedZones));

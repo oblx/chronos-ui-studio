@@ -28,10 +28,12 @@ export async function apiCreateProject(name: string): Promise<UiProjectDefinitio
 }
 
 export async function apiCommitRevision(projectId: string, nodes: UiNodeTree, authorOrigin = 'USER'): Promise<UiProjectDefinition | null> {
-	const data = await jsonReq<{ project?: UiProjectDefinition }>(`/api/projects/${encodeURIComponent(projectId)}/revisions`, {
-		method: 'POST', body: JSON.stringify({ nodes, authorOrigin })
-	});
-	return data.project ?? null;
+	try {
+		const data = await jsonReq<{ project?: UiProjectDefinition }>(`/api/projects/${encodeURIComponent(projectId)}/revisions`, {
+			method: 'POST', body: JSON.stringify({ nodes, authorOrigin })
+		});
+		return data.project ?? null;
+	} catch { return null; }
 }
 
 export async function apiFetchChat(projectId: string): Promise<AssistantMessage[]> {

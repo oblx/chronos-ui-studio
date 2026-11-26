@@ -2,6 +2,7 @@ import type { CornerTuple, HudZoneId, UiFrameShape, UiNode } from '@chronos-ui/s
 import { eq } from 'drizzle-orm';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { STUDIO_CONFIG } from '@studio/config';
 import { buildWireframeSkeleton, patchNodeInTreeByUuid } from '@studio/core';
 import { getStudioDb, uiEntities } from '@studio/lib';
 import { compileFullstackBundle } from '@studio/plugins';
@@ -41,7 +42,7 @@ async function toolPatchEntity(args: Record<string, unknown>) {
 	if (!uuid) throw new Error('Entity uuid is required');
 	const db = await getStudioDb();
 	const rows = await db.select().from(uiEntities).where(eq(uiEntities.uuid, uuid)).limit(1);
-	const projectKey = rows[0]?.projectUuid ?? String(args.projectId ?? 'proj-genesis');
+	const projectKey = rows[0]?.projectUuid ?? String(args.projectId ?? STUDIO_CONFIG.defaultProjectId);
 	const project = await loadProjectWithNodes(projectKey);
 	if (!project) throw new Error(`Project not found: ${projectKey}`);
 	const patch = {

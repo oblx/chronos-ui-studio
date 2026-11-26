@@ -70,7 +70,7 @@
 
 	<UiChamferButton
 		{cornerMode}
-		icon="chevron-left"
+		icon="undo"
 		label={compact ? '' : 'Undo'}
 		variant="ghost"
 		disabled={!canUndo}
@@ -83,7 +83,7 @@
 
 	<UiChamferButton
 		{cornerMode}
-		icon="chevron-right"
+		icon="redo"
 		label={compact ? '' : 'Redo'}
 		variant="ghost"
 		disabled={!canRedo}

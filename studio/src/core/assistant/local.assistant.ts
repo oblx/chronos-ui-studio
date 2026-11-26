@@ -1,13 +1,13 @@
-import { COMPONENT_CATALOG, CORNER_MODES, HUD_ZONES, pxToRem, THEME_PACKS, UI_FRAME_SHAPES, type CornerKind, type HudZoneId, type UiComponentKind, type UiFrameShape } from '@chronos-ui/svelte';
+import { COMPONENT_CATALOG, CORNER_MODES, DEFAULT_DARK_THEME_ID, DEFAULT_LIGHT_THEME_ID, HUD_ZONES, pxToRem, THEME_PACKS, UI_FRAME_SHAPES, type CornerKind, type HudZoneId, type UiComponentKind, type UiFrameShape } from '@chronos-ui/svelte';
 import { STUDIO_TOOL_REGISTRY, type StudioToolDescriptor } from '../engine';
 export interface AssistantPlannedAction { readonly tool: string; readonly args: Record<string, unknown>; }
 export interface AssistantPlan { readonly reply: string; readonly actions: readonly AssistantPlannedAction[]; }
 const tokenize = (input: string): Set<string> => new Set(input.toLowerCase().split(/[^a-z0-9_-]+/).filter((t) => t.length > 1));
 function detectThemeMatch(lower: string): string | null {
 	for (const pack of THEME_PACKS) if (lower.includes(pack.id) || lower.includes(pack.id.replace(/-/g, ' ')) || lower.includes(pack.name.toLowerCase())) return pack.id;
-	if (/\b(light|alabaster)\b/.test(lower)) return 'alabaster-lab';
+	if (/\b(light|alabaster)\b/.test(lower)) return DEFAULT_LIGHT_THEME_ID;
 	if (/\b(daylight|blueprint)\b/.test(lower)) return 'daylight-blueprint';
-	if (/\b(dark|obsidian)\b/.test(lower)) return 'obsidian-brass';
+	if (/\b(dark|obsidian)\b/.test(lower)) return DEFAULT_DARK_THEME_ID;
 	return /\b(crt|phosphor|tokyo)\b/.test(lower) ? 'tokyo-phosphor' : null;
 }
 
@@ -89,7 +89,7 @@ function planStationOrZoneCommand(lower: string, corners: CornerKind | undefined
 	if (/\b(open\s+)?wireframe(\s+skeleton)?\b/.test(lower)) return { reply: 'Opened the CS6 Wireframe Skeleton Workbench.', actions: [{ tool: 'ui_open_wireframe_skeleton', args: {} }] };
 	if (/\bexport\s+full.?stack\b/.test(lower)) return { reply: 'Compiled standalone full-stack client + vendored Bun/Drizzle backend bundle.', actions: [{ tool: 'ui_export_fullstack_bundle', args: { emitZip: true } }] };
 	if (/\b(reject\s+all|discard\s+staged|clear\s+staging)\b/.test(lower)) return { reply: 'Discarded all un-committed staged nodes.', actions: [{ tool: 'ui_reject_all_staged', args: {} }] };
-	if (/\breset\s+(studio\s+)?defaults\b/.test(lower)) return { reply: 'Reset Studio geometry and ornament defaults to v0.0.11 baseline.', actions: [{ tool: 'ui_reset_studio_defaults', args: {} }] };
+	if (/\breset\s+(studio\s+)?defaults\b/.test(lower)) return { reply: 'Reset Studio geometry and ornament defaults to canonical baseline.', actions: [{ tool: 'ui_reset_studio_defaults', args: {} }] };
 	if (/\bstation\s+builder\b/.test(lower)) return { reply: 'Opened the Station Builder architectural workbench.', actions: [{ tool: 'ui_open_station_builder', args: {} }] };
 	if (/\bopen\b.*\bzone\s+edition\b/.test(lower)) return { reply: `Opened Zone Edition workbench focused on ${zoneId}.`, actions: [{ tool: 'ui_open_zone_edition', args: { zoneId } }] };
 	if (/\b(edit|update|configure)\b.*\bzone\b/.test(lower)) {

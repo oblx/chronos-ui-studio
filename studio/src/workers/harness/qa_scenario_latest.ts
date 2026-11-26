@@ -23,6 +23,7 @@ export const LATEST_SCENARIO_SCRIPT = `async (page) => {
 	});
 	if (!base.undoDisabled || !base.redoDisabled || !base.all32 || !base.distinct4 || base.sb !== 'thin') throw new Error('Base v0.1.1 check failed: ' + JSON.stringify(base));
 	await page.locator('[data-testid="assistant-unfold-trigger"]').first().click({ force: true });
+	await page.waitForFunction(() => (document.querySelector('[data-testid="ui-assistant-dock"]')?.getBoundingClientRect().height || 0) > 120, null, { timeout: 2500 });
 	const dockUndoDisabled = await page.locator('[data-testid="assistant-undo-btn"]').first().isDisabled();
 	const dockRedoDisabled = await page.locator('[data-testid="assistant-redo-btn"]').first().isDisabled();
 	if (!dockUndoDisabled || !dockRedoDisabled) throw new Error('Expected Assistant Dock Undo/Redo disabled initially');
@@ -67,7 +68,10 @@ export const LATEST_SCENARIO_SCRIPT = `async (page) => {
 	await page.locator('[data-testid="open-zones-btn"]').first().hover({ force: true });
 	await page.locator('[data-testid="ui-cyber-tooltip"]').first().waitFor({ state: 'visible', timeout: 2500 });
 	const revealedCount = (await page.locator('[data-zone-revealed="true"]').count()) + (await page.locator('[data-testid="edge-rail-left"], [data-testid="edge-rail-right"]').count());
-	const hasRevealTrace = await page.evaluate(() => (document.querySelector('[data-testid="zone-bottom-left"]')?.textContent || '').includes('UI_REVEAL_ZONE'));
+	const hasRevealTrace = await page.evaluate(() => {
+		const el = document.querySelector('[data-testid="zone-bottom-left"]');
+		return Boolean(el?.querySelector('[data-trace-kind="UI_REVEAL_ZONE"]') || (el?.textContent || '').includes('REVEAL_ZONE'));
+	});
 	if (revealedCount < 8 || !hasRevealTrace) throw new Error('HUD replay check failed: ' + JSON.stringify({ revealedCount, hasRevealTrace }));
 	return { scrollbarWidth: base.sb, distinct4Cursors: base.distinct4, undoRedoDockAndPod: true, modalDur, btnVar, tipFilterVerified: blockedAt30, mcpSynced48: true, revealedCount, hasRevealTrace };
 }`;
