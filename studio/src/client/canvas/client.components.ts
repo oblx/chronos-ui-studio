@@ -23,7 +23,8 @@ const CLIENT_COMPONENT_REGISTRY = new Map<UiComponentKind, Component<LiveNodeRen
 	['UiBadge', UiLiveNodeWidget],
 	['UiChamferButton', UiLiveNodeWidget],
 	['UiMathFormula', UiLiveNodeWidget],
-	['UiWireInspector', UiLiveNodeWidget]
+	['UiWireInspector', UiLiveNodeWidget],
+	['UiEventGraph', UiLiveNodeWidget]
 ]);
 
 export function resolveClientComponent(type: UiComponentKind): Component<LiveNodeRenderProps> {

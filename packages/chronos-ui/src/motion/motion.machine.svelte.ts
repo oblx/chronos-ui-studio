@@ -39,6 +39,7 @@ export function setActiveMotionConfig(patch: Partial<MotionConfig>): MotionConfi
 		speed: patch.speed ?? activeMotionConfig.speed,
 		reducedMotionOverride: patch.reducedMotionOverride ?? activeMotionConfig.reducedMotionOverride
 	};
+	if (typeof document !== 'undefined') document.documentElement.dataset.uiMotionPreset = activeMotionConfig.preset;
 	notifyMotionListeners();
 	return activeMotionConfig;
 }

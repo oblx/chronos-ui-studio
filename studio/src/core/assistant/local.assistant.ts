@@ -48,6 +48,7 @@ function scoreCatalogWidget(tokens: Set<string>, lower: string): UiComponentKind
 		if (item.type === 'UiProgressGauge' && /\b(gauge|progress|meter)\b/.test(lower)) score += 4;
 		if (item.type === 'UiMetricCard' && /\b(metric|kpi|latency|throughput)\b/.test(lower)) score += 4;
 		if (item.type === 'UiBentoRadar' && /\b(radar|minimap|skeleton)\b/.test(lower)) score += 4;
+		if (item.type === 'UiEventGraph' && /\b(event\s*graph|live\s*graph|graph|topology|dag|flowchart)\b/.test(lower)) score += 6;
 		if (score > bestScore) { bestScore = score; bestType = item.type; }
 	}
 	return bestScore >= 2 ? bestType : null;

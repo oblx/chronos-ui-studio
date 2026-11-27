@@ -39,7 +39,7 @@ export function syncThemeAndCursor(s: StudioState, resetIfNull = false): void {
 	applyThemeToRoot(theme);
 	if (s.activeCursorPackId !== null) {
 		const pack = s.cursorPacks.find((c) => c.uuid === s.activeCursorPackId || c.slug === s.activeCursorPackId) ?? BUILTIN_CURSOR_PACKS[0];
-		applyCursorPackToDocument(pack, resolveThemeCursorPalette(theme));
+		applyCursorPackToDocument(pack, { ...resolveThemeCursorPalette(theme), dragTargetFrames: s.studioDefaults.cursorDragTargetFrames ?? true });
 	} else if (resetIfNull) {
 		resetCursorPackOnDocument();
 	}

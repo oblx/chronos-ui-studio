@@ -17,7 +17,7 @@ import { createStudioProject, handleProjectRoutes } from '@studio/server/routes'
 
 describe('v0.0.5 UUID v7 registry, DB/REST/MCP parity, and sparse overrides', () => {
 	test('RFC 9562 UUID v7 generator is strictly monotonic and formats 8-char short prefixes', () => {
-		expect(VERSION).toBe('0.1.1');
+		expect(VERSION).toBe('0.1.2');
 		const ids = Array.from({ length: 16 }, () => generateUuidV7());
 		for (let i = 0; i < ids.length; i += 1) {
 			expect(isUuidV7(ids[i])).toBe(true);

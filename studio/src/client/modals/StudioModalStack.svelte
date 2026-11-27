@@ -83,7 +83,7 @@
 	{/await}
 {:else if p.activeModalId === 'cursors'}
 	{#await import('./cursor/CursorStudioModal.svelte') then mod}
-		<mod.default open={true} cornerMode={p.cornerMode} packs={p.cursorPacks} activePackId={p.activeCursorPackId} onApplyPack={p.onApplyCursorPack} onResetPack={p.onResetCursorPack} onCreatePack={p.onCreateCursorPack} onDeriveStates={p.onDeriveCursorStates} onUpdateHotspot={p.onUpdateCursorHotspot} onClose={p.onCloseModal} />
+		<mod.default open={true} cornerMode={p.cornerMode} packs={p.cursorPacks} activePackId={p.activeCursorPackId} dragTargetFrames={p.studioDefaults.cursorDragTargetFrames ?? true} onToggleDragTargetFrames={() => p.onSetStudioDefaults({ cursorDragTargetFrames: !(p.studioDefaults.cursorDragTargetFrames ?? true) })} onApplyPack={p.onApplyCursorPack} onResetPack={p.onResetCursorPack} onCreatePack={p.onCreateCursorPack} onDeriveStates={p.onDeriveCursorStates} onUpdateHotspot={p.onUpdateCursorHotspot} onClose={p.onCloseModal} />
 	{/await}
 {:else if p.activeModalId === 'radar-skeleton'}
 	{#await import('./wireframe/WireframeSkeletonModal.svelte') then mod}
@@ -91,7 +91,7 @@
 	{/await}
 {:else if p.activeModalId === 'wire'}
 	{#await import('./WireTapModal.svelte') then mod}
-		<mod.default open={true} traces={p.traces} user={p.user} cornerMode={p.cornerMode} onDevArchitectLogin={() => void p.onDevLogin()} onRefresh={p.onRefreshTraces} onClearBuffer={p.onClearTraces} onClose={p.onCloseModal} />
+		<mod.default open={true} traces={p.traces} user={p.user} cornerMode={p.cornerMode} timeScaleMultiplier={p.studioDefaults.wireTimeScaleMultiplier} timeScaleCurve={p.studioDefaults.wireTimeScaleCurve} graphRouting={p.studioDefaults.graphRouting} onSetTimeScale={(wireTimeScaleMultiplier, wireTimeScaleCurve) => p.onSetStudioDefaults({ wireTimeScaleMultiplier, wireTimeScaleCurve })} onDevArchitectLogin={() => void p.onDevLogin()} onRefresh={p.onRefreshTraces} onClearBuffer={p.onClearTraces} onClose={p.onCloseModal} />
 	{/await}
 {:else if p.activeModalId === 'auth'}
 	{#await import('./AuthMcpModal.svelte') then mod}

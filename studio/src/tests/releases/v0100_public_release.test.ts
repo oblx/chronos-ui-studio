@@ -15,9 +15,9 @@ import { ALL_HARNESS_SCENARIOS } from '@studio/workers/harness';
 import { LATEST_DELTA_TEST, resolveQaTier, resolveScopedTestFile } from '@studio/workers/qa_verify';
 
 const ROOT = process.cwd();
-const ALL_13_BARRELS = [
+const ALL_14_BARRELS = [
 	'./tokens', './wire', './input', './motion', './cursor', './machines',
-	'./atoms', './forms', './molecules', './organisms', './modals', './assistant', './canvas'
+	'./atoms', './forms', './molecules', './organisms', './graph', './modals', './assistant', './canvas'
 ] as const;
 
 function maxFilesInTree(dir: string): { maxCount: number; worstDir: string } {
@@ -35,8 +35,8 @@ function maxFilesInTree(dir: string): { maxCount: number; worstDir: string } {
 
 describe('v0.1.0 Scoped-Latest-By-Default QA Engine', () => {
 	test('defaults qa_verify and qa_harness to scoped latest mode and requires explicit opt-in for full battery', () => {
-		expect(VERSION).toBe('0.1.1');
-		expect(LATEST_DELTA_TEST).toBe('studio/src/tests/releases/v0101_motion_cursors_history.test.ts');
+		expect(VERSION).toBe('0.1.2');
+		expect(LATEST_DELTA_TEST).toBe('studio/src/tests/releases/v0102_graph_timescale_marquee.test.ts');
 		expect(resolveQaTier([])).toBe('fast');
 		expect(resolveQaTier(['--delta'])).toBe('delta');
 		expect(resolveQaTier(['--full-battery'])).toBe('release');
@@ -114,11 +114,11 @@ describe('v0.1.0 Unified Fold-Overlay Engine, Tooltip Parser & Zero-Displacement
 describe('v0.1.0 Public Packaging Seal, Decongested Folders (< 10) & Subpath Exports', () => {
 	test('verifies MIT license, decongested folders (all < 10, target <= 8), and all 16 exports on disk', () => {
 		const pkg = JSON.parse(readFileSync(join(ROOT, 'packages/chronos-ui/package.json'), 'utf8'));
-		expect(pkg.version).toBe('0.1.1');
+		expect(pkg.version).toBe('0.1.2');
 		expect(pkg.license).toBe('MIT');
 		expect(Object.keys(pkg.dependencies ?? {}).length).toBe(0);
-		expect(Object.keys(pkg.exports ?? {}).length).toBeGreaterThanOrEqual(16);
-		for (const sub of ['.', './manifest', './styles.css', ...ALL_13_BARRELS]) {
+		expect(Object.keys(pkg.exports ?? {}).length).toBeGreaterThanOrEqual(17);
+		for (const sub of ['.', './manifest', './styles.css', ...ALL_14_BARRELS]) {
 			const entry = pkg.exports?.[sub];
 			const target = typeof entry === 'string' ? entry : entry.default;
 			expect(existsSync(join(ROOT, 'packages/chronos-ui', target))).toBe(true);
@@ -133,14 +133,14 @@ describe('v0.1.0 Public Packaging Seal, Decongested Folders (< 10) & Subpath Exp
 	});
 
 	test('imports granular @chronos-ui/svelte/* subpaths cleanly and verifies .d.ts type declarations', () => {
-		expect(tokensSub.VERSION).toBe('0.1.1');
+		expect(tokensSub.VERSION).toBe('0.1.2');
 		expect(typeof wireSub.createHeadlessWireBroker).toBe('function');
 		expect(typeof motionSub.buildMotionCssVars).toBe('function');
 		expect(Array.isArray(canvasSub.COMPONENT_CATALOG)).toBe(true);
 		expect(typeof cursorSub.buildCursorPackCss).toBe('function');
 		expect(typeof inputSub.createVoiceInputAdapter).toBe('function');
 		expect(typeof machinesSub.createFoldOverlayMachine).toBe('function');
-		expect(manifestSub.UI_FRAMEWORK_MANIFEST.version).toBe('0.1.1');
+		expect(manifestSub.UI_FRAMEWORK_MANIFEST.version).toBe('0.1.2');
 		for (const rel of ['tokens/index.d.ts', 'wire/index.d.ts', 'machines/index.d.ts', 'manifest.d.ts']) {
 			expect(existsSync(join(ROOT, 'packages/chronos-ui/dist', rel))).toBe(true);
 		}

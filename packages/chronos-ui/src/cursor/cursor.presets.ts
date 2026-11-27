@@ -49,10 +49,11 @@ export function buildVectorCursorDataUrl(
 	stroke: string,
 	accent: string,
 	danger = THEME_PACKS[0].tokens['--ui-error'],
-	style: CursorPackStyleId = 'cyber-reticle'
+	style: CursorPackStyleId = 'cyber-reticle',
+	dragTargetFrames = true
 ): string {
 	const sz = CURSOR_LIMITS.normalizedPx;
-	const body = buildBespokeCursorBody(state, { fill, stroke, accent, danger, style });
+	const body = buildBespokeCursorBody(state, { fill, stroke, accent, danger, style, dragTargetFrames });
 	const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}">${body}</svg>`;
 	return encodeSvgCursorDataUrl(svg);
 }

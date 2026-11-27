@@ -62,21 +62,22 @@
 	{onClose}
 >
 	<div class="grid min-h-[26rem] grid-cols-1 gap-0 border lg:grid-cols-[18rem_1fr]" style="border-color: var(--ui-border-subtle); background-color: var(--ui-base-100);" data-testid="tome-dual-book" use:uiSwipeDeck={{ onStep: stepFolio }}>
-		<aside class="flex flex-col justify-between gap-3 border-b p-4 lg:border-r lg:border-b-0" style="border-color: var(--ui-border-subtle); background-color: var(--ui-base-200); box-shadow: inset -12px 0 18px -14px rgba(0,0,0,0.45);">
-			<div class="flex flex-col gap-2">
+		<aside class="flex min-w-0 flex-col justify-between gap-3 overflow-hidden border-b p-4 lg:border-r lg:border-b-0" style="border-color: var(--ui-border-subtle); background-color: var(--ui-base-200); box-shadow: inset -12px 0 18px -14px rgba(0,0,0,0.45);">
+			<div class="flex min-w-0 flex-col gap-2">
 				<div class="ui-font-mono flex items-center justify-between text-[0.65rem] uppercase tracking-wider" style="color: var(--ui-muted-content);">
 					<span>Table of Contents</span>
 					<span>Ch {chapterIdx + 1}/{TOME_SSG_CHAPTERS.length}</span>
 				</div>
-				<nav class="flex flex-col gap-1" aria-label="Field Tome Chapters">
+				<nav class="flex min-w-0 flex-col gap-1" aria-label="Field Tome Chapters">
 					{#each TOME_SSG_CHAPTERS as ch, idx (ch.id)}
 						<UiChamferButton
 							{cornerMode}
 							label={`${idx + 1}. ${ch.title.replace(/^Chapter\s+\d+:\s*/i, '')}`}
 							active={idx === chapterIdx}
 							variant={idx === chapterIdx ? 'primary' : 'ghost'}
+							testId={`tome-toc-ch-${idx + 1}`}
 							onclick={() => selectChapter(idx)}
-							className="w-full justify-start py-1 text-left text-[0.7rem]"
+							className="w-full min-w-0 justify-start py-1 text-left text-[0.7rem]"
 						/>
 					{/each}
 				</nav>

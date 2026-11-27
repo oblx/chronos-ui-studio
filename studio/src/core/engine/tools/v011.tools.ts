@@ -97,5 +97,46 @@ export const V011_TOOL_DESCRIPTORS: readonly StudioToolDescriptor[] = [
 		},
 		outputSchema: { type: 'object', properties: { tooltipInfoLevel: { type: 'number' }, tier: { type: 'string' } } },
 		annotations: IDEM
+	},
+	{
+		name: 'ui_configure_graph',
+		description: 'Configure UiEventGraph edge routing, packet size, and optional node overrides.',
+		humanTitle: 'Configure Event Graph',
+		plainDescription: 'Switch live event graph routing (BEZIER, ORTHOGONAL, STEP) and packet diameter.',
+		category: 'CUSTOMIZE',
+		icon: 'wire',
+		intentKind: 'UI_CONFIGURE_GRAPH',
+		requiredCapabilityBit: CAPABILITY_BITS.WRITE_BLUEPRINTS,
+		inputSchema: {
+			type: 'object',
+			properties: {
+				projectId: { type: 'string' },
+				nodeId: { type: 'string' },
+				routing: { type: 'string', enum: ['BEZIER', 'ORTHOGONAL', 'STEP'] },
+				packetSizePx: { type: 'number', minimum: 4, maximum: 14 }
+			}
+		},
+		outputSchema: { type: 'object', properties: { graphRouting: { type: 'string' }, graphPacketSizePx: { type: 'number' } } },
+		annotations: IDEM
+	},
+	{
+		name: 'ui_set_wire_timescale',
+		description: 'Configure Human Time-Scale slow-motion multiplier (100x..25000x) and curve (LINEAR | LOGARITHMIC).',
+		humanTitle: 'Set Wire Time-Scale',
+		plainDescription: 'Scale real microsecond wire durations into human-visible signal packets.',
+		category: 'CUSTOMIZE',
+		icon: 'wire',
+		intentKind: 'UI_SET_WIRE_TIMESCALE',
+		requiredCapabilityBit: CAPABILITY_BITS.WRITE_THEMES,
+		inputSchema: {
+			type: 'object',
+			properties: {
+				projectId: { type: 'string' },
+				multiplier: { type: 'number', minimum: 100, maximum: 25000 },
+				curve: { type: 'string', enum: ['LINEAR', 'LOGARITHMIC'] }
+			}
+		},
+		outputSchema: { type: 'object', properties: { wireTimeScaleMultiplier: { type: 'number' }, wireTimeScaleCurve: { type: 'string' } } },
+		annotations: IDEM
 	}
 ];

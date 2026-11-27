@@ -23,7 +23,8 @@ export type UiComponentKind =
 	| 'UiBadge'
 	| 'UiChamferButton'
 	| 'UiMathFormula'
-	| 'UiWireInspector';
+	| 'UiWireInspector'
+	| 'UiEventGraph';
 
 export interface UiNode {
 	readonly id: string;

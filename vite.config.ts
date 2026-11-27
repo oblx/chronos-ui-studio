@@ -11,6 +11,7 @@ export default defineConfig(() => {
 		],
 		resolve: {
 			alias: [
+				{ find: '@chronos-ui/svelte/graph', replacement: path.resolve(import.meta.dirname, 'packages/chronos-ui/src/organisms/graph/index.ts') },
 				{ find: /^@chronos-ui\/svelte\/(.+)$/, replacement: `${path.resolve(import.meta.dirname, 'packages/chronos-ui/src')}/$1` },
 				{ find: '@chronos-ui/svelte', replacement: path.resolve(import.meta.dirname, 'packages/chronos-ui/src/index.ts') },
 				{ find: '@ui', replacement: path.resolve(import.meta.dirname, 'packages/chronos-ui/src') },

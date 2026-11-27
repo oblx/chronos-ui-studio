@@ -5,7 +5,7 @@ import { runStaticAudit } from './qa_audit';
 import { formatClockBanner, formatDurationCompact, getSprintTimerStatus, lapSprintTimer } from './qa_timer';
 
 export type QaTier = 'fast' | 'delta' | 'release';
-export const LATEST_DELTA_TEST = 'studio/src/tests/releases/v0101_motion_cursors_history.test.ts';
+export const LATEST_DELTA_TEST = 'studio/src/tests/releases/v0102_graph_timescale_marquee.test.ts';
 const TSC_BUILD_INFO = 'studio/data/.tsbuildinfo';
 const TSC_BIN = existsSync('node_modules/typescript/bin/tsc') ? ['bun', '--bun', 'node_modules/typescript/bin/tsc'] : ['bunx', 'tsc'];
 

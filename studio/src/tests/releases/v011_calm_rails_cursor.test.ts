@@ -11,7 +11,7 @@ import { createStudioProject } from '@studio/server/routes/routes.projects';
 
 describe('v0.0.11 concrete-hex 21-state cursor CSS engine (zero OS fallback)', () => {
 	test('resolves concrete hex colors with zero var(--) tokens and valid 32x32 xmlns across all 21 states & 6 themes', () => {
-		expect(VERSION).toBe('0.1.1');
+		expect(VERSION).toBe('0.1.2');
 		for (const theme of THEME_PACKS) {
 			const palette = resolveThemeCursorPalette(theme);
 			expect(palette.fillHex.startsWith('#')).toBe(true);
@@ -95,10 +95,10 @@ describe('v0.0.11 Minimal Calm launch, unified edge rails, safe corridor & atomi
 
 describe('v0.0.11 40-tool MCP parity & ui_reject_all_staged execution', () => {
 	test('registers 42 unified tools, plans /reject prompts, and executes ui_reject_all_staged via Builder MCP', async () => {
-		expect(STUDIO_TOOL_REGISTRY.length).toBe(48);
+		expect(STUDIO_TOOL_REGISTRY.length).toBe(50);
 		const listRes = await handleBuilderMcpRpc({ jsonrpc: '2.0', id: 1101, method: 'tools/list' });
 		const tools = (listRes.result as unknown as { tools: { name: string }[] }).tools;
-		expect(tools.length).toBe(48);
+		expect(tools.length).toBe(50);
 		expect(tools.some((t) => t.name === 'ui_reject_all_staged')).toBe(true);
 		expect(planLocalAssistantPrompt('/reject').actions[0]?.tool).toBe('ui_reject_all_staged');
 		expect(planLocalAssistantPrompt('reject all staged nodes').actions[0]?.tool).toBe('ui_reject_all_staged');

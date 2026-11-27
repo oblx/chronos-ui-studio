@@ -17,9 +17,9 @@ export function migrateLegacyStudioDefaults(
 	raw: Partial<StudioDefaultsConfig> | undefined,
 	legacyCornerRadiusRem?: number
 ): StudioDefaultsConfig {
-	const hasCurrentVersion = typeof raw?.defaultsVersion === 'number' && raw.defaultsVersion >= STUDIO_DEFAULTS_VERSION;
+	const hasV2BaseCut = typeof raw?.defaultsVersion === 'number' && raw.defaultsVersion >= 2;
 	const rawBase = raw?.baseCornerCutRem ?? legacyCornerRadiusRem;
-	const isLegacyDefault = !hasCurrentVersion && (rawBase === undefined || rawBase === 0.75);
+	const isLegacyDefault = !hasV2BaseCut && (rawBase === undefined || rawBase === 0.75);
 	const resolvedBase = isLegacyDefault ? CORNER_RADIUS_LIMITS.defaultRem : clampCornerRadiusRem(rawBase);
 	return clampStudioDefaults(
 		{ ...raw, baseCornerCutRem: resolvedBase, defaultsVersion: STUDIO_DEFAULTS_VERSION },

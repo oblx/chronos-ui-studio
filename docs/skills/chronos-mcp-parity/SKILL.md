@@ -4,16 +4,16 @@ description: Maintains 1:1 parity across STUDIO_TOOL_REGISTRY, Dual-Spine MCP ha
 license: MIT
 metadata:
   author: Oblx <code@oblx.dev>
-  version: "0.1.1"
+  version: "0.1.2"
 ---
 
-# Chronos Dual-Spine MCP Parity (`v0.1.1`)
+# Chronos Dual-Spine MCP Parity (`v0.1.2`)
 
 Use this skill when adding or modifying Studio capabilities, MCP tools, slash commands, or client wire intents.
 
 ## Single Source of Truth Rules
 
-1. **Declarative Registry**: Declare every tool once inside `STUDIO_TOOL_REGISTRY` (`studio/src/core/engine/`), spanning `48` parity tools including `ui_configure_controls`, `ui_set_history_limit`, `ui_undo`, `ui_redo`, `ui_replay_hud_sequence`, and `ui_set_tooltip_info_level`.
+1. **Declarative Registry**: Declare every tool once inside `STUDIO_TOOL_REGISTRY` (`studio/src/core/engine/`), spanning `50` parity tools including `ui_configure_graph`, `ui_set_wire_timescale`, `ui_configure_controls`, `ui_set_history_limit`, `ui_undo`, `ui_redo`, `ui_replay_hud_sequence`, and `ui_set_tooltip_info_level`.
 2. **Modular Handler Barrels**: Implement Builder Spine handlers inside `studio/src/mcp/tools/` (`mcp.v011.tools.ts`, `mcp.project.tools.ts`, `mcp.station.tools.ts`, `mcp.entity.tools.ts`, `mcp.cursor.tools.ts`) keeping every directory at $\le 8$ files.
 3. **Builder & Twin Spines**:
 	- Builder Spine (`/api/mcp` & `bun run mcp:stdio`) mutates persisted Drizzle SQLite projects, studio defaults, revisions, and blueprints, returning structured JSON + `clientIntents`.

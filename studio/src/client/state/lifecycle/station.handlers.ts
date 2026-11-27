@@ -7,7 +7,7 @@ import type { ZoneBlueprintConfig } from '@studio/config';
 import { apiSaveBlueprint } from '../studio.api';
 import { apiCommitRevision } from '../studio.project.api';
 import type { MoveEntityToZonePayload, StationLayerConfig, StudioState, ZoneEditPayload } from '../studio.types';
-import { persistActiveHistory, pushUndoSnapshot, resolveActiveProject } from './dom.sync';
+import { persistActiveHistory, pushUndoSnapshot, resolveActiveProject, syncThemeAndCursor } from './dom.sync';
 import { apiPatchProjectCornerRadius, apiPatchProjectStudioDefaults } from './lifecycle.api';
 
 export { findOppositeZone };
@@ -105,13 +105,13 @@ export function registerStationAndZoneHandlers(broker: UiWireBroker<StudioState>
 			const patch = 'studioDefaults' in env.payload && env.payload.studioDefaults ? env.payload.studioDefaults : (env.payload as Partial<StudioDefaultsConfig>);
 			return applyDefaultsReducer(s, clampStudioDefaults(patch, s.studioDefaults));
 		},
-		effect: (s) => { setActiveStudioDefaults(s.studioDefaults); applyStudioDefaults(s.studioDefaults); applyAccessibilityPrefs(s.accessibility); void apiPatchProjectStudioDefaults(s.activeProjectId, s.studioDefaults); },
+		effect: (s) => { setActiveStudioDefaults(s.studioDefaults); applyStudioDefaults(s.studioDefaults); applyAccessibilityPrefs(s.accessibility); syncThemeAndCursor(s); void apiPatchProjectStudioDefaults(s.activeProjectId, s.studioDefaults); },
 		summarize: () => 'Updated Studio defaults'
 	});
 	broker.register<Record<string, never>>('UI_RESET_STUDIO_DEFAULTS', {
 		tier: 'TIER_1_COALESCED_PERSIST',
 		reduce: (s) => applyDefaultsReducer(s, DEFAULT_STUDIO_DEFAULTS),
-		effect: (s) => { resetActiveStudioDefaults(); applyStudioDefaults(DEFAULT_STUDIO_DEFAULTS); applyAccessibilityPrefs(s.accessibility); void apiPatchProjectStudioDefaults(s.activeProjectId, DEFAULT_STUDIO_DEFAULTS); },
+		effect: (s) => { resetActiveStudioDefaults(); applyStudioDefaults(DEFAULT_STUDIO_DEFAULTS); applyAccessibilityPrefs(s.accessibility); syncThemeAndCursor(s); void apiPatchProjectStudioDefaults(s.activeProjectId, DEFAULT_STUDIO_DEFAULTS); },
 		summarize: () => 'Reset Studio defaults to canonical baseline'
 	});
 	broker.register<Partial<StationLayerConfig>>('UI_CONFIGURE_STATION_LAYER', {

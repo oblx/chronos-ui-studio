@@ -4,7 +4,7 @@ description: Enforces Clean Onion Architecture, package firewall, decongested fo
 license: MIT
 metadata:
   author: Oblx <code@oblx.dev>
-  version: "0.1.1"
+  version: "0.1.2"
 ---
 
 # Chronos Clean Onion & Firewall Audit
@@ -18,9 +18,9 @@ Use this skill whenever adding, refactoring, or relocating modules across `packa
 3. **Decongested Folder Hygiene**: Hard cap $\le 10$ files per directory (target $\le 8$, near-cap warning emitted at `9–10` files by `qa_audit.ts`). Every code folder in `packages/chronos-ui/src/` and `studio/src/` requires an `index.ts` barrel.
 4. **Zero Deep Relative Imports**: Never write `../..` imports. Inside `packages/chronos-ui/src/` use single-level `../` or `@ui/*`; inside `studio/src/` use `@chronos-ui/svelte`, `@chronos-ui/svelte/*`, or `@studio/*`.
 5. **Humble Svelte 5 Views**: `.svelte` files perform zero `fetch()`, `localStorage`, or `indexedDB` calls, use zero `<svelte:component>`, zero Unicode emojis, and zero hardcoded non-palette hex colors.
-6. **Docs & Skill Freshness**: `qa_audit.ts` enforces `DOCS_AND_SKILL_FRESHNESS` across all 13 declared subpath exports in `packages/chronos-ui/README.md` and `version: "0.1.1"` parity across all domain skills.
+6. **Docs & Skill Freshness**: `qa_audit.ts` enforces `DOCS_AND_SKILL_FRESHNESS` across all 14 declared subpath exports (including `./graph`) in `packages/chronos-ui/README.md` and `version: "0.1.2"` parity across all domain skills.
 
-## Decongested Barrel Topology (`v0.1.1`)
+## Decongested Barrel Topology (`v0.1.2`)
 
 - `packages/chronos-ui/src/tokens/geometry/` and `packages/chronos-ui/src/tokens/control.tokens.ts` — 3-tier corners, 14 shapes, and configurable control tokens.
 - `packages/chronos-ui/src/machines/overlays/` — `modal.machine.svelte.ts` (4-phase FSM), `tooltip.machine.svelte.ts` (`infoLevel 0..100`), `spotlight.machine.svelte.ts`.

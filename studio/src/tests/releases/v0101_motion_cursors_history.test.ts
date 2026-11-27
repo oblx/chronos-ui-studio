@@ -18,7 +18,7 @@ const countFiles = (relDir: string): number =>
 
 describe('v0.1.1 Bespoke 21-State CSS Cursor Silhouettes', () => {
 	test('renders 21 distinct 32x32 silhouettes across 4 differentiated packs with zero var(-- tokens', () => {
-		expect(VERSION).toBe('0.1.1');
+		expect(VERSION).toBe('0.1.2');
 		expect(BUILTIN_CURSOR_PACKS.length).toBe(4);
 		const defaultByPack = new Set<string>();
 		const crosshairByPack = new Set<string>();

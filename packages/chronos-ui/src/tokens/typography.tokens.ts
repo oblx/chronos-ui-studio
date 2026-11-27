@@ -6,7 +6,9 @@ import {
 import type { CornerKind } from './geometry';
 import {
 	clamp, CONTROL_CUT_LIMITS, CORNER_RADIUS_LIMITS, DEFAULT_CONTROL_CORNER_CUT_REM, DEFAULT_CORNER_CUT_REM,
-	DEFAULT_STATION_CORNER_CUT_REM, ORNAMENT_LIMITS, STUDIO_DEFAULTS_VERSION
+	DEFAULT_STATION_CORNER_CUT_REM, GRAPH_EDGE_ROUTINGS, ORNAMENT_LIMITS, STUDIO_DEFAULTS_VERSION,
+	STUDIO_KNOB_BOUNDS, STUDIO_KNOB_DEFAULTS, WIRE_TIME_SCALE_CURVES,
+	type GraphEdgeRouting, type WireTimeScaleCurve
 } from './hud.constants';
 
 export type FontScalePercent = 85 | 100 | 115 | 130;
@@ -30,19 +32,14 @@ export interface AccessibilityPrefs {
 
 export interface StudioDefaultsConfig {
 	readonly defaultsVersion?: number;
-	readonly baseCornerCutRem: number;
-	readonly stationCornerCutRem: number;
-	readonly controlCornerCutRem: number;
-	readonly borderStrokePx: BorderStrokePx;
-	readonly ornamentOffsetRem: number;
-	readonly ornamentDriftAmpRem: number;
-	readonly ornamentPeriodMs: number;
-	readonly perimeterGutterRem: PerimeterGutterRem;
-	readonly autoSaveMode: AutoSaveMode;
-	readonly tooltipInfoLevel?: number;
-	readonly historyLimit?: number;
-	readonly hudZoneStaggerMs?: number;
-	readonly controlConfig?: StudioControlConfig;
+	readonly baseCornerCutRem: number; readonly stationCornerCutRem: number; readonly controlCornerCutRem: number;
+	readonly borderStrokePx: BorderStrokePx; readonly ornamentOffsetRem: number; readonly ornamentDriftAmpRem: number;
+	readonly ornamentPeriodMs: number; readonly perimeterGutterRem: PerimeterGutterRem; readonly autoSaveMode: AutoSaveMode;
+	readonly tooltipInfoLevel?: number; readonly historyLimit?: number; readonly hudZoneStaggerMs?: number;
+	readonly wireTimeScaleMultiplier?: number; readonly wireTimeScaleCurve?: WireTimeScaleCurve;
+	readonly marqueeSpeedPxPerSec?: number; readonly marqueePauseRatio?: number;
+	readonly graphRouting?: GraphEdgeRouting; readonly graphPacketSizePx?: number;
+	readonly cursorDragTargetFrames?: boolean; readonly controlConfig?: StudioControlConfig;
 }
 
 export const DEFAULT_ACCESSIBILITY_PREFS: AccessibilityPrefs = {
@@ -56,8 +53,7 @@ export const DEFAULT_STUDIO_DEFAULTS: StudioDefaultsConfig = {
 	borderStrokePx: 1.5, ornamentOffsetRem: ORNAMENT_LIMITS.defaultOffsetRem,
 	ornamentDriftAmpRem: ORNAMENT_LIMITS.defaultAmpRem, ornamentPeriodMs: ORNAMENT_LIMITS.defaultPeriodMs,
 	perimeterGutterRem: 0.75, autoSaveMode: 'OFF', tooltipInfoLevel: TOOLTIP_LEVEL_BOUNDS.defaultLevel,
-	historyLimit: HISTORY_LIMIT_BOUNDS.defaultLimit, hudZoneStaggerMs: HUD_STAGGER_BOUNDS.defaultMs,
-	controlConfig: DEFAULT_CONTROL_CONFIG
+	historyLimit: HISTORY_LIMIT_BOUNDS.defaultLimit, ...STUDIO_KNOB_DEFAULTS, controlConfig: DEFAULT_CONTROL_CONFIG
 } as const;
 
 const snapStep = (v: number, min: number, max: number, step: number): number =>
@@ -76,30 +72,40 @@ export function clampControlCutRem(value?: number): number {
 const clampStaggerMs = (v?: number): number =>
 	snapStep(v ?? HUD_STAGGER_BOUNDS.defaultMs, HUD_STAGGER_BOUNDS.minMs, HUD_STAGGER_BOUNDS.maxMs, HUD_STAGGER_BOUNDS.stepMs);
 
+function clampKnobFields(p: Partial<StudioDefaultsConfig>, b: StudioDefaultsConfig) {
+	const kb = STUDIO_KNOB_BOUNDS;
+	const curve = p.wireTimeScaleCurve ?? b.wireTimeScaleCurve;
+	const routing = p.graphRouting ?? b.graphRouting;
+	return {
+		wireTimeScaleMultiplier: Math.round(clamp(p.wireTimeScaleMultiplier ?? b.wireTimeScaleMultiplier ?? kb.wireTimeScaleDefault, kb.wireTimeScaleMin, kb.wireTimeScaleMax)),
+		wireTimeScaleCurve: WIRE_TIME_SCALE_CURVES.includes(curve as WireTimeScaleCurve) ? (curve as WireTimeScaleCurve) : STUDIO_KNOB_DEFAULTS.wireTimeScaleCurve,
+		marqueeSpeedPxPerSec: snapStep(p.marqueeSpeedPxPerSec ?? b.marqueeSpeedPxPerSec ?? kb.marqueeSpeedDefault, kb.marqueeSpeedMin, kb.marqueeSpeedMax, kb.marqueeSpeedStep),
+		marqueePauseRatio: snapStep(p.marqueePauseRatio ?? b.marqueePauseRatio ?? kb.marqueePauseDefault, kb.marqueePauseMin, kb.marqueePauseMax, kb.marqueePauseStep),
+		graphRouting: GRAPH_EDGE_ROUTINGS.includes(routing as GraphEdgeRouting) ? (routing as GraphEdgeRouting) : STUDIO_KNOB_DEFAULTS.graphRouting,
+		graphPacketSizePx: snapStep(p.graphPacketSizePx ?? b.graphPacketSizePx ?? kb.graphPacketSizeDefault, kb.graphPacketSizeMin, kb.graphPacketSizeMax, kb.graphPacketSizeStep),
+		cursorDragTargetFrames: typeof p.cursorDragTargetFrames === 'boolean' ? p.cursorDragTargetFrames : (b.cursorDragTargetFrames ?? STUDIO_KNOB_DEFAULTS.cursorDragTargetFrames)
+	};
+}
+
 export function clampStudioDefaults(patch?: Partial<StudioDefaultsConfig>, base: StudioDefaultsConfig = DEFAULT_STUDIO_DEFAULTS): StudioDefaultsConfig {
 	const baseControl = base.controlConfig ?? DEFAULT_CONTROL_CONFIG;
-	if (!patch) {
-		return {
-			...base, defaultsVersion: base.defaultsVersion ?? STUDIO_DEFAULTS_VERSION,
-			tooltipInfoLevel: clampTooltipInfoLevel(base.tooltipInfoLevel), historyLimit: clampHistoryLimit(base.historyLimit),
-			hudZoneStaggerMs: clampStaggerMs(base.hudZoneStaggerMs), controlConfig: clampControlConfig(undefined, baseControl)
-		};
-	}
+	const p = patch ?? {};
 	return {
-		defaultsVersion: patch.defaultsVersion ?? base.defaultsVersion ?? STUDIO_DEFAULTS_VERSION,
-		baseCornerCutRem: patch.baseCornerCutRem !== undefined ? clampCornerRadiusRem(patch.baseCornerCutRem) : base.baseCornerCutRem,
-		stationCornerCutRem: patch.stationCornerCutRem !== undefined ? clampCornerRadiusRem(patch.stationCornerCutRem) : base.stationCornerCutRem,
-		controlCornerCutRem: patch.controlCornerCutRem !== undefined ? clampControlCutRem(patch.controlCornerCutRem) : base.controlCornerCutRem,
-		borderStrokePx: BORDER_STROKE_OPTIONS.includes(patch.borderStrokePx as BorderStrokePx) ? patch.borderStrokePx! : base.borderStrokePx,
-		ornamentOffsetRem: patch.ornamentOffsetRem !== undefined ? snapStep(patch.ornamentOffsetRem, ORNAMENT_LIMITS.minOffsetRem, ORNAMENT_LIMITS.maxOffsetRem, ORNAMENT_LIMITS.stepOffsetRem) : base.ornamentOffsetRem,
-		ornamentDriftAmpRem: patch.ornamentDriftAmpRem !== undefined ? snapStep(patch.ornamentDriftAmpRem, ORNAMENT_LIMITS.minAmpRem, ORNAMENT_LIMITS.maxAmpRem, ORNAMENT_LIMITS.stepOffsetRem) : base.ornamentDriftAmpRem,
-		ornamentPeriodMs: patch.ornamentPeriodMs !== undefined ? snapStep(patch.ornamentPeriodMs, ORNAMENT_LIMITS.minPeriodMs, ORNAMENT_LIMITS.maxPeriodMs, ORNAMENT_LIMITS.stepPeriodMs) : base.ornamentPeriodMs,
-		perimeterGutterRem: PERIMETER_GUTTER_OPTIONS.includes(patch.perimeterGutterRem as PerimeterGutterRem) ? patch.perimeterGutterRem! : base.perimeterGutterRem,
-		autoSaveMode: AUTO_SAVE_MODES.includes(patch.autoSaveMode as AutoSaveMode) ? patch.autoSaveMode! : base.autoSaveMode,
-		tooltipInfoLevel: clampTooltipInfoLevel(patch.tooltipInfoLevel ?? base.tooltipInfoLevel),
-		historyLimit: clampHistoryLimit(patch.historyLimit ?? base.historyLimit),
-		hudZoneStaggerMs: clampStaggerMs(patch.hudZoneStaggerMs ?? base.hudZoneStaggerMs),
-		controlConfig: patch.controlConfig ? clampControlConfig(patch.controlConfig, baseControl) : clampControlConfig(undefined, baseControl)
+		defaultsVersion: p.defaultsVersion ?? base.defaultsVersion ?? STUDIO_DEFAULTS_VERSION,
+		baseCornerCutRem: p.baseCornerCutRem !== undefined ? clampCornerRadiusRem(p.baseCornerCutRem) : base.baseCornerCutRem,
+		stationCornerCutRem: p.stationCornerCutRem !== undefined ? clampCornerRadiusRem(p.stationCornerCutRem) : base.stationCornerCutRem,
+		controlCornerCutRem: p.controlCornerCutRem !== undefined ? clampControlCutRem(p.controlCornerCutRem) : base.controlCornerCutRem,
+		borderStrokePx: BORDER_STROKE_OPTIONS.includes(p.borderStrokePx as BorderStrokePx) ? p.borderStrokePx! : base.borderStrokePx,
+		ornamentOffsetRem: p.ornamentOffsetRem !== undefined ? snapStep(p.ornamentOffsetRem, ORNAMENT_LIMITS.minOffsetRem, ORNAMENT_LIMITS.maxOffsetRem, ORNAMENT_LIMITS.stepOffsetRem) : base.ornamentOffsetRem,
+		ornamentDriftAmpRem: p.ornamentDriftAmpRem !== undefined ? snapStep(p.ornamentDriftAmpRem, ORNAMENT_LIMITS.minAmpRem, ORNAMENT_LIMITS.maxAmpRem, ORNAMENT_LIMITS.stepOffsetRem) : base.ornamentDriftAmpRem,
+		ornamentPeriodMs: p.ornamentPeriodMs !== undefined ? snapStep(p.ornamentPeriodMs, ORNAMENT_LIMITS.minPeriodMs, ORNAMENT_LIMITS.maxPeriodMs, ORNAMENT_LIMITS.stepPeriodMs) : base.ornamentPeriodMs,
+		perimeterGutterRem: PERIMETER_GUTTER_OPTIONS.includes(p.perimeterGutterRem as PerimeterGutterRem) ? p.perimeterGutterRem! : base.perimeterGutterRem,
+		autoSaveMode: AUTO_SAVE_MODES.includes(p.autoSaveMode as AutoSaveMode) ? p.autoSaveMode! : base.autoSaveMode,
+		tooltipInfoLevel: clampTooltipInfoLevel(p.tooltipInfoLevel ?? base.tooltipInfoLevel),
+		historyLimit: clampHistoryLimit(p.historyLimit ?? base.historyLimit),
+		hudZoneStaggerMs: clampStaggerMs(p.hudZoneStaggerMs ?? base.hudZoneStaggerMs),
+		...clampKnobFields(p, base),
+		controlConfig: p.controlConfig ? clampControlConfig(p.controlConfig, baseControl) : clampControlConfig(undefined, baseControl)
 	};
 }
 
@@ -114,18 +120,17 @@ export function applyAccessibilityPrefs(prefs: AccessibilityPrefs, target: HTMLE
 	target.setAttribute('data-ui-dyslexia', prefs.dyslexiaSpacing ? 'on' : 'off');
 }
 
-export function buildStudioDefaultCssVars(defaults: StudioDefaultsConfig): Readonly<Record<string, string>> {
+export function buildStudioDefaultCssVars(d: StudioDefaultsConfig): Readonly<Record<string, string>> {
 	return {
-		'--ui-corner-cut': `${defaults.baseCornerCutRem}rem`,
-		'--ui-station-cut': `${defaults.stationCornerCutRem}rem`,
-		'--ui-control-cut': `${defaults.controlCornerCutRem}rem`,
-		'--ui-stroke-w': `${defaults.borderStrokePx}px`,
-		'--ui-hairline': `${defaults.borderStrokePx}px`,
-		'--ui-orn-offset': `${defaults.ornamentOffsetRem}rem`,
-		'--ui-orn-amp': `${defaults.ornamentDriftAmpRem}rem`,
-		'--ui-orn-period': `${defaults.ornamentPeriodMs}ms`,
-		'--ui-perimeter-gutter': `${defaults.perimeterGutterRem}rem`,
-		'--ui-stagger-zone-ms': `${defaults.hudZoneStaggerMs ?? HUD_STAGGER_BOUNDS.defaultMs}ms`
+		'--ui-corner-cut': `${d.baseCornerCutRem}rem`, '--ui-station-cut': `${d.stationCornerCutRem}rem`,
+		'--ui-control-cut': `${d.controlCornerCutRem}rem`, '--ui-stroke-w': `${d.borderStrokePx}px`,
+		'--ui-hairline': `${d.borderStrokePx}px`, '--ui-orn-offset': `${d.ornamentOffsetRem}rem`,
+		'--ui-orn-amp': `${d.ornamentDriftAmpRem}rem`, '--ui-orn-period': `${d.ornamentPeriodMs}ms`,
+		'--ui-perimeter-gutter': `${d.perimeterGutterRem}rem`, '--ui-stagger-zone-ms': `${d.hudZoneStaggerMs ?? HUD_STAGGER_BOUNDS.defaultMs}ms`,
+		'--ui-marquee-speed': `${d.marqueeSpeedPxPerSec ?? STUDIO_KNOB_DEFAULTS.marqueeSpeedPxPerSec}`,
+		'--ui-marquee-pause': `${d.marqueePauseRatio ?? STUDIO_KNOB_DEFAULTS.marqueePauseRatio}`,
+		'--ui-wire-timescale': `${d.wireTimeScaleMultiplier ?? STUDIO_KNOB_DEFAULTS.wireTimeScaleMultiplier}`,
+		'--ui-graph-packet-size': `${d.graphPacketSizePx ?? STUDIO_KNOB_DEFAULTS.graphPacketSizePx}px`
 	};
 }
 

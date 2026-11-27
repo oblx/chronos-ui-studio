@@ -70,6 +70,38 @@ async function toolReplayHudSequence(args: Record<string, unknown>) {
 	};
 }
 
+async function toolConfigureGraph(args: Record<string, unknown>) {
+	const project = await resolveMcpProject(args);
+	const patch: Record<string, unknown> = {
+		...(typeof args.routing === 'string' ? { graphRouting: args.routing } : {}),
+		...(typeof args.packetSizePx === 'number' ? { graphPacketSizePx: args.packetSizePx } : {})
+	};
+	const { nextDefaults, project: updated } = await persistProjectDefaults(project.id, patch);
+	return {
+		summary: `graph ${nextDefaults.graphRouting}/${nextDefaults.graphPacketSizePx}px`,
+		graphRouting: nextDefaults.graphRouting,
+		graphPacketSizePx: nextDefaults.graphPacketSizePx,
+		project: updated,
+		clientIntents: [{ kind: 'UI_CONFIGURE_GRAPH', payload: { routing: nextDefaults.graphRouting, packetSizePx: nextDefaults.graphPacketSizePx, ...(typeof args.nodeId === 'string' ? { nodeId: args.nodeId } : {}) } }]
+	};
+}
+
+async function toolSetWireTimescale(args: Record<string, unknown>) {
+	const project = await resolveMcpProject(args);
+	const patch: Record<string, unknown> = {
+		...(typeof args.multiplier === 'number' ? { wireTimeScaleMultiplier: args.multiplier } : {}),
+		...(typeof args.curve === 'string' ? { wireTimeScaleCurve: args.curve } : {})
+	};
+	const { nextDefaults, project: updated } = await persistProjectDefaults(project.id, patch);
+	return {
+		summary: `wire time-scale ${nextDefaults.wireTimeScaleMultiplier}x (${nextDefaults.wireTimeScaleCurve})`,
+		wireTimeScaleMultiplier: nextDefaults.wireTimeScaleMultiplier,
+		wireTimeScaleCurve: nextDefaults.wireTimeScaleCurve,
+		project: updated,
+		clientIntents: [{ kind: 'UI_SET_WIRE_TIMESCALE', payload: { multiplier: nextDefaults.wireTimeScaleMultiplier, curve: nextDefaults.wireTimeScaleCurve } }]
+	};
+}
+
 export function buildV011McpTools(): readonly [string, ProjectMcpToolFn][] {
 	return [
 		['ui_configure_controls', toolConfigureControls],
@@ -77,6 +109,8 @@ export function buildV011McpTools(): readonly [string, ProjectMcpToolFn][] {
 		['ui_undo', async () => ({ summary: 'dispatched undo revision', dispatched: true, clientIntents: [{ kind: 'UI_UNDO_REVISION', payload: {} }] })],
 		['ui_redo', async () => ({ summary: 'dispatched redo revision', dispatched: true, clientIntents: [{ kind: 'UI_REDO_REVISION', payload: {} }] })],
 		['ui_replay_hud_sequence', toolReplayHudSequence],
-		['ui_set_tooltip_info_level', toolSetTooltipInfoLevel]
+		['ui_set_tooltip_info_level', toolSetTooltipInfoLevel],
+		['ui_configure_graph', toolConfigureGraph],
+		['ui_set_wire_timescale', toolSetWireTimescale]
 	];
 }

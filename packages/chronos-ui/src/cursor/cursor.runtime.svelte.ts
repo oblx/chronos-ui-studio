@@ -20,7 +20,7 @@ function resolveAssetUrl(
 	const style = resolveCursorPackStyle(packSlug);
 	const resolvedPalette = palette ?? resolveThemeCursorPalette(THEME_PACKS[0]);
 	if (!asset?.assetDataUrl || (palette && asset.generatorOrigin === 'PRESET')) {
-		return buildVectorCursorDataUrl(state, resolvedPalette.fillHex, resolvedPalette.primaryHex, resolvedPalette.accentHex, resolvedPalette.errorHex, style);
+		return buildVectorCursorDataUrl(state, resolvedPalette.fillHex, resolvedPalette.primaryHex, resolvedPalette.accentHex, resolvedPalette.errorHex, style, resolvedPalette.dragTargetFrames ?? true);
 	}
 	if (asset.assetDataUrl.startsWith('data:image/svg+xml,')) {
 		const decoded = decodeURIComponent(asset.assetDataUrl.slice('data:image/svg+xml,'.length));

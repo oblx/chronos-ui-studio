@@ -1,5 +1,30 @@
-export const VERSION = '0.1.1' as const;
-export const STUDIO_DEFAULTS_VERSION = 2 as const;
+export const VERSION = '0.1.2' as const;
+export const STUDIO_DEFAULTS_VERSION = 3 as const;
+
+export type WireTimeScaleCurve = 'LINEAR' | 'LOGARITHMIC';
+export type GraphEdgeRouting = 'BEZIER' | 'ORTHOGONAL' | 'STEP';
+
+export const WIRE_TIME_SCALE_CURVES: readonly WireTimeScaleCurve[] = ['LINEAR', 'LOGARITHMIC'] as const;
+export const GRAPH_EDGE_ROUTINGS: readonly GraphEdgeRouting[] = ['BEZIER', 'ORTHOGONAL', 'STEP'] as const;
+
+export const STUDIO_KNOB_BOUNDS = {
+	wireTimeScaleMin: 100, wireTimeScaleMax: 25000, wireTimeScaleStep: 100, wireTimeScaleDefault: 2500,
+	marqueeSpeedMin: 16, marqueeSpeedMax: 120, marqueeSpeedStep: 4, marqueeSpeedDefault: 48,
+	marqueePauseMin: 0.05, marqueePauseMax: 0.3, marqueePauseStep: 0.05, marqueePauseDefault: 0.15,
+	graphPacketSizeMin: 4, graphPacketSizeMax: 12, graphPacketSizeStep: 1, graphPacketSizeDefault: 6,
+	maxPacketTravelMs: 4000, defaultRefreshRateHz: 60, minVisibleFrames: 12
+} as const;
+
+export const STUDIO_KNOB_DEFAULTS = {
+	wireTimeScaleMultiplier: STUDIO_KNOB_BOUNDS.wireTimeScaleDefault,
+	wireTimeScaleCurve: 'LINEAR' as WireTimeScaleCurve,
+	marqueeSpeedPxPerSec: STUDIO_KNOB_BOUNDS.marqueeSpeedDefault,
+	marqueePauseRatio: STUDIO_KNOB_BOUNDS.marqueePauseDefault,
+	hudZoneStaggerMs: 250,
+	graphRouting: 'BEZIER' as GraphEdgeRouting,
+	graphPacketSizePx: STUDIO_KNOB_BOUNDS.graphPacketSizeDefault,
+	cursorDragTargetFrames: true
+} as const;
 
 export type HudZoneId =
 	| 'WORLD_CANVAS' | 'TOP_LEFT' | 'TOP_CENTER' | 'PROJECT_TAB_DECK' | 'TOP_RIGHT'
@@ -12,50 +37,21 @@ export const HUD_ZONES: readonly HudZoneId[] = [
 
 export type ViewportTier = 'PHONE' | 'TABLET_PORTRAIT' | 'TABLET_LANDSCAPE' | 'DESKTOP' | 'WQHD_UWQHD';
 
-export const BREAKPOINT_REM = {
-	phoneMax: 48,
-	tabletPortraitMax: 64,
-	tabletLandscapeMax: 80,
-	desktopMax: 120
-} as const;
+export const BREAKPOINT_REM = { phoneMax: 48, tabletPortraitMax: 64, tabletLandscapeMax: 80, desktopMax: 120 } as const;
 
 export const Z_LAYERS = {
-	paintedClientCanvas: 10,
-	stagingBuildOverlay: 20,
-	studioChrome: 40,
-	assistantDock: 38,
-	modals: 70,
-	overlays: 90
+	paintedClientCanvas: 10, stagingBuildOverlay: 20, studioChrome: 40,
+	assistantDock: 38, modals: 70, overlays: 90
 } as const;
 
 export const HUD_METRICS = {
-	topBandRem: 6.25,
-	bottomDockRem: 8.25,
-	edgeRailWidthRem: 3,
-	closeButtonRem: 2.25,
-	utilityButtonRem: 2,
-	sideTrackClamp: 'clamp(15.5rem, 20vw, 22.5rem)',
-	corridorMaxRem: 90,
-	dragThresholdPx: 5,
-	modalTweenMs: 440,
-	stageMorphMs: 440,
-	wheelSettleMs: 180,
-	sampleStepMs: 75,
-	stickDeadzone: 0.18,
-	assistantWidthRem: 44,
-	assistantExpandedReserveRem: 21,
-	viewportMarginRem: 0.75,
-	countdownTickMs: 100,
-	refreshGraceMs: 3000,
-	toastAutoDismissMs: 3500,
-	probeCacheTtlMs: 15000,
-	sonarPingMs: 600,
-	glitterBurstMs: 2400,
-	wheelZoomStep: 0.06,
-	buttonZoomStep: 0.12,
-	perimeterGapPx: 8,
-	ringCapacity: 256,
-	maxToasts: 4
+	topBandRem: 6.25, bottomDockRem: 8.25, edgeRailWidthRem: 3, closeButtonRem: 2.25,
+	utilityButtonRem: 2, sideTrackClamp: 'clamp(15.5rem, 20vw, 22.5rem)', corridorMaxRem: 90,
+	dragThresholdPx: 5, modalTweenMs: 440, stageMorphMs: 440, wheelSettleMs: 180,
+	sampleStepMs: 75, stickDeadzone: 0.18, assistantWidthRem: 44, assistantExpandedReserveRem: 21,
+	viewportMarginRem: 0.75, countdownTickMs: 100, refreshGraceMs: 3000, toastAutoDismissMs: 3500,
+	probeCacheTtlMs: 15000, sonarPingMs: 600, glitterBurstMs: 2400, wheelZoomStep: 0.06,
+	buttonZoomStep: 0.12, perimeterGapPx: 8, ringCapacity: 256, maxToasts: 4
 } as const;
 
 export const SAFE_CORRIDOR_REM = {
@@ -64,42 +60,21 @@ export const SAFE_CORRIDOR_REM = {
 } as const;
 
 export const DEFAULT_VIEWPORT = { width: 1440, height: 900, minSafeW: 390, minSafeH: 300 } as const;
-
 export const DEFAULT_CORNER_CUT_REM = 0.5;
 export const DEFAULT_STATION_CORNER_CUT_REM = 0.75;
 export const DEFAULT_CONTROL_CORNER_CUT_REM = 0.3125;
 export const CONTROL_MAX_CUT_RATIO = 0.28;
 export const PEER_STALE_MS = 30000;
+export const ROOT_FONT_PX = 16;
 
-export const CORNER_RADIUS_LIMITS = {
-	minRem: 0.25,
-	maxRem: 1.5,
-	stepRem: 0.0625,
-	defaultRem: DEFAULT_CORNER_CUT_REM
-} as const;
-
-export const CONTROL_CUT_LIMITS = {
-	minRem: 0.125,
-	maxRem: 0.5,
-	stepRem: 0.0625,
-	defaultRem: DEFAULT_CONTROL_CORNER_CUT_REM
-} as const;
+export const CORNER_RADIUS_LIMITS = { minRem: 0.25, maxRem: 1.5, stepRem: 0.0625, defaultRem: DEFAULT_CORNER_CUT_REM } as const;
+export const CONTROL_CUT_LIMITS = { minRem: 0.125, maxRem: 0.5, stepRem: 0.0625, defaultRem: DEFAULT_CONTROL_CORNER_CUT_REM } as const;
 
 export const ORNAMENT_LIMITS = {
-	minOffsetRem: 0,
-	maxOffsetRem: 0.5,
-	stepOffsetRem: 0.0625,
-	defaultOffsetRem: 0.1875,
-	minAmpRem: 0.0625,
-	maxAmpRem: 0.5,
-	defaultAmpRem: 0.25,
-	minPeriodMs: 1200,
-	maxPeriodMs: 5000,
-	stepPeriodMs: 200,
-	defaultPeriodMs: 2800
+	minOffsetRem: 0, maxOffsetRem: 0.5, stepOffsetRem: 0.0625, defaultOffsetRem: 0.1875,
+	minAmpRem: 0.0625, maxAmpRem: 0.5, defaultAmpRem: 0.25,
+	minPeriodMs: 1200, maxPeriodMs: 5000, stepPeriodMs: 200, defaultPeriodMs: 2800
 } as const;
-
-export const ROOT_FONT_PX = 16;
 
 export function clamp(value: number, min: number, max: number): number {
 	return Math.max(min, Math.min(max, value));

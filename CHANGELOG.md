@@ -2,6 +2,14 @@
 
 All notable releases follow Semantic Versioning (`0.1.0` marks the first public minor release).
 
+## `0.1.2` — Frameless 21-State Cursors, Pure-CSS Hover-Marquee, Reusable `UiEventGraph` & Human Time-Scale Engine
+
+- **Tip-Clean Frameless 21-State Cursors**: Removed stray top-left tip geometry and all decorative corner brackets from the 17 non-drag cursor states across all 4 built-in packs; gated optional corner-bracket targets strictly to `grab | grabbing | copy | alias` via `cursorDragTargetFrames`.
+- **Zero-Clip `TOP_LEFT` Studio HUD & Pure-CSS Hover-Marquee (`UiOverflowText`)**: Moved `v0.1.2` onto Row 1 beside `Chronos UI Studio`, balanced `Undo | Redo | Save | Reset` inside `ProjectLifecyclePod` (`0px` slicing), and added pure-CSS `@keyframes ui-marquee-pingpong` overflow guarding (`UiOverflowText`) across `UiChamferButton`, `UiBadge`, `FieldTomeModal` TOC, `WireframeRightStack`, and `UiEventGraph` labels.
+- **Reusable Event-Driven `UiEventGraph` Organism (`@chronos-ui/svelte/graph`)**: Built standalone `UiEventGraph` with guaranteed `LANE_HEADER_BAND_PX + LANE_HEADER_PAD_PX` clearance (`0` header-to-node overlaps), all `14` `UI_FRAME_SHAPES`, `BEZIER | ORTHOGONAL | STEP` routing, and live canvas spawn/registration via `COMPONENT_CATALOG` and local assistant (`"add a live event graph with hexagon nodes"`).
+- **Microsecond Telemetry & Human Time-Scale Engine (`timescale.math.ts`)**: Upgraded `wire.pipeline.ts` and `server.telemetry.ts` to 3-decimal `performance.now()` timings formatted truthfully via `formatSubMsDuration` (`< 0.01ms`, never `0.0ms`), driving monotonic `LINEAR | LOGARITHMIC` slow-motion signal packets (`100x..25000x`, default `2500x`) with live controls in `UiWireInspector` and `Settings`.
+- **Real-Number Knobs & 50-Tool MCP Parity**: Added `STUDIO_KNOB_DEFAULTS`, persisted all 7 new knobs in `studioDefaults` (Drizzle SQLite + CSS token export), and added `ui_configure_graph` + `ui_set_wire_timescale` for `50`-tool Dual-Spine MCP parity.
+
 ## `0.1.1` — Bespoke 21-State Cursors, Motion Choreography, IDB History & Control Matrix
 
 - **Bespoke 21-State CSS Cursor Silhouettes**: Replaced recycled arrow+badge stamps with 21 distinct `32x32` architectural SVG silhouettes and calibrated hotspots across all 4 built-in packs and `cursor.synthesizer.ts`.

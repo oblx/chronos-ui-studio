@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { UiBadge, UiChamferFrame, ZONE_CORNER_PRESETS, type CornerKind, type WireTraceRecord } from '@chronos-ui/svelte';
+	import { formatSubMsDuration, UiBadge, UiChamferFrame, ZONE_CORNER_PRESETS, type CornerKind, type WireTraceRecord } from '@chronos-ui/svelte';
 	import type { ZoneBlueprintConfig } from '@studio/config';
 
 	interface Props {
@@ -41,7 +41,7 @@
 				<div data-trace-kind={item.kind} class="ui-font-mono flex items-center justify-between gap-1.5 truncate text-[0.65rem]">
 					<span class="shrink-0" style="color: var(--ui-muted-content);">{formatTime(item.timestamp)}</span>
 					<span class="truncate" style="color: var(--ui-secondary);">[{item.kind.replace('UI_', '')}]</span>
-					<span class="shrink-0" style="color: var(--ui-muted-content);">{item.stageMs.toFixed(1)}ms</span>
+					<span class="shrink-0" data-testid="live-stream-latency" style="color: var(--ui-muted-content);">{formatSubMsDuration(item.realDurationMs ?? item.stageMs)}</span>
 				</div>
 			{:else}
 				<div class="ui-font-mono text-[0.68rem]" style="color: var(--ui-muted-content);">Awaiting DAG envelope events...</div>

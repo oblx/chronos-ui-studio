@@ -122,8 +122,8 @@ describe('v0.0.10 W3C / Lighthouse / WebMCP static build & vendored full-stack b
 
 describe('v0.0.10 39-tool parity, 7-step tour & CS6 lock/visibility DAG enforcement', () => {
 	test('verifies VERSION 0.1.0, 42 tools, 6 adapters, 7 tour steps & lock guard on UI_PATCH_NODE / UI_REMOVE_NODE', () => {
-		expect(VERSION).toBe('0.1.1');
-		expect(STUDIO_TOOL_REGISTRY.length).toBe(48);
+		expect(VERSION).toBe('0.1.2');
+		expect(STUDIO_TOOL_REGISTRY.length).toBe(50);
 		expect(listOutputAdapters().some((a) => a.id === 'fullstack-bundle')).toBe(true);
 		expect(STUDIO_SPOTLIGHT_STEPS.length).toBe(7);
 

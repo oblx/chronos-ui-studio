@@ -98,17 +98,18 @@ export function computeDagNodeStats(traces: readonly WireTraceRecord[], hasBit28
 	const acc = new Map<string, { count: number; totalMs: number; errors: number }>();
 	for (const n of WIRE_DAG_NODES) acc.set(n.id, { count: 0, totalMs: 0, errors: 0 });
 	for (const t of traces) {
+		const dur = t.realDurationMs ?? t.stageMs;
 		for (const id of resolveTracePathNodes(t)) {
 			const slot = acc.get(id);
 			if (!slot) continue;
-			slot.count += 1; slot.totalMs += t.stageMs; if (!t.ok) slot.errors += 1;
+			slot.count += 1; slot.totalMs += dur; if (!t.ok) slot.errors += 1;
 		}
 	}
 	const out = new Map<string, WireDagNodeMetrics>();
 	for (const n of WIRE_DAG_NODES) {
 		const s = acc.get(n.id)!;
 		const status: DagNodeStatus = n.column === 'SERVER_DAG' && !hasBit28 ? 'BLOCKED' : s.errors > 0 ? 'WARN' : 'NOMINAL';
-		out.set(n.id, { count: s.count, avgMs: s.count > 0 ? Number((s.totalMs / s.count).toFixed(2)) : 0, status });
+		out.set(n.id, { count: s.count, avgMs: s.count > 0 ? Number((s.totalMs / s.count).toFixed(3)) : 0, status });
 	}
 	return out;
 }
@@ -118,14 +119,15 @@ export const buildWireTraceKey = (row: WireTraceRecord): string => `${row.spine}
 export function coalesceBurstTraces(traces: readonly WireTraceRecord[]): readonly CoalescedWireBurst[] {
 	const groups: { key: string; representative: WireTraceRecord; totalMs: number; rows: WireTraceRecord[] }[] = [];
 	for (const row of traces) {
+		const dur = row.realDurationMs ?? row.stageMs;
 		const prev = groups[groups.length - 1];
 		if (prev && prev.representative.kind === row.kind && prev.representative.spine === row.spine && prev.representative.ok === row.ok) {
-			prev.rows.push(row); prev.totalMs += row.stageMs;
+			prev.rows.push(row); prev.totalMs += dur;
 		} else {
-			groups.push({ key: buildWireTraceKey(row), representative: row, totalMs: row.stageMs, rows: [row] });
+			groups.push({ key: buildWireTraceKey(row), representative: row, totalMs: dur, rows: [row] });
 		}
 	}
-	return groups.map((g) => ({ key: g.key, representative: g.representative, count: g.rows.length, avgMs: Number((g.totalMs / g.rows.length).toFixed(2)), rows: g.rows }));
+	return groups.map((g) => ({ key: g.key, representative: g.representative, count: g.rows.length, avgMs: Number((g.totalMs / g.rows.length).toFixed(3)), rows: g.rows }));
 }
 
 export function buildBezierEdgePath(from: WireDagNodeDef, to: WireDagNodeDef): string {

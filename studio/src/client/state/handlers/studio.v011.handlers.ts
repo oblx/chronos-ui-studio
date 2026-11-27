@@ -1,8 +1,9 @@
 import {
-	applyControlConfigToRoot, applyStudioDefaults, clampControlConfig, clampHistoryLimit,
+	applyControlConfigToRoot, applyStudioDefaults, clampControlConfig, clampHistoryLimit, clampStudioDefaults,
 	clampTooltipInfoLevel, DEFAULT_CONTROL_CONFIG, DEFAULT_STUDIO_DEFAULTS, HUD_STAGGER_BOUNDS,
 	resolveTooltipTierLabel, setActiveStudioDefaults, VERSION,
-	type ButtonControlConfig, type FormControlConfig, type HudZoneId, type StudioControlConfig, type UiWireBroker
+	type ButtonControlConfig, type FormControlConfig, type GraphEdgeRouting, type HudZoneId,
+	type StudioControlConfig, type UiWireBroker, type WireTimeScaleCurve
 } from '@chronos-ui/svelte';
 import { trimHistoryStacks } from '@studio/lib/history.idb';
 import { apiPatchProjectStudioDefaults, persistActiveHistory } from '../lifecycle';
@@ -84,7 +85,42 @@ function registerMotionAndSyncHandlers(broker: UiWireBroker<StudioState>): void 
 	});
 }
 
+function registerGraphAndTimescaleHandlers(broker: UiWireBroker<StudioState>): void {
+	broker.register<{ multiplier?: number; curve?: WireTimeScaleCurve }>('UI_SET_WIRE_TIMESCALE', {
+		tier: 'TIER_1_COALESCED_PERSIST',
+		reduce: (s, env) => updateStudioDefaults(s, clampStudioDefaults({
+			...(env.payload.multiplier !== undefined ? { wireTimeScaleMultiplier: env.payload.multiplier } : {}),
+			...(env.payload.curve !== undefined ? { wireTimeScaleCurve: env.payload.curve } : {})
+		}, s.studioDefaults)),
+		effect: persistDefaultsEffect,
+		summarize: (env) => `Wire time-scale -> ${env.payload.multiplier ?? 'keep'}x (${env.payload.curve ?? 'keep'})`
+	});
+	broker.register<{ routing?: GraphEdgeRouting; packetSizePx?: number; nodeId?: string; props?: Record<string, unknown> }>('UI_CONFIGURE_GRAPH', {
+		tier: 'TIER_1_COALESCED_PERSIST',
+		reduce: (s, env) => {
+			const next = updateStudioDefaults(s, clampStudioDefaults({
+				...(env.payload.routing ? { graphRouting: env.payload.routing } : {}),
+				...(env.payload.packetSizePx !== undefined ? { graphPacketSizePx: env.payload.packetSizePx } : {})
+			}, s.studioDefaults));
+			if (!env.payload.nodeId) return next;
+			return {
+				...next,
+				projects: next.projects.map((p) => (p.id !== next.activeProjectId ? p : {
+					...p,
+					nodes: p.nodes.map((n) => (n.id === env.payload.nodeId ? { ...n, props: { ...n.props, ...(env.payload.routing ? { routing: env.payload.routing } : {}), ...(env.payload.props ?? {}) } } : n))
+				}))
+			};
+		},
+		effect: persistDefaultsEffect,
+		summarize: (env) => `Configured event graph (${env.payload.routing ?? 'updated'})`
+	});
+	broker.register<{ nodeId: string }>('UI_GRAPH_SELECT_NODE', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => s, summarize: (env) => `Graph node selected: ${env.payload.nodeId}` });
+	broker.register<{ edgeId: string }>('UI_GRAPH_SELECT_EDGE', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => s, summarize: (env) => `Graph edge selected: ${env.payload.edgeId}` });
+	broker.register<Record<string, unknown>>('UI_GRAPH_FIT', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => s, summarize: () => 'Fitted event graph to viewport' });
+}
+
 export function registerV011Handlers(broker: UiWireBroker<StudioState>): void {
 	registerControlAndHistoryHandlers(broker);
 	registerMotionAndSyncHandlers(broker);
+	registerGraphAndTimescaleHandlers(broker);
 }

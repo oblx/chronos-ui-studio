@@ -1,7 +1,7 @@
 {
 	"name": "@chronos-ui/svelte",
-	"version": "0.1.1",
-	"description": "Zero-dependency Svelte 5 Runes perimeter HUD presentation framework with true-stroke chamfer/round vector borders, configurable corner radius, 21-state hardened CSS cursor engine, 14 parametric shapes, UUID v7 entity registry, and acyclic DAG wire broker.",
+	"version": "0.1.2",
+	"description": "Zero-dependency Svelte 5 Runes perimeter HUD presentation framework with true-stroke chamfer/round vector borders, configurable corner radius, tip-clean frameless 21-state CSS cursor engine, pure-CSS hover-marquee overflow guard, reusable UiEventGraph organism, human time-scale engine, 14 parametric shapes, UUID v7 entity registry, and acyclic DAG wire broker.",
 	"author": "Oblx <code@oblx.dev>",
 	"license": "MIT",
 	"type": "module",
@@ -21,6 +21,7 @@
 		"./forms": { "svelte": "./src/forms/index.ts", "types": "./src/forms/index.ts", "default": "./src/forms/index.ts" },
 		"./molecules": { "svelte": "./src/molecules/index.ts", "types": "./src/molecules/index.ts", "default": "./src/molecules/index.ts" },
 		"./organisms": { "svelte": "./src/organisms/index.ts", "types": "./src/organisms/index.ts", "default": "./src/organisms/index.ts" },
+		"./graph": { "svelte": "./src/organisms/graph/index.ts", "types": "./src/organisms/graph/index.ts", "default": "./src/organisms/graph/index.ts" },
 		"./modals": { "svelte": "./src/modals/index.ts", "types": "./src/modals/index.ts", "default": "./src/modals/index.ts" },
 		"./assistant": { "svelte": "./src/assistant/index.ts", "types": "./src/assistant/index.ts", "default": "./src/assistant/index.ts" },
 		"./canvas": { "types": "./src/canvas/index.ts", "default": "./src/canvas/index.ts" }

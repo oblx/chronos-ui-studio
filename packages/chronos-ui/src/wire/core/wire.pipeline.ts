@@ -18,9 +18,11 @@ export function scheduleEffect<S>(handler: IntentHandler<S, unknown>, nextState:
 }
 
 export function recordTrace(ring: WireTelemetryRing, envelope: DagEnvelope, t0: number, ok: boolean, summary: string): readonly WireTraceRecord[] {
+	const now = performance.now();
+	const realDurationMs = Math.max(0.001, Number((now - t0).toFixed(3)));
 	ring.push({
 		spine: 'CLIENT_DAG', envelopeId: envelope.id, kind: envelope.kind, tier: envelope.tier, origin: envelope.origin,
-		stageMs: Number((performance.now() - t0).toFixed(2)), ok, summary, timestamp: envelope.timestamp
+		stageMs: realDurationMs, realDurationMs, observedAtMs: Number(now.toFixed(3)), ok, summary, timestamp: envelope.timestamp
 	});
 	return ring.snapshot();
 }

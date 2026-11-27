@@ -13,7 +13,7 @@ const FN_HEADER_RE = /^\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)|^\s*const\
 const CACHE_REL = 'studio/data/.qa-audit-cache.json';
 const HEX_ALLOW_RE = /(?:theme\.palettes|cursor\.presets|\/tokens\/|\/tests\/|sample\.|starter\.|tome\.ssg)/;
 const DEEP_RELATIVE_RE = /(?:from|import)\s+['"]\.\.\/\.\./;
-const REQUIRED_SUBPATHS = ['./tokens', './wire', './input', './motion', './cursor', './machines', './atoms', './forms', './molecules', './organisms', './modals', './assistant', './canvas'] as const;
+const REQUIRED_SUBPATHS = ['./tokens', './wire', './input', './motion', './cursor', './machines', './atoms', './forms', './molecules', './organisms', './graph', './modals', './assistant', './canvas'] as const;
 
 function walkTree(dir: string, outFiles: string[], outDirs: string[]): void {
 	outDirs.push(dir);
@@ -99,7 +99,7 @@ function checkPackageAndDocs(rootDir: string, violations: AuditViolation[]): voi
 	const pkgReadme = existsSync(join(rootDir, 'packages/chronos-ui/README.md')) ? readFileSync(join(rootDir, 'packages/chronos-ui/README.md'), 'utf8') : '';
 	const hasPublicFiles = pkg.license === 'MIT' && existsSync(join(rootDir, 'LICENSE')) && existsSync(join(rootDir, 'packages/chronos-ui/LICENSE')) && pkgReadme.length > 0 && existsSync(join(rootDir, 'CHANGELOG.md'));
 	if (pkg.version !== VERSION || rootPkg.version !== VERSION || Object.keys(pkg.dependencies ?? {}).length > 0 || !hasSubpaths || !hasPublicFiles) {
-		violations.push({ rule: 'PACKAGE_LOCK_0_DEPS', target: 'packages/chronos-ui/package.json', detail: `Version parity (${VERSION}), 0 deps, 13 subpaths, MIT license, README, or CHANGELOG failed` });
+		violations.push({ rule: 'PACKAGE_LOCK_0_DEPS', target: 'packages/chronos-ui/package.json', detail: `Version parity (${VERSION}), 0 deps, 14 subpaths, MIT license, README, or CHANGELOG failed` });
 	}
 	const missingDocs = REQUIRED_SUBPATHS.filter((s) => !pkgReadme.includes(s.slice(1)));
 	if (missingDocs.length > 0) violations.push({ rule: 'DOCS_AND_SKILL_FRESHNESS', target: 'packages/chronos-ui/README.md', detail: `Undocumented subpaths: ${missingDocs.join(', ')}` });

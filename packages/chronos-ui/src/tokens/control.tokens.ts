@@ -38,7 +38,7 @@ export const SLIDER_TRACK_STYLES: readonly SliderTrackStyle[] = ['HAIRLINE', 'SE
 export const HISTORY_LIMIT_BOUNDS = { defaultLimit: 5, minLimit: 1, maxLimit: 128 } as const;
 export const TOOLTIP_LEVEL_BOUNDS = { defaultLevel: 60, minLevel: 0, maxLevel: 100 } as const;
 export const TOOLTIP_TIER_THRESHOLDS = { silent: 0, essential: 20, standard: 50, guided: 80 } as const;
-export const HUD_STAGGER_BOUNDS = { defaultMs: 250, minMs: 0, maxMs: 1000, stepMs: 25 } as const;
+export const HUD_STAGGER_BOUNDS = { defaultMs: 250, minMs: 0, maxMs: 600, stepMs: 25 } as const;
 
 export const DEFAULT_CONTROL_CONFIG: StudioControlConfig = {
 	buttonConfig: {

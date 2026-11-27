@@ -7,6 +7,7 @@
 		type CornerKind,
 		type CornerTuple
 	} from '@ui/tokens';
+	import UiOverflowText from '../UiOverflowText.svelte';
 	import UiVectorBorder from '../UiVectorBorder.svelte';
 
 	interface Props {
@@ -45,7 +46,7 @@
 <span
 	aria-label={ariaLabel}
 	data-corner-mode={cornerMode}
-	class="ui-font-mono relative inline-flex shrink-0 items-center justify-center whitespace-nowrap px-1.5 py-0.5 text-xs font-semibold leading-none {className}"
+	class="ui-font-mono ui-marquee-host relative inline-flex min-w-0 max-w-full shrink-0 items-center justify-center overflow-hidden whitespace-nowrap px-1.5 py-0.5 text-xs font-semibold leading-none {className}"
 	style="color: {palette.fg};"
 >
 	<span
@@ -54,5 +55,5 @@
 		style="background-color: var(--ui-base-300); {surface.surfaceStyle}"
 	></span>
 	<UiVectorBorder {corners} {cornerMode} cutPx={surface.cutPx} maxCutRatio={CONTROL_MAX_CUT_RATIO} strokeVar={palette.stroke} strokeWidth={1.15} />
-	<span class="relative z-10">{text}</span>
+	<span class="relative z-10 min-w-0 max-w-full overflow-hidden"><UiOverflowText {text} /></span>
 </span>

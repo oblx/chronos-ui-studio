@@ -50,7 +50,7 @@
 	}
 </script>
 
-<div class="relative flex flex-nowrap items-center gap-1" data-testid="project-lifecycle-pod" data-pod-compact={compact ? 'true' : 'false'}>
+<div class="relative flex flex-nowrap items-center gap-1 {compact ? 'w-full min-w-0' : ''}" data-testid="project-lifecycle-pod" data-pod-compact={compact ? 'true' : 'false'}>
 	{#if !compact}
 		<span class="ui-font-display shrink-0 whitespace-nowrap pr-1 text-xs font-semibold tracking-wide" style="color: var(--ui-primary);">
 			{activeProject?.name ?? STUDIO_UI_COPY.defaultCanvasName}
@@ -78,7 +78,7 @@
 		tipLevel={canUndo ? 35 : 15}
 		onclick={onUndo}
 		testId="workspace-undo-btn"
-		className={compact ? 'px-1 py-0.5 text-[0.62rem]' : 'shrink-0 px-1.5 py-0.5 text-xs'}
+		className={compact ? 'shrink-0 px-1 py-0.5 text-[0.62rem]' : 'shrink-0 px-1.5 py-0.5 text-xs'}
 	/>
 
 	<UiChamferButton
@@ -91,7 +91,7 @@
 		tipLevel={canRedo ? 35 : 15}
 		onclick={onRedo}
 		testId="workspace-redo-btn"
-		className={compact ? 'px-1 py-0.5 text-[0.62rem]' : 'shrink-0 px-1.5 py-0.5 text-xs'}
+		className={compact ? 'shrink-0 px-1 py-0.5 text-[0.62rem]' : 'shrink-0 px-1.5 py-0.5 text-xs'}
 	/>
 
 	<UiChamferButton
@@ -102,14 +102,12 @@
 		tipLevel={20}
 		onclick={onSaveWorkspace}
 		testId="workspace-save-btn"
-		className={compact ? 'px-1.5 py-0.5 text-[0.62rem]' : 'shrink-0 py-0.5 text-xs'}
+		className={compact ? 'min-w-0 flex-1 px-1 py-0.5 text-[0.62rem]' : 'shrink-0 py-0.5 text-xs'}
 	>
-		<span>{saveStatus === 'SAVING' ? STUDIO_UI_COPY.savingLabel : STUDIO_UI_COPY.saveLabel}</span>
-		<span class="inline-flex h-2 w-2 shrink-0 items-center justify-center">
-			{#if isDirty}
-				<span class="inline-block h-1.5 w-1.5 rounded-full" style="background-color: var(--ui-accent-vivid, var(--ui-primary));" data-testid="dirty-indicator"></span>
-			{/if}
-		</span>
+		<span class="truncate">{saveStatus === 'SAVING' ? STUDIO_UI_COPY.savingLabel : STUDIO_UI_COPY.saveLabel}</span>
+		{#if isDirty}
+			<span class="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style="background-color: var(--ui-accent-vivid, var(--ui-primary));" data-testid="dirty-indicator"></span>
+		{/if}
 	</UiChamferButton>
 
 	<UiChamferButton
@@ -121,7 +119,7 @@
 		variant={resetOpen ? 'primary' : 'ghost'}
 		onclick={() => { creating = false; resetOpen = !resetOpen; }}
 		testId="workspace-reset-btn"
-		className={compact ? 'px-1.5 py-0.5 text-[0.62rem]' : 'shrink-0 py-0.5 text-xs'}
+		className={compact ? 'min-w-0 flex-1 px-1 py-0.5 text-[0.62rem]' : 'shrink-0 py-0.5 text-xs'}
 	/>
 
 	{#if !compact && onCreateProject}

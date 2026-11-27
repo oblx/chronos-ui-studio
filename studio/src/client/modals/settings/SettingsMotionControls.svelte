@@ -1,9 +1,10 @@
 <script lang="ts">
 	import {
 		DEFAULT_SURFACE_MOTION_PROFILES, getActiveMotionSensory, HUD_STAGGER_BOUNDS, MOTION_PROFILES,
-		MOTION_PROFILE_SPECS, MOTION_SURFACES, resolveSurfaceMotionMs, SIGNAL_FLOW_SPEEDS, subscribeMotionState,
-		SURFACE_MOTION_BOUNDS, UiChamferButton, UiSlider, type CornerKind, type MotionProfileId,
-		type MotionSensoryConfig, type MotionSurfaceId, type StudioDefaultsConfig
+		MOTION_PROFILE_SPECS, MOTION_SURFACES, resolveSurfaceMotionMs, SIGNAL_FLOW_SPEEDS, STUDIO_KNOB_BOUNDS,
+		STUDIO_KNOB_DEFAULTS, subscribeMotionState, SURFACE_MOTION_BOUNDS, UiChamferButton, UiSlider,
+		WIRE_TIME_SCALE_CURVES, type CornerKind, type MotionProfileId, type MotionSensoryConfig,
+		type MotionSurfaceId, type StudioDefaultsConfig
 	} from '@chronos-ui/svelte';
 
 	interface Props {
@@ -19,6 +20,10 @@
 	$effect(() => subscribeMotionState(() => { sensory = getActiveMotionSensory(); }));
 
 	let staggerMs = $derived(studioDefaults?.hudZoneStaggerMs ?? sensory.hudZoneStaggerMs ?? HUD_STAGGER_BOUNDS.defaultMs);
+	let wireTimeScale = $derived(studioDefaults?.wireTimeScaleMultiplier ?? STUDIO_KNOB_DEFAULTS.wireTimeScaleMultiplier);
+	let wireCurve = $derived(studioDefaults?.wireTimeScaleCurve ?? STUDIO_KNOB_DEFAULTS.wireTimeScaleCurve);
+	let marqueeSpeed = $derived(studioDefaults?.marqueeSpeedPxPerSec ?? STUDIO_KNOB_DEFAULTS.marqueeSpeedPxPerSec);
+	let dragFrames = $derived(studioDefaults?.cursorDragTargetFrames ?? STUDIO_KNOB_DEFAULTS.cursorDragTargetFrames);
 	let surfaceEnterMs = $derived(resolveSurfaceMotionMs(activeSurface, 'enter', sensory));
 	let surfaceExitMs = $derived(resolveSurfaceMotionMs(activeSurface, 'exit', sensory));
 
@@ -81,4 +86,16 @@
 			{/each}
 		</div>
 	</div>
+	{#if onSetStudioDefaults}
+		<div class="flex flex-col gap-1.5 border-t pt-1.5" style="border-color: var(--ui-border-subtle);">
+			<UiSlider value={wireTimeScale} min={STUDIO_KNOB_BOUNDS.wireTimeScaleMin} max={STUDIO_KNOB_BOUNDS.wireTimeScaleMax} step={STUDIO_KNOB_BOUNDS.wireTimeScaleStep} label="Wire Time-Scale Multiplier" valueLabel={`${wireTimeScale}x`} testId="settings-wire-timescale-slider" oninput={(v) => onSetStudioDefaults({ wireTimeScaleMultiplier: v })} />
+			<div class="grid grid-cols-3 gap-1">
+				{#each WIRE_TIME_SCALE_CURVES as c (c)}
+					<UiChamferButton {cornerMode} label={c === 'LINEAR' ? 'Linear Curve' : 'Log Curve'} active={wireCurve === c} variant={wireCurve === c ? 'primary' : 'ghost'} onclick={() => onSetStudioDefaults({ wireTimeScaleCurve: c })} testId={`settings-wire-curve-${c.toLowerCase()}`} className="w-full py-0.5 text-[0.58rem]" />
+				{/each}
+				<UiChamferButton {cornerMode} label={dragFrames ? 'Drag Frames: On' : 'Drag Frames: Off'} active={dragFrames} variant={dragFrames ? 'secondary' : 'ghost'} onclick={() => onSetStudioDefaults({ cursorDragTargetFrames: !dragFrames })} testId="settings-cursor-drag-frames-toggle" className="w-full py-0.5 text-[0.58rem]" />
+			</div>
+			<UiSlider value={marqueeSpeed} min={STUDIO_KNOB_BOUNDS.marqueeSpeedMin} max={STUDIO_KNOB_BOUNDS.marqueeSpeedMax} step={STUDIO_KNOB_BOUNDS.marqueeSpeedStep} label="Hover-Marquee Speed (px/s)" valueLabel={`${marqueeSpeed}px/s`} testId="settings-marquee-speed-slider" oninput={(v) => onSetStudioDefaults({ marqueeSpeedPxPerSec: v })} />
+		</div>
+	{/if}
 </div>

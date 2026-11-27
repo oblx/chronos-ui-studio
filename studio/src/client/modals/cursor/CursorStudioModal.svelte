@@ -16,12 +16,14 @@
 		onCreatePack: (payload: { name: string; sourcePngDataUrl?: string; forkFromUuid?: string }) => Promise<CursorPackDefinition | null>;
 		onDeriveStates: (uuid: string, accentColor?: string) => Promise<CursorPackDefinition | null>;
 		onUpdateHotspot: (uuid: string, cssState: CssCursorState, hotspotX: number, hotspotY: number) => Promise<void>;
+		dragTargetFrames?: boolean;
+		onToggleDragTargetFrames?: () => void;
 		onClose: () => void;
 	}
 
 	let {
 		open, cornerMode, packs, activePackId, onApplyPack, onResetPack,
-		onCreatePack, onDeriveStates, onUpdateHotspot, onClose
+		onCreatePack, onDeriveStates, onUpdateHotspot, dragTargetFrames = true, onToggleDragTargetFrames, onClose
 	}: Props = $props();
 
 	let customName = $state('Neon Pointer');
@@ -98,10 +100,15 @@
 			</div>
 
 			<div class="flex flex-col gap-2 border p-2.5" style="border-color: var(--ui-border-subtle); background-color: var(--ui-base-100);">
-				<div class="flex items-center justify-between gap-2">
+				<div class="flex flex-wrap items-center justify-between gap-2">
 					<span class="font-semibold" style="color: var(--ui-muted-content);">{CSS_CURSOR_STATES.length}-State Live Hover Sandbox</span>
-					<UiChamferButton {cornerMode} icon="cursor" label={busy ? 'Deriving...' : `Derive All ${CSS_CURSOR_STATES.length - 1} States`} variant="secondary" disabled={busy || !inspectedPack}
-						onclick={handleDeriveAll} testId="derive-cursor-states-btn" className="py-0.5 text-[0.68rem]" />
+					<div class="flex items-center gap-1.5">
+						{#if onToggleDragTargetFrames}
+							<UiChamferButton {cornerMode} label={dragTargetFrames ? 'Drag Frames: On' : 'Drag Frames: Off'} active={dragTargetFrames} variant={dragTargetFrames ? 'secondary' : 'ghost'} onclick={onToggleDragTargetFrames} testId="cursor-drag-frames-toggle" className="py-0.5 text-[0.64rem]" />
+						{/if}
+						<UiChamferButton {cornerMode} icon="cursor" label={busy ? 'Deriving...' : `Derive All ${CSS_CURSOR_STATES.length - 1} States`} variant="secondary" disabled={busy || !inspectedPack}
+							onclick={handleDeriveAll} testId="derive-cursor-states-btn" className="py-0.5 text-[0.68rem]" />
+					</div>
 				</div>
 				<div class="grid grid-cols-3 gap-1.5 sm:grid-cols-4" data-testid="cursor-hover-sandbox">
 					{#each CSS_CURSOR_STATES as st (st)}

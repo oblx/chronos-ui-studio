@@ -109,6 +109,17 @@ export const COMPONENT_CATALOG: readonly UiComponentSchema[] = [
 		propSchema: {
 			title: { type: 'string', label: 'Inspector Title', defaultValue: 'DAG Wire Stream' }
 		}
+	},
+	{
+		type: 'UiEventGraph', label: 'Live Event Graph', category: 'organism', memoryWeight: 'medium',
+		allowedZones: ['WORLD_CANVAS', 'BOTTOM_LEFT', 'RIGHT_EDGE'], emittedIntents: ['UI_GRAPH_SELECT_NODE', 'UI_GRAPH_SELECT_EDGE', 'UI_GRAPH_FIT'],
+		propSchema: {
+			title: { type: 'string', label: 'Graph Title', defaultValue: 'Event Topology' },
+			routing: { type: 'enum', label: 'Wire Routing', defaultValue: 'BEZIER', options: ['BEZIER', 'ORTHOGONAL', 'STEP'] },
+			nodeShape: { type: 'enum', label: 'Node Shape', defaultValue: 'BOX', options: ['BOX', 'HEXAGON', 'OCTAGON', 'CAPSULE', 'DIAMOND', 'UML_COMPONENT'] },
+			timeScaleMultiplier: { type: 'number', label: 'Time Scale', defaultValue: 2500 },
+			showPackets: { type: 'boolean', label: 'Animate Packets', defaultValue: true }
+		}
 	}
 ] as const;
 

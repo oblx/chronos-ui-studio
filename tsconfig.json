@@ -16,6 +16,7 @@
 		"strict": true,
 		"paths": {
 			"@chronos-ui/svelte": ["./packages/chronos-ui/src/index.ts"],
+			"@chronos-ui/svelte/graph": ["./packages/chronos-ui/src/organisms/graph/index.ts"],
 			"@chronos-ui/svelte/*": ["./packages/chronos-ui/src/*"],
 			"@ui/*": ["./packages/chronos-ui/src/*"],
 			"@studio/*": ["./studio/src/*"],

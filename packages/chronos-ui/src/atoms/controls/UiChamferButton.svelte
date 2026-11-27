@@ -6,6 +6,7 @@
 		type CornerKind, type CornerTuple, type UiIconName
 	} from '@ui/tokens';
 	import UiIcon from '../UiIcon.svelte';
+	import UiOverflowText from '../UiOverflowText.svelte';
 	import UiVectorBorder from '../UiVectorBorder.svelte';
 
 	interface Props {
@@ -60,14 +61,14 @@
 	data-ui-interactive="true"
 	data-ui-cursor={disabled ? 'not-allowed' : 'pointer'}
 	aria-pressed={active}
-	class="ui-ctl ui-ctl-btn ui-dur-micro ui-detent relative inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap text-xs font-semibold tracking-wide {className}"
+	class="ui-ctl ui-ctl-btn ui-dur-micro ui-detent ui-marquee-host relative inline-flex min-w-0 max-w-full shrink-0 items-center justify-center gap-1.5 overflow-hidden whitespace-nowrap text-xs font-semibold tracking-wide {className}"
 	style="color: {tone.fg}; background: transparent; border: none;"
 >
 	<span class="ui-ctl-bg pointer-events-none absolute inset-0 z-0" style="{surface.surfaceStyle} background-color: {tone.bg};" aria-hidden="true"></span>
 	<UiVectorBorder {corners} {cornerMode} cutPx={surface.cutPx} maxCutRatio={CONTROL_MAX_CUT_RATIO} strokeVar={tone.stroke} />
-	<span class="ui-ctl-inner relative z-10 inline-flex items-center justify-center gap-1.5">
-		{#if icon && iconPosition === 'left'}<UiIcon name={icon} sizeRem={0.95} />{/if}
-		{#if children}{@render children()}{:else if label}<span class="ui-ctl-label">{label}</span>{/if}
-		{#if icon && iconPosition === 'right'}<UiIcon name={icon} sizeRem={0.95} />{/if}
+	<span class="ui-ctl-inner relative z-10 inline-flex min-w-0 max-w-full items-center justify-center gap-1.5 overflow-hidden">
+		{#if icon && iconPosition === 'left'}<span class="shrink-0"><UiIcon name={icon} sizeRem={0.95} /></span>{/if}
+		{#if children}{@render children()}{:else if label}<UiOverflowText text={label} className="ui-ctl-label" />{/if}
+		{#if icon && iconPosition === 'right'}<span class="shrink-0"><UiIcon name={icon} sizeRem={0.95} /></span>{/if}
 	</span>
 </button>

@@ -81,6 +81,11 @@ export type IntentKind =
 	| 'UI_MODAL_CLOSED'
 	| 'UI_REVEAL_ZONE'
 	| 'UI_REPLAY_HUD_SEQUENCE'
+	| 'UI_GRAPH_SELECT_NODE'
+	| 'UI_GRAPH_SELECT_EDGE'
+	| 'UI_GRAPH_FIT'
+	| 'UI_CONFIGURE_GRAPH'
+	| 'UI_SET_WIRE_TIMESCALE'
 	| 'SERVER_MANIFEST_SYNCED';
 
 export interface BatchIntentInput<P = Record<string, unknown>> {
@@ -106,6 +111,8 @@ export interface WireTraceRecord {
 	readonly tier: RoutingTier;
 	readonly origin: DagEnvelope['origin'];
 	readonly stageMs: number;
+	readonly realDurationMs?: number;
+	readonly observedAtMs?: number;
 	readonly ok: boolean;
 	readonly summary: string;
 	readonly timestamp: number;

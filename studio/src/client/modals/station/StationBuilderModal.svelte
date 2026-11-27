@@ -1,7 +1,8 @@
 <script lang="ts">
 	import {
 		CORNER_ANIMATIONS, CORNER_EMBELLISHMENTS, CORNER_MODES, CORNER_RADIUS_LIMITS, LAYOUT_DENSITIES,
-		MOTION_PRESETS, UiChamferButton, UiChamferFrame, UiHorizontalDeck, UiModalFooter, UiModalShell, UiSlider, uiSwipeDeck,
+		MOTION_PRESETS, STUDIO_KNOB_BOUNDS, STUDIO_KNOB_DEFAULTS, WIRE_TIME_SCALE_CURVES, UiChamferButton,
+		UiChamferFrame, UiHorizontalDeck, UiModalFooter, UiModalShell, UiSlider, uiSwipeDeck,
 		type AccessibilityPrefs, type CornerAnimation, type CornerEmbellishment, type CornerKind, type CursorPackDefinition,
 		type HudZoneId, type LayoutDensity, type MotionConfig, type StudioDefaultsConfig, type ThemePack, type UiProjectDefinition
 	} from '@chronos-ui/svelte';
@@ -38,6 +39,8 @@
 	let stagedCount = $derived(p.project.nodes.filter((n) => n.lifecycle === 'STAGING' || n.lifecycle === 'BUILDING').length);
 	let activeTheme = $derived(p.themes.find((t) => t.id === p.activeThemeId) ?? p.themes[0]);
 	let activeCursorPack = $derived(p.cursorPacks.find((c) => c.uuid === p.activeCursorPackId) ?? p.cursorPacks[0]);
+	let wireScale = $derived(p.studioDefaults.wireTimeScaleMultiplier ?? STUDIO_KNOB_DEFAULTS.wireTimeScaleMultiplier);
+	let wireCurve = $derived(p.studioDefaults.wireTimeScaleCurve ?? STUDIO_KNOB_DEFAULTS.wireTimeScaleCurve);
 	const stepTab = (delta: -1 | 1): void => { activeTab = TABS[(TABS.findIndex((t) => t.id === activeTab) + delta + TABS.length) % TABS.length].id; };
 </script>
 
@@ -62,6 +65,10 @@
 						<UiSlider value={p.prefs.cornerRadiusRem} min={CORNER_RADIUS_LIMITS.minRem} max={CORNER_RADIUS_LIMITS.maxRem} step={CORNER_RADIUS_LIMITS.stepRem} label="Global Corner Radius" valueLabel={`${p.prefs.cornerRadiusRem.toFixed(2)}rem`} oninput={p.onSetCornerRadius} />
 						<div class="grid grid-cols-4 gap-1">
 							{#each MOTION_PRESETS as preset (preset)}<UiChamferButton cornerMode={p.prefs.cornerMode} label={preset} testId="station-motion-preset" active={p.motionConfig.preset === preset} variant={p.motionConfig.preset === preset ? 'secondary' : 'surface'} onclick={() => p.onSetMotionConfig({ preset })} className="px-1 py-0.5 text-[0.58rem]" />{/each}
+						</div>
+						<UiSlider value={wireScale} min={STUDIO_KNOB_BOUNDS.wireTimeScaleMin} max={STUDIO_KNOB_BOUNDS.wireTimeScaleMax} step={STUDIO_KNOB_BOUNDS.wireTimeScaleStep} label="Wire Time-Scale" valueLabel={`${wireScale.toLocaleString()}x`} testId="station-wire-timescale-slider" oninput={(wireTimeScaleMultiplier) => p.onSetStudioDefaults({ wireTimeScaleMultiplier })} />
+						<div class="grid grid-cols-2 gap-1">
+							{#each WIRE_TIME_SCALE_CURVES as curve (curve)}<UiChamferButton cornerMode={p.prefs.cornerMode} label={curve === 'LOGARITHMIC' ? 'LOG' : 'LINEAR'} active={wireCurve === curve} variant={wireCurve === curve ? 'secondary' : 'ghost'} onclick={() => p.onSetStudioDefaults({ wireTimeScaleCurve: curve })} className="px-1 py-0.5 text-[0.58rem]" />{/each}
 						</div>
 					</UiChamferFrame>
 					<UiChamferFrame cornerMode={p.prefs.cornerMode} carets={false} className="flex flex-col gap-2 p-3">

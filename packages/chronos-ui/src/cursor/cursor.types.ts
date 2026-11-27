@@ -54,4 +54,5 @@ export interface ResolvedCursorPalette {
 	readonly strokeHex: string;
 	readonly fillHex: string;
 	readonly errorHex?: string;
+	readonly dragTargetFrames?: boolean;
 }

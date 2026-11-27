@@ -1,8 +1,10 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import {
-		buildControlHtmlAttrs, UiBadge, UiBentoRadar, UiChamferButton, UiChamferFrame, UiMathFormula, UiProgressGauge,
-		type CornerKind, type UiNode, type WireTraceRecord
+		buildControlHtmlAttrs, computeHumanScaledDurationMs, formatSubMsDuration, UiBadge, UiBentoRadar,
+		UiChamferButton, UiChamferFrame, UiEventGraph, UiMathFormula, UiProgressGauge,
+		type CornerKind, type GraphEdgeRouting, type UiFrameShape, type UiGraphEdge, type UiGraphLane,
+		type UiGraphNode, type UiGraphPacket, type UiNode, type WireTraceRecord
 	} from '@chronos-ui/svelte';
 
 	interface Props {
@@ -30,6 +32,26 @@
 	let embCfg = $derived(node.embellishmentConfig);
 	let controlAttrs = $derived(buildControlHtmlAttrs(node.controlConfig));
 	let recentTraces = $derived(traces.slice(-3).reverse());
+	let graphNodeShape = $derived<UiFrameShape>((node.props.nodeShape as UiFrameShape) ?? node.shape ?? 'HEXAGON');
+	let graphRouting = $derived<GraphEdgeRouting>((node.props.routing as GraphEdgeRouting) ?? 'BEZIER');
+	let graphScale = $derived(Number(node.props.timeScaleMultiplier ?? 2500));
+	const LIVE_GRAPH_LANES: readonly UiGraphLane[] = [
+		{ id: 'IN', title: 'INGEST', order: 0 }, { id: 'PIPE', title: 'REDUCE', order: 1 }, { id: 'OUT', title: 'COMMIT', order: 2 }
+	];
+	let liveGraphNodes = $derived<readonly UiGraphNode[]>([
+		{ uuid: `${node.id}-in`, laneId: 'IN', label: 'INTENT_IN', shape: graphNodeShape, status: 'ACTIVE', portsIn: 0, portsOut: 1, metricsLine: `${traces.length} events` },
+		{ uuid: `${node.id}-pipe`, laneId: 'PIPE', label: 'DAG_STAGE', shape: graphNodeShape, status: 'NOMINAL', portsIn: 1, portsOut: 1, metricsLine: formatSubMsDuration(recentTraces[0]?.realDurationMs ?? recentTraces[0]?.stageMs ?? 0.05) },
+		{ uuid: `${node.id}-out`, laneId: 'OUT', label: 'PERSIST', shape: graphNodeShape, status: 'NOMINAL', portsIn: 1, portsOut: 0, metricsLine: `${graphScale}x scale` }
+	]);
+	let liveGraphEdges = $derived<readonly UiGraphEdge[]>([
+		{ id: `${node.id}-e1`, fromNodeUuid: `${node.id}-in`, toNodeUuid: `${node.id}-pipe`, highlighted: true },
+		{ id: `${node.id}-e2`, fromNodeUuid: `${node.id}-pipe`, toNodeUuid: `${node.id}-out` }
+	]);
+	let liveGraphPackets = $derived.by<readonly UiGraphPacket[]>(() => {
+		const realMs = recentTraces[0]?.realDurationMs ?? recentTraces[0]?.stageMs ?? 0.06;
+		const scaledMs = computeHumanScaledDurationMs(realMs, { multiplier: graphScale });
+		return liveGraphEdges.map((e) => ({ id: `lp-${e.id}`, edgeId: e.id, realDurationMs: realMs, scaledDurationMs: scaledMs, spawnedAtMs: 0 }));
+	});
 </script>
 
 {#snippet nestedBlock()}
@@ -72,11 +94,16 @@
 		<UiChamferFrame outerClass="w-full" corners={node.corners} cornerMode={effectiveCornerMode} cornerRadiusRem={node.cornerRadiusRem} {shape} cornerEmbellishment={emb} cornerAnimation={anim} embellishmentConfig={embCfg} className="px-4 py-3">
 			<UiProgressGauge label={String(node.props.label ?? node.label)} value={Number(node.props.value ?? 72)} max={Number(node.props.max ?? 100)} />
 		</UiChamferFrame>
+	{:else if node.type === 'UiEventGraph'}
+		<UiChamferFrame outerClass="w-full" corners={node.corners} cornerMode={effectiveCornerMode} cornerRadiusRem={node.cornerRadiusRem} {shape} cornerEmbellishment={emb} cornerAnimation={anim} embellishmentConfig={embCfg} carets={true} className="flex flex-col gap-1.5 p-2.5">
+			<div class="flex items-center justify-between gap-2"><span class="ui-font-display text-xs font-semibold">{title}</span><span class="ui-font-mono text-[0.6rem]" style="color: var(--ui-primary);">{graphNodeShape} · {graphRouting}</span></div>
+			<div class="h-44 w-full"><UiEventGraph lanes={LIVE_GRAPH_LANES} nodes={liveGraphNodes} edges={liveGraphEdges} packets={liveGraphPackets} cornerMode={effectiveCornerMode} config={{ routing: graphRouting, nodeShape: graphNodeShape, timeScaleMultiplier: graphScale, showPackets: node.props.showPackets !== false }} testId={`live-event-graph-${node.id}`} onSelectNode={(id) => onNodeAction(node, id ?? 'clear')} /></div>
+		</UiChamferFrame>
 	{:else if node.type === 'UiWireInspector'}
 		<UiChamferFrame outerClass="w-full" corners={node.corners} cornerMode={effectiveCornerMode} cornerRadiusRem={node.cornerRadiusRem} {shape} cornerEmbellishment={emb} cornerAnimation={anim} embellishmentConfig={embCfg} carets={true} className="flex flex-col gap-1.5 px-3.5 py-2.5">
 			<div class="flex items-center justify-between gap-2"><span class="ui-font-display text-xs font-semibold">{title}</span><span class="ui-font-mono text-[0.62rem]" style="color: var(--ui-accent-vivid, var(--ui-primary));">{traces.length} EVENTS</span></div>
 			{#each recentTraces as tr (`${tr.spine}-${tr.seq}`)}
-				<div class="ui-font-mono flex items-center justify-between gap-2 text-[0.62rem]" style="color: var(--ui-muted-content);"><span class="truncate">#{tr.seq} · {tr.kind}</span><span>{tr.stageMs.toFixed(1)}ms</span></div>
+				<div class="ui-font-mono flex items-center justify-between gap-2 text-[0.62rem]" style="color: var(--ui-muted-content);"><span class="truncate">#{tr.seq} · {tr.kind}</span><span>{formatSubMsDuration(tr.realDurationMs ?? tr.stageMs)}</span></div>
 			{:else}
 				<div class="ui-font-mono text-[0.62rem]" style="color: var(--ui-muted-content);">WIRE IDLE · READY FOR DISPATCH</div>
 			{/each}

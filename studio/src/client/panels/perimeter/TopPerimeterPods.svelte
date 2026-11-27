@@ -57,16 +57,16 @@
 			carets={true}
 			className="px-3.5 py-2"
 		>
-			<div class="flex h-full flex-col justify-between gap-1" data-testid="top-left-pod">
-				<div class="flex items-center justify-between gap-2">
-					<div class="ui-font-display truncate text-xs font-bold tracking-wide" style="color: var(--ui-base-content);">
-						Chronos UI Studio
+			<div class="flex h-full min-w-0 flex-col justify-between gap-1 overflow-hidden" data-testid="top-left-pod">
+				<div class="flex min-w-0 items-center justify-between gap-1.5">
+					<div class="flex min-w-0 items-baseline gap-1.5 overflow-hidden">
+						<span class="ui-font-display truncate text-xs font-bold tracking-wide" style="color: var(--ui-base-content);">Chronos UI Studio</span>
+						<span class="ui-font-mono shrink-0 text-[0.6rem]" style="color: var(--ui-muted-content);" data-testid="top-left-version">v{VERSION}</span>
 					</div>
 					<UiBadge text={computeBlueprintGrade(props.blueprint)} tone="primary" cornerMode={props.cornerMode} ariaLabel="Blueprint Grade" />
 				</div>
 				<UiProgressGauge value={visibleZones} max={11} label="Perimeter Coverage" unitText={`${visibleZones}/11`} />
-				<div class="ui-font-mono flex items-center justify-between gap-1 text-[0.65rem]" style="color: var(--ui-muted-content);">
-					<span>v{VERSION}</span>
+				<div class="ui-font-mono flex w-full min-w-0 items-center text-[0.65rem]" style="color: var(--ui-muted-content);">
 					{#if props.onSaveWorkspace && props.onResetDefaultView && props.onCleanWorkspace}
 						<ProjectLifecyclePod
 							cornerMode={props.cornerMode}

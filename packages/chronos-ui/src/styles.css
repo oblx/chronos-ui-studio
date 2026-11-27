@@ -137,3 +137,10 @@ button:focus-visible, [tabindex]:focus-visible, input:focus-visible, select:focu
 .ui-modal-morph[data-modal-phase="CLOSING"] { transition: opacity var(--ui-dur-modal-exit, var(--ui-dur-fast)) var(--ui-ease-exit), transform var(--ui-dur-modal-exit, var(--ui-dur-fast)) var(--ui-ease-exit); }
 .ui-modal-backdrop { transition: opacity var(--ui-dur-modal-exit, var(--ui-dur-fast)) var(--ui-ease-standard); }
 .ui-hud-zone-slot { transition: opacity var(--ui-dur-hud-enter, var(--ui-dur-normal)) var(--ui-ease-enter), transform var(--ui-dur-hud-enter, var(--ui-dur-normal)) var(--ui-ease-enter); }
+@keyframes ui-marquee-pingpong { 0%, 15% { transform: translate3d(0, 0, 0); } 85%, 100% { transform: translate3d(var(--ui-marquee-shift, 0px), 0, 0); } }
+.ui-marquee-wrap { display: block; min-width: 0; max-width: 100%; overflow: hidden; white-space: nowrap; }
+.ui-marquee-track { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transform: translate3d(0, 0, 0); will-change: transform; }
+.ui-marquee-host:hover .ui-marquee-wrap[data-overflow="true"] .ui-marquee-track,
+.ui-marquee-host:focus-visible .ui-marquee-wrap[data-overflow="true"] .ui-marquee-track,
+.ui-marquee-wrap[data-overflow="true"]:hover .ui-marquee-track { display: inline-block; overflow: visible; text-overflow: clip; animation: ui-marquee-pingpong var(--ui-marquee-dur, 4000ms) ease-in-out infinite alternate; }
+:root[data-ui-motion-preset="NONE"] .ui-marquee-track, :root[data-ui-motion="reduced"] .ui-marquee-track, :root[data-ui-motion-profile="REDUCED_ZERO"] .ui-marquee-track { animation: none !important; transform: translate3d(0, 0, 0) !important; }

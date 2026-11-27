@@ -1,5 +1,8 @@
 <script lang="ts">
-	import { UiBadge, UiChamferButton, UiModalFooter, UiModalShell, UiWireInspector, type CornerKind, type WireTraceRecord } from '@chronos-ui/svelte';
+	import {
+		UiBadge, UiChamferButton, UiModalFooter, UiModalShell, UiWireInspector,
+		type CornerKind, type GraphEdgeRouting, type WireTimeScaleCurve, type WireTraceRecord
+	} from '@chronos-ui/svelte';
 	import { CAPABILITY_BITS } from '@studio/config';
 	import { hasCapability } from '@studio/core';
 	import type { StudioUser } from '../state';
@@ -9,13 +12,20 @@
 		traces: readonly WireTraceRecord[];
 		user: StudioUser | null;
 		cornerMode: CornerKind;
+		timeScaleMultiplier?: number;
+		timeScaleCurve?: WireTimeScaleCurve;
+		graphRouting?: GraphEdgeRouting;
+		onSetTimeScale?: (multiplier: number, curve: WireTimeScaleCurve) => void;
 		onDevArchitectLogin: () => void;
 		onRefresh: () => void;
 		onClearBuffer?: () => void;
 		onClose: () => void;
 	}
 
-	let { open, traces, user, cornerMode, onDevArchitectLogin, onRefresh, onClearBuffer, onClose }: Props = $props();
+	let {
+		open, traces, user, cornerMode, timeScaleMultiplier, timeScaleCurve, graphRouting,
+		onSetTimeScale, onDevArchitectLogin, onRefresh, onClearBuffer, onClose
+	}: Props = $props();
 	let hasBit28 = $derived(Boolean(user && hasCapability(user.capabilityMask, CAPABILITY_BITS.ADMIN_WIRE_OBSERVE)));
 </script>
 
@@ -42,7 +52,7 @@
 				<UiChamferButton {cornerMode} icon="reset" label="Refresh Server Spine" onclick={onRefresh} />
 			{/if}
 		</div>
-		<UiWireInspector {traces} {hasBit28} {cornerMode} {onClearBuffer} />
+		<UiWireInspector {traces} {hasBit28} {cornerMode} {timeScaleMultiplier} {timeScaleCurve} {graphRouting} {onSetTimeScale} {onClearBuffer} />
 	</div>
 	{#snippet footer()}
 		<UiModalFooter>

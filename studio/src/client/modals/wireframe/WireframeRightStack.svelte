@@ -1,7 +1,7 @@
 <script lang="ts">
 	import {
 		CORNER_ANIMATIONS, CORNER_EMBELLISHMENTS, CORNER_MODES, HUD_ZONES, UI_FRAME_SHAPES,
-		UiChamferButton, UiIcon, type CornerKind, type HudZoneId, type RegisteredUiEntity, type UiNode, type UiNodeTree
+		UiChamferButton, UiIcon, UiOverflowText, type CornerKind, type HudZoneId, type RegisteredUiEntity, type UiNode, type UiNodeTree
 	} from '@chronos-ui/svelte';
 	import type { WireframeRightTabId } from './wireframe.types';
 
@@ -74,9 +74,9 @@
 								<div role="listitem" class="ui-virtual-row ml-1.5 flex items-center justify-between gap-1 px-1.5 py-1 transition-colors" data-testid={`wf-layer-${ent.shortId}`} data-locked={ent.locked ? 'true' : 'false'} data-visible={ent.visible ? 'true' : 'false'} onmouseenter={() => p.onHoverEntity(ent.uuid)} onmouseleave={() => p.onHoverEntity(null)}
 									style="background-color: {isSel ? 'color-mix(in srgb, var(--ui-primary) 16%, var(--ui-base-100))' : 'var(--ui-base-100)'}; border: var(--ui-hairline) solid {isSel || isHov ? 'var(--ui-primary)' : 'var(--ui-border-subtle)'};">
 									<span class="cursor-grab opacity-55" aria-hidden="true"><UiIcon name="grip" sizeRem={0.7} /></span>
-									<button type="button" class="flex min-w-0 flex-1 items-center gap-1 text-left" onclick={() => p.onSelectEntity(ent.uuid)}>
-										<span class="ui-font-mono text-[0.58rem] opacity-70">{ent.shortId}</span>
-										<span class="truncate text-[0.7rem] font-medium" style="color: var(--ui-base-content);">{ent.label}</span>
+									<button type="button" class="ui-marquee-host flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left" onclick={() => p.onSelectEntity(ent.uuid)}>
+										<span class="ui-font-mono shrink-0 text-[0.58rem] opacity-70">{ent.shortId}</span>
+										<UiOverflowText text={ent.label} className="text-[0.7rem] font-medium" />
 									</button>
 									<div class="flex shrink-0 items-center gap-0.5">
 										<button type="button" data-testid={`wf-eye-${ent.shortId}`} aria-label={ent.visible ? 'Hide layer' : 'Show layer'} onclick={() => p.onToggleVisibility(ent.uuid)} class="flex h-5 w-5 items-center justify-center border" style="border-color: var(--ui-border-subtle); color: {ent.visible ? 'var(--ui-primary)' : 'var(--ui-muted-content)'};"><UiIcon name="eye" sizeRem={0.7} /></button>

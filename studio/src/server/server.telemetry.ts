@@ -10,13 +10,16 @@ export function pushServerTrace(
 	origin: WireTraceRecord['origin'] = 'SYSTEM',
 	tier: RoutingTier = 'TIER_1_COALESCED_PERSIST'
 ): WireTraceRecord {
+	const ms = Math.max(0.001, Number(stageMs.toFixed(3)));
 	return serverRing.push({
 		spine: 'SERVER_DAG',
 		envelopeId: `srv-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
 		kind,
 		tier,
 		origin,
-		stageMs: Number(stageMs.toFixed(2)),
+		stageMs: ms,
+		realDurationMs: ms,
+		observedAtMs: ms,
 		ok,
 		summary,
 		timestamp: Date.now()

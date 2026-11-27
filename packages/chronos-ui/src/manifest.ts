@@ -30,7 +30,7 @@ export const UI_FRAMEWORK_MANIFEST = {
 	cursorPacks: BUILTIN_CURSOR_PACKS.map((p) => ({ uuid: p.uuid, slug: p.slug, name: p.name })),
 	atoms: [
 		'UiIcon', 'UiVectorBorder', 'UiChamferFrame', 'UiChamferButton', 'UiUtilityIconButton',
-		'UiBadge', 'UiMathFormula', 'UiProgressGauge'
+		'UiBadge', 'UiMathFormula', 'UiProgressGauge', 'UiOverflowText'
 	],
 	forms: ['UiInput', 'UiSelect', 'UiSlider', 'UiPopover'],
 	molecules: [
@@ -39,7 +39,7 @@ export const UI_FRAMEWORK_MANIFEST = {
 	],
 	organisms: [
 		'UiPerimeterHud', 'UiEdgeDrawer', 'UiSpotlightVeil', 'UiBentoRadar',
-		'UiVirtualCursors', 'UiToastStack', 'UiWireInspector', 'UiInteractiveCanvasStage',
+		'UiVirtualCursors', 'UiToastStack', 'UiEventGraph', 'UiWireInspector', 'UiInteractiveCanvasStage',
 		'UiAssistantDock', 'UiRobotEmblem'
 	],
 	modals: ['UiModalShell', 'UiModalHeader', 'UiModalFooter'],
