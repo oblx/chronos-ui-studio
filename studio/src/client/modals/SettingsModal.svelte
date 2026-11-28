@@ -1,6 +1,7 @@
 <script lang="ts">
 	import {
-		UiChamferButton, UiHorizontalDeck, UiModalFooter, UiModalShell, uiSwipeDeck,
+		CANONICAL_SHORTCUTS, formatShortcutBadge, normalizeKeyboardEventChord, UiBadge, UiChamferButton,
+		UiHorizontalDeck, UiModalFooter, UiModalShell, uiSwipeDeck,
 		type AccessibilityPrefs, type CornerKind, type EnvironmentCapabilityReport,
 		type GamepadProfileId, type MotionConfig, type StudioDefaultsConfig, type ThemePack, type VoiceCaptureMode
 	} from '@chronos-ui/svelte';
@@ -44,6 +45,7 @@
 		onToggleLowMemory: (next: boolean) => void;
 		onSetVoiceMode: (mode: VoiceCaptureMode) => void;
 		onSetGamepadOverride: (id: GamepadProfileId | null) => void;
+		onRebindShortcut?: (shortcutId: string, chord: string | null) => void;
 		onOpenCursors?: () => void;
 		onClose: () => void;
 	}
@@ -53,15 +55,14 @@
 		projectNodeCount, traceCount, undoCount = 0, redoCount = 0, lowMemoryMode, cornerMorphEnabled, voiceMode, gamepadOverride,
 		onUpdate, onSetCornerStyle, onSetCornerRadius, onSetStudioDefaults, onResetStudioDefaults, onSetMotionConfig, onSetMotionProfile,
 		onSetControlConfig, onSetHistoryLimit, onSetTooltipInfoLevel, onReplayHudSequence, onToggleCornerMorph,
-		onSelectTheme, onSaveAiProfile, onToggleLowMemory, onSetVoiceMode, onSetGamepadOverride, onOpenCursors, onClose
+		onSelectTheme, onSaveAiProfile, onToggleLowMemory, onSetVoiceMode, onSetGamepadOverride, onRebindShortcut, onOpenCursors, onClose
 	}: Props = $props();
 
 	let activeTab = $state<'ai' | 'visuals' | 'input' | 'runtime'>('ai');
+	let recordingShortcutId = $state<string | null>(null);
 	const TABS = [
-		{ id: 'ai', label: 'AI & Models' },
-		{ id: 'visuals', label: 'Visuals & Motion' },
-		{ id: 'input', label: 'Input & Modality' },
-		{ id: 'runtime', label: 'Runtime & Memory' }
+		{ id: 'ai', label: 'AI & Models' }, { id: 'visuals', label: 'Visuals & Motion' },
+		{ id: 'input', label: 'Input & Modality' }, { id: 'runtime', label: 'Runtime & Memory' }
 	] as const;
 
 	function stepTab(delta: -1 | 1): void {
@@ -69,9 +70,20 @@
 		const next = TABS[(idx + delta + TABS.length) % TABS.length];
 		if (next) activeTab = next.id;
 	}
+
+	function handleCaptureKey(e: KeyboardEvent): void {
+		if (!recordingShortcutId) return;
+		e.preventDefault(); e.stopPropagation();
+		const chord = normalizeKeyboardEventChord(e);
+		if (!chord) return;
+		onRebindShortcut?.(recordingShortcutId, chord);
+		recordingShortcutId = null;
+	}
 </script>
 
-<UiModalShell {open} sizeTier="WIDE" title="Settings" subtitle="AI providers, tri-mode corners, Svelte 5 motion presets, and runtime budgets" icon="settings" cornerMode={prefs.cornerMode} {onClose}>
+<svelte:window onkeydown={recordingShortcutId ? handleCaptureKey : undefined} />
+
+<UiModalShell {open} sizeTier="WIDE" title="Settings" subtitle="AI providers, tri-mode corners, Svelte 5 motion presets, keyboard shortcuts, and runtime budgets" icon="settings" cornerMode={prefs.cornerMode} {onClose}>
 	<div class="flex flex-col gap-3" use:uiSwipeDeck={{ onStep: stepTab }}>
 		<UiHorizontalDeck cornerMode={prefs.cornerMode}>
 			{#each TABS as tab (tab.id)}
@@ -84,20 +96,42 @@
 		{:else if activeTab === 'visuals'}
 			<SettingsVisualsTab {prefs} {motionConfig} {studioDefaults} {themes} {activeThemeId} {cornerMorphEnabled} {onUpdate} {onSetCornerStyle} {onSetCornerRadius} {onSetStudioDefaults} {onResetStudioDefaults} {onSetMotionConfig} {onSetMotionProfile} {onSetControlConfig} {onSetTooltipInfoLevel} {onReplayHudSequence} {onToggleCornerMorph} {onSelectTheme} {onOpenCursors} />
 		{:else if activeTab === 'input'}
-			<div class="grid grid-cols-1 gap-3 text-xs md:grid-cols-2" data-testid="settings-input-tab">
-				<div class="flex flex-col gap-2">
-					<span class="font-semibold" style="color: var(--ui-muted-content);">Voice Recognition Mode</span>
-					<div class="grid grid-cols-2 gap-1.5">
-						<UiChamferButton cornerMode={prefs.cornerMode} icon="mic" label="Push-to-Talk" active={voiceMode === 'PUSH_TO_TALK'} variant={voiceMode === 'PUSH_TO_TALK' ? 'primary' : 'surface'} onclick={() => onSetVoiceMode('PUSH_TO_TALK')} />
-						<UiChamferButton cornerMode={prefs.cornerMode} icon="mic" label="Hands-Free" active={voiceMode === 'HANDS_FREE'} variant={voiceMode === 'HANDS_FREE' ? 'primary' : 'surface'} onclick={() => onSetVoiceMode('HANDS_FREE')} />
+			<div class="flex flex-col gap-3 text-xs" data-testid="settings-input-tab">
+				<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+					<div class="flex flex-col gap-2">
+						<span class="font-semibold" style="color: var(--ui-muted-content);">Voice Recognition Mode</span>
+						<div class="grid grid-cols-2 gap-1.5">
+							<UiChamferButton cornerMode={prefs.cornerMode} icon="mic" label="Push-to-Talk" active={voiceMode === 'PUSH_TO_TALK'} variant={voiceMode === 'PUSH_TO_TALK' ? 'primary' : 'surface'} onclick={() => onSetVoiceMode('PUSH_TO_TALK')} />
+							<UiChamferButton cornerMode={prefs.cornerMode} icon="mic" label="Hands-Free" active={voiceMode === 'HANDS_FREE'} variant={voiceMode === 'HANDS_FREE' ? 'primary' : 'surface'} onclick={() => onSetVoiceMode('HANDS_FREE')} />
+						</div>
+					</div>
+					<div class="flex flex-col gap-2">
+						<span class="font-semibold" style="color: var(--ui-muted-content);">Gamepad Profile (Xbox / PS5 DualSense)</span>
+						<div class="grid grid-cols-3 gap-1.5">
+							<UiChamferButton cornerMode={prefs.cornerMode} label="Auto-Detect" active={gamepadOverride === null} variant={gamepadOverride === null ? 'primary' : 'surface'} onclick={() => onSetGamepadOverride(null)} />
+							<UiChamferButton cornerMode={prefs.cornerMode} icon="gamepad" label="Xbox" active={gamepadOverride === 'xbox'} variant={gamepadOverride === 'xbox' ? 'primary' : 'surface'} onclick={() => onSetGamepadOverride('xbox')} />
+							<UiChamferButton cornerMode={prefs.cornerMode} icon="gamepad" label="DualSense" active={gamepadOverride === 'dualsense'} variant={gamepadOverride === 'dualsense' ? 'primary' : 'surface'} onclick={() => onSetGamepadOverride('dualsense')} />
+						</div>
 					</div>
 				</div>
-				<div class="flex flex-col gap-2">
-					<span class="font-semibold" style="color: var(--ui-muted-content);">Gamepad Profile (Xbox / PS5 DualSense)</span>
-					<div class="grid grid-cols-3 gap-1.5">
-						<UiChamferButton cornerMode={prefs.cornerMode} label="Auto-Detect" active={gamepadOverride === null} variant={gamepadOverride === null ? 'primary' : 'surface'} onclick={() => onSetGamepadOverride(null)} />
-						<UiChamferButton cornerMode={prefs.cornerMode} icon="gamepad" label="Xbox" active={gamepadOverride === 'xbox'} variant={gamepadOverride === 'xbox' ? 'primary' : 'surface'} onclick={() => onSetGamepadOverride('xbox')} />
-						<UiChamferButton cornerMode={prefs.cornerMode} icon="gamepad" label="DualSense" active={gamepadOverride === 'dualsense'} variant={gamepadOverride === 'dualsense' ? 'primary' : 'surface'} onclick={() => onSetGamepadOverride('dualsense')} />
+				<div class="flex flex-col gap-2" data-testid="settings-shortcuts-table">
+					<div class="flex items-center justify-between gap-2">
+						<span class="font-semibold" style="color: var(--ui-muted-content);">Declarative Keyboard Shortcuts ({CANONICAL_SHORTCUTS.length})</span>
+						<UiChamferButton cornerMode={prefs.cornerMode} icon="reset" label="Reset All Chords" variant="ghost" onclick={() => onSetStudioDefaults({ shortcutOverrides: {} })} className="px-2 py-0.5 text-xs" />
+					</div>
+					<div class="ui-scroll-thin flex max-h-56 flex-col gap-1 overflow-y-auto pr-1">
+						{#each CANONICAL_SHORTCUTS as sc (sc.id)}
+							<div class="flex items-center justify-between gap-2 px-2 py-1" style="background-color: var(--ui-base-200);">
+								<div class="min-w-0 flex-1">
+									<div class="truncate font-semibold">{sc.label}</div>
+									<div class="truncate text-[0.65rem]" style="color: var(--ui-muted-content);">{sc.intent} · {sc.scope}</div>
+								</div>
+								<div class="flex shrink-0 items-center gap-1.5">
+									<UiBadge cornerMode={prefs.cornerMode} text={formatShortcutBadge(sc.id, studioDefaults.shortcutOverrides)} tone="primary" />
+									<UiChamferButton cornerMode={prefs.cornerMode} label={recordingShortcutId === sc.id ? 'Press Key...' : 'Rebind'} active={recordingShortcutId === sc.id} variant={recordingShortcutId === sc.id ? 'primary' : 'surface'} testId={`rebind-shortcut-${sc.id}`} onclick={() => { recordingShortcutId = recordingShortcutId === sc.id ? null : sc.id; }} className="px-2 py-0.5 text-xs" />
+								</div>
+							</div>
+						{/each}
 					</div>
 				</div>
 			</div>

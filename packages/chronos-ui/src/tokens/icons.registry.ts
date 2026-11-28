@@ -47,7 +47,8 @@ export type UiIconName =
 	| 'grid'
 	| 'eye'
 	| 'expand'
-	| 'minimize';
+	| 'minimize'
+	| 'search';
 
 export const UI_ICON_PATHS: Record<UiIconName, string> = {
 	user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0',
@@ -98,5 +99,6 @@ export const UI_ICON_PATHS: Record<UiIconName, string> = {
 	grid: 'M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z',
 	eye: 'M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z',
 	expand: 'M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7',
-	minimize: 'M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7'
+	minimize: 'M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7',
+	search: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14Zm9 2-4.3-4.3'
 };

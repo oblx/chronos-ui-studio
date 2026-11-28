@@ -16,7 +16,7 @@ import {
 
 describe('tokens and corner geometry', () => {
 	test('VERSION lock is 0.1.0, theme pack count is 6, and frame shape count is 14', () => {
-		expect(VERSION).toBe('0.1.2');
+		expect(VERSION).toBe('0.1.3');
 		expect(THEME_PACKS.length).toBe(6);
 		expect(UI_FRAME_SHAPES.length).toBe(14);
 	});

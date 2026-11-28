@@ -1,7 +1,7 @@
 import {
-	applyControlConfigToRoot, applyStudioDefaults, clampControlConfig, clampHistoryLimit, clampStudioDefaults,
+	applyControlConfigToRoot, applyStudioDefaults, canonicalizeChordString, clampControlConfig, clampHistoryLimit, clampStudioDefaults,
 	clampTooltipInfoLevel, DEFAULT_CONTROL_CONFIG, DEFAULT_STUDIO_DEFAULTS, HUD_STAGGER_BOUNDS,
-	resolveTooltipTierLabel, setActiveStudioDefaults, VERSION,
+	resolveTooltipTierLabel, setActiveStudioDefaults, validateShortcutRegistry, VERSION,
 	type ButtonControlConfig, type FormControlConfig, type GraphEdgeRouting, type HudZoneId,
 	type StudioControlConfig, type UiWireBroker, type WireTimeScaleCurve
 } from '@chronos-ui/svelte';
@@ -60,7 +60,7 @@ function registerControlAndHistoryHandlers(broker: UiWireBroker<StudioState>): v
 }
 
 function registerMotionAndSyncHandlers(broker: UiWireBroker<StudioState>): void {
-	broker.register<{ id: string; lockSeconds?: number }>('UI_OPEN_MODAL', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => s, summarize: (env) => `Open modal: ${env.payload.id}` });
+	broker.register<{ id?: string; modalId?: string; lockSeconds?: number }>('UI_OPEN_MODAL', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => s, summarize: (env) => `Open modal: ${env.payload.id ?? env.payload.modalId}` });
 	broker.register('UI_CLOSE_MODAL', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => s, summarize: () => 'Close active modal' });
 	broker.register<{ id: string }>('UI_MODAL_OPENED', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => s, summarize: (env) => `Modal opened: ${env.payload.id}` });
 	broker.register<{ id: string }>('UI_MODAL_CLOSED', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => s, summarize: (env) => `Modal closed: ${env.payload.id}` });
@@ -98,18 +98,9 @@ function registerGraphAndTimescaleHandlers(broker: UiWireBroker<StudioState>): v
 	broker.register<{ routing?: GraphEdgeRouting; packetSizePx?: number; nodeId?: string; props?: Record<string, unknown> }>('UI_CONFIGURE_GRAPH', {
 		tier: 'TIER_1_COALESCED_PERSIST',
 		reduce: (s, env) => {
-			const next = updateStudioDefaults(s, clampStudioDefaults({
-				...(env.payload.routing ? { graphRouting: env.payload.routing } : {}),
-				...(env.payload.packetSizePx !== undefined ? { graphPacketSizePx: env.payload.packetSizePx } : {})
-			}, s.studioDefaults));
+			const next = updateStudioDefaults(s, clampStudioDefaults({ ...(env.payload.routing ? { graphRouting: env.payload.routing } : {}), ...(env.payload.packetSizePx !== undefined ? { graphPacketSizePx: env.payload.packetSizePx } : {}) }, s.studioDefaults));
 			if (!env.payload.nodeId) return next;
-			return {
-				...next,
-				projects: next.projects.map((p) => (p.id !== next.activeProjectId ? p : {
-					...p,
-					nodes: p.nodes.map((n) => (n.id === env.payload.nodeId ? { ...n, props: { ...n.props, ...(env.payload.routing ? { routing: env.payload.routing } : {}), ...(env.payload.props ?? {}) } } : n))
-				}))
-			};
+			return { ...next, projects: next.projects.map((p) => (p.id !== next.activeProjectId ? p : { ...p, nodes: p.nodes.map((n) => (n.id === env.payload.nodeId ? { ...n, props: { ...n.props, ...(env.payload.routing ? { routing: env.payload.routing } : {}), ...(env.payload.props ?? {}) } } : n)) })) };
 		},
 		effect: persistDefaultsEffect,
 		summarize: (env) => `Configured event graph (${env.payload.routing ?? 'updated'})`
@@ -119,8 +110,29 @@ function registerGraphAndTimescaleHandlers(broker: UiWireBroker<StudioState>): v
 	broker.register<Record<string, unknown>>('UI_GRAPH_FIT', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => s, summarize: () => 'Fitted event graph to viewport' });
 }
 
+function registerShortcutIntentHandlers(broker: UiWireBroker<StudioState>): void {
+	broker.register('UI_HISTORY_UNDO', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => s, effect: () => { broker.dispatch('UI_UNDO_REVISION', {}); }, summarize: () => 'Shortcut: Undo revision' });
+	broker.register('UI_HISTORY_REDO', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => s, effect: () => { broker.dispatch('UI_REDO_REVISION', {}); }, summarize: () => 'Shortcut: Redo revision' });
+	broker.register<{ side?: 'LEFT' | 'RIGHT' }>('UI_TOGGLE_DRAWER', { tier: 'TIER_0_LOCAL_UI', reduce: (s, env) => (env.payload.side === 'RIGHT' ? { ...s, rightDrawer: { ...s.rightDrawer, open: !s.rightDrawer.open } } : { ...s, leftDrawer: { ...s.leftDrawer, open: !s.leftDrawer.open } }), summarize: (env) => `Toggle ${env.payload.side ?? 'LEFT'} drawer` });
+	broker.register('UI_ASSISTANT_TOGGLE_EXPAND', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => ({ ...s, assistantDock: { ...s.assistantDock, expanded: !s.assistantDock.expanded } }), summarize: () => 'Toggle AI Assistant console' });
+	broker.register('OPEN_CONTEXTUAL_HELP', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => ({ ...s, helpGlitterCount: s.helpGlitterCount + 1 }), summarize: () => 'Open contextual Field Tome help' });
+	broker.register('UI_DISMISS_TOP_OVERLAY', { tier: 'TIER_0_LOCAL_UI', reduce: (s) => s, summarize: () => 'Dismiss top overlay' });
+	broker.register<{ shortcutId: string; chord: string | null }>('UI_REBIND_SHORTCUT', {
+		tier: 'TIER_1_COALESCED_PERSIST',
+		reduce: (s, env) => {
+			const nextMap: Record<string, string> = { ...(s.studioDefaults.shortcutOverrides ?? {}) };
+			if (!env.payload.chord) delete nextMap[env.payload.shortcutId];
+			else nextMap[env.payload.shortcutId] = canonicalizeChordString(env.payload.chord);
+			return validateShortcutRegistry(undefined, nextMap).valid ? updateStudioDefaults(s, { shortcutOverrides: nextMap }) : s;
+		},
+		effect: persistDefaultsEffect,
+		summarize: (env) => `Rebind shortcut ${env.payload.shortcutId} -> ${env.payload.chord ?? 'default'}`
+	});
+}
+
 export function registerV011Handlers(broker: UiWireBroker<StudioState>): void {
 	registerControlAndHistoryHandlers(broker);
 	registerMotionAndSyncHandlers(broker);
 	registerGraphAndTimescaleHandlers(broker);
+	registerShortcutIntentHandlers(broker);
 }

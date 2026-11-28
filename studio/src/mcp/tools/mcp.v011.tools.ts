@@ -1,7 +1,7 @@
 import {
-	clampControlConfig, clampHistoryLimit, clampStudioDefaults, clampTooltipInfoLevel,
-	DEFAULT_STUDIO_DEFAULTS, HUD_STAGGER_BOUNDS, resolveTooltipTierLabel,
-	type ButtonControlConfig, type FormControlConfig, type StudioControlConfig
+	CANONICAL_SHORTCUTS, clampControlConfig, clampHistoryLimit, clampStudioDefaults, clampTooltipInfoLevel,
+	DEFAULT_STUDIO_DEFAULTS, getEffectiveShortcuts, HUD_STAGGER_BOUNDS, resolveTooltipTierLabel,
+	validateShortcutRegistry, type ButtonControlConfig, type FormControlConfig, type StudioControlConfig
 } from '@chronos-ui/svelte';
 import { eq } from 'drizzle-orm';
 import { getStudioDb, uiProjects } from '@studio/lib';
@@ -102,6 +102,31 @@ async function toolSetWireTimescale(args: Record<string, unknown>) {
 	};
 }
 
+async function toolListShortcuts(args: Record<string, unknown>) {
+	const project = await resolveMcpProject(args);
+	const overrides = project.studioDefaults?.shortcutOverrides ?? {};
+	const effectiveShortcuts = getEffectiveShortcuts(overrides);
+	const validation = validateShortcutRegistry(effectiveShortcuts);
+	return {
+		summary: `${effectiveShortcuts.length} shortcuts (${validation.valid ? '0 collisions' : `${validation.collisions.length} collisions`})`,
+		canonicalShortcuts: CANONICAL_SHORTCUTS,
+		effectiveShortcuts,
+		validation
+	};
+}
+
+async function toolOpenGlobalSearch(args: Record<string, unknown>) {
+	const query = typeof args.query === 'string' ? args.query : '';
+	const category = typeof args.category === 'string' ? args.category : 'ALL';
+	return {
+		summary: `opened Global Search (${category}${query ? `: ${query}` : ''})`,
+		opened: true,
+		query,
+		category,
+		clientIntents: [{ kind: 'UI_OPEN_MODAL', payload: { id: 'global-search', modalId: 'GLOBAL_SEARCH', query, category } }]
+	};
+}
+
 export function buildV011McpTools(): readonly [string, ProjectMcpToolFn][] {
 	return [
 		['ui_configure_controls', toolConfigureControls],
@@ -111,6 +136,8 @@ export function buildV011McpTools(): readonly [string, ProjectMcpToolFn][] {
 		['ui_replay_hud_sequence', toolReplayHudSequence],
 		['ui_set_tooltip_info_level', toolSetTooltipInfoLevel],
 		['ui_configure_graph', toolConfigureGraph],
-		['ui_set_wire_timescale', toolSetWireTimescale]
+		['ui_set_wire_timescale', toolSetWireTimescale],
+		['ui_list_shortcuts', toolListShortcuts],
+		['ui_open_global_search', toolOpenGlobalSearch]
 	];
 }

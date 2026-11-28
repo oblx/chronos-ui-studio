@@ -1,6 +1,7 @@
 import { CAPABILITY_BITS } from '@studio/config';
 import type { StudioToolDescriptor } from '../tool.registry';
 
+const RO = { readOnlyHint: true, idempotentHint: true, destructiveHint: false } as const;
 const IDEM = { readOnlyHint: false, idempotentHint: true, destructiveHint: false } as const;
 const MUT = { readOnlyHint: false, idempotentHint: false, destructiveHint: false } as const;
 
@@ -14,14 +15,7 @@ export const V011_TOOL_DESCRIPTORS: readonly StudioToolDescriptor[] = [
 		icon: 'settings',
 		intentKind: 'UI_SET_CONTROL_CONFIG',
 		requiredCapabilityBit: CAPABILITY_BITS.WRITE_THEMES,
-		inputSchema: {
-			type: 'object',
-			properties: {
-				projectId: { type: 'string' },
-				buttonConfig: { type: 'object' },
-				formConfig: { type: 'object' }
-			}
-		},
+		inputSchema: { type: 'object', properties: { projectId: { type: 'string' }, buttonConfig: { type: 'object' }, formConfig: { type: 'object' } } },
 		outputSchema: { type: 'object', properties: { controlConfig: { type: 'object' }, project: { type: 'object' } } },
 		annotations: IDEM
 	},
@@ -34,11 +28,7 @@ export const V011_TOOL_DESCRIPTORS: readonly StudioToolDescriptor[] = [
 		icon: 'reset',
 		intentKind: 'UI_SET_HISTORY_LIMIT',
 		requiredCapabilityBit: CAPABILITY_BITS.WRITE_BLUEPRINTS,
-		inputSchema: {
-			type: 'object',
-			properties: { projectId: { type: 'string' }, limit: { type: 'number', minimum: 1, maximum: 128 } },
-			required: ['limit']
-		},
+		inputSchema: { type: 'object', properties: { projectId: { type: 'string' }, limit: { type: 'number', minimum: 1, maximum: 128 } }, required: ['limit'] },
 		outputSchema: { type: 'object', properties: { historyLimit: { type: 'number' }, project: { type: 'object' } } },
 		annotations: IDEM
 	},
@@ -90,11 +80,7 @@ export const V011_TOOL_DESCRIPTORS: readonly StudioToolDescriptor[] = [
 		icon: 'help',
 		intentKind: 'UI_SET_TOOLTIP_INFO_LEVEL',
 		requiredCapabilityBit: CAPABILITY_BITS.WRITE_THEMES,
-		inputSchema: {
-			type: 'object',
-			properties: { projectId: { type: 'string' }, infoLevel: { type: 'number', minimum: 0, maximum: 100 } },
-			required: ['infoLevel']
-		},
+		inputSchema: { type: 'object', properties: { projectId: { type: 'string' }, infoLevel: { type: 'number', minimum: 0, maximum: 100 } }, required: ['infoLevel'] },
 		outputSchema: { type: 'object', properties: { tooltipInfoLevel: { type: 'number' }, tier: { type: 'string' } } },
 		annotations: IDEM
 	},
@@ -107,15 +93,7 @@ export const V011_TOOL_DESCRIPTORS: readonly StudioToolDescriptor[] = [
 		icon: 'wire',
 		intentKind: 'UI_CONFIGURE_GRAPH',
 		requiredCapabilityBit: CAPABILITY_BITS.WRITE_BLUEPRINTS,
-		inputSchema: {
-			type: 'object',
-			properties: {
-				projectId: { type: 'string' },
-				nodeId: { type: 'string' },
-				routing: { type: 'string', enum: ['BEZIER', 'ORTHOGONAL', 'STEP'] },
-				packetSizePx: { type: 'number', minimum: 4, maximum: 14 }
-			}
-		},
+		inputSchema: { type: 'object', properties: { projectId: { type: 'string' }, nodeId: { type: 'string' }, routing: { type: 'string', enum: ['BEZIER', 'ORTHOGONAL', 'STEP'] }, packetSizePx: { type: 'number', minimum: 4, maximum: 14 } } },
 		outputSchema: { type: 'object', properties: { graphRouting: { type: 'string' }, graphPacketSizePx: { type: 'number' } } },
 		annotations: IDEM
 	},
@@ -128,15 +106,34 @@ export const V011_TOOL_DESCRIPTORS: readonly StudioToolDescriptor[] = [
 		icon: 'wire',
 		intentKind: 'UI_SET_WIRE_TIMESCALE',
 		requiredCapabilityBit: CAPABILITY_BITS.WRITE_THEMES,
-		inputSchema: {
-			type: 'object',
-			properties: {
-				projectId: { type: 'string' },
-				multiplier: { type: 'number', minimum: 100, maximum: 25000 },
-				curve: { type: 'string', enum: ['LINEAR', 'LOGARITHMIC'] }
-			}
-		},
+		inputSchema: { type: 'object', properties: { projectId: { type: 'string' }, multiplier: { type: 'number', minimum: 100, maximum: 25000 }, curve: { type: 'string', enum: ['LINEAR', 'LOGARITHMIC'] } } },
 		outputSchema: { type: 'object', properties: { wireTimeScaleMultiplier: { type: 'number' }, wireTimeScaleCurve: { type: 'string' } } },
+		annotations: IDEM
+	},
+	{
+		name: 'ui_list_shortcuts',
+		description: 'Return canonical keyboard shortcuts, effective overrides, and collision validation.',
+		humanTitle: 'List Keyboard Shortcuts',
+		plainDescription: 'Inspect all registered keyboard bindings and any custom project chord overrides.',
+		category: 'CUSTOMIZE',
+		icon: 'help',
+		intentKind: 'UI_REBIND_SHORTCUT',
+		requiredCapabilityBit: CAPABILITY_BITS.READ_BLUEPRINTS,
+		inputSchema: { type: 'object', properties: { projectId: { type: 'string' } } },
+		outputSchema: { type: 'object', properties: { canonicalShortcuts: { type: 'array' }, effectiveShortcuts: { type: 'array' }, validation: { type: 'object' } } },
+		annotations: RO
+	},
+	{
+		name: 'ui_open_global_search',
+		description: 'Open the Ctrl/Cmd+K Global Search & Command Palette modal with an optional query or category.',
+		humanTitle: 'Open Global Search Palette',
+		plainDescription: 'Launch the unified search palette filtered by query or category.',
+		category: 'CUSTOMIZE',
+		icon: 'spotlight',
+		intentKind: 'UI_OPEN_MODAL',
+		requiredCapabilityBit: CAPABILITY_BITS.READ_BLUEPRINTS,
+		inputSchema: { type: 'object', properties: { query: { type: 'string' }, category: { type: 'string', enum: ['ALL', 'COMMANDS', 'COMPONENTS', 'TOME', 'TOOLS', 'NODES', 'PRESETS'] } } },
+		outputSchema: { type: 'object', properties: { opened: { type: 'boolean' }, query: { type: 'string' }, category: { type: 'string' } } },
 		annotations: IDEM
 	}
 ];

@@ -20,7 +20,7 @@ export const DEFAULT_HUMAN_TIME_SCALE: Required<HumanTimeScaleConfig> = {
 	refreshRateHz: STUDIO_KNOB_BOUNDS.defaultRefreshRateHz,
 	minVisibleFrames: STUDIO_KNOB_BOUNDS.minVisibleFrames,
 	maxTravelMs: STUDIO_KNOB_BOUNDS.maxPacketTravelMs,
-	logScaleUnitMs: 520
+	logScaleUnitMs: 900
 } as const;
 
 export function computeFramePeriodMs(refreshRateHz = DEFAULT_HUMAN_TIME_SCALE.refreshRateHz): number {
@@ -50,12 +50,13 @@ export function computeHumanScaledDurationMs(realDurationMs: number, config: Hum
 		config.minVisibleFrames ?? DEFAULT_HUMAN_TIME_SCALE.minVisibleFrames
 	);
 	const maxTravelMs = Math.max(minVisibleMs, config.maxTravelMs ?? DEFAULT_HUMAN_TIME_SCALE.maxTravelMs);
+	const rawScaled = safeReal * multiplier;
 	if (curve === 'LOGARITHMIC') {
 		const unit = config.logScaleUnitMs ?? DEFAULT_HUMAN_TIME_SCALE.logScaleUnitMs;
-		const scaled = minVisibleMs + Math.log10(1 + safeReal * multiplier) * unit;
+		const scaled = minVisibleMs + Math.log10(1 + Math.pow(rawScaled / 250, 1.8)) * unit;
 		return Number(clamp(scaled, minVisibleMs, maxTravelMs).toFixed(2));
 	}
-	return Number(clamp(minVisibleMs + safeReal * multiplier, minVisibleMs, maxTravelMs).toFixed(2));
+	return Number(clamp(rawScaled, minVisibleMs, maxTravelMs).toFixed(2));
 }
 
 export function formatSubMsDuration(ms?: number): string {

@@ -1,4 +1,4 @@
-export const VERSION = '0.1.2' as const;
+export const VERSION = '0.1.3' as const;
 export const STUDIO_DEFAULTS_VERSION = 3 as const;
 
 export type WireTimeScaleCurve = 'LINEAR' | 'LOGARITHMIC';

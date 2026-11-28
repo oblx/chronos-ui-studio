@@ -11,7 +11,7 @@ import type { AiProviderKind, UiComponentPrototype } from '@studio/core';
 export type StudioViewId = 'WORKBENCH' | 'THEMES' | 'BLUEPRINTS' | 'MCP_TWIN';
 export type LeftTabId = 'build' | 'zones' | 'blueprints' | 'tour' | 'spotlight';
 export type RightTabId = 'inspector' | 'themes' | 'export' | 'tokens';
-export type StudioModalId = 'tome' | 'settings' | 'wire' | 'auth' | 'export' | 'radar-skeleton' | 'cursors' | 'station-builder' | 'zone-edition';
+export type StudioModalId = 'tome' | 'settings' | 'wire' | 'auth' | 'export' | 'radar-skeleton' | 'cursors' | 'station-builder' | 'zone-edition' | 'global-search';
 
 export interface StationLayerConfig {
 	readonly showGrid: boolean;

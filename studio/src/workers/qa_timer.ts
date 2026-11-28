@@ -75,6 +75,11 @@ export function resetSprintTimer(rootDir = process.cwd()): void {
 	if (existsSync(file)) unlinkSync(file);
 }
 
+export function startFreshSprintTimer(budgetMin: number = SPRINT_TIME_BANDS.SOFT_TARGET_MIN, rootDir = process.cwd()): SprintTimerState {
+	resetSprintTimer(rootDir);
+	return startSprintTimer(budgetMin, rootDir);
+}
+
 export function formatDurationCompact(ms: number): string {
 	const sign = ms < 0 ? '-' : '';
 	const sec = Math.floor(Math.abs(ms) / 1000);
@@ -98,10 +103,13 @@ function parsePhaseArg(argv: readonly string[]): string {
 
 if (import.meta.main) {
 	const cmd = process.argv[2] ?? 'status';
-	if (cmd === 'start') {
-		const budget = Number(process.argv[3]) || SPRINT_TIME_BANDS.SOFT_TARGET_MIN;
-		startSprintTimer(budget);
-		console.log(`[timer] Started ${budget}m soft / ${SPRINT_TIME_BANDS.FREEZE_SCOPE_MIN}m freeze / ${SPRINT_TIME_BANDS.HARD_STOP_MIN}m hard clock.`);
+	const isFresh = cmd === 'sprint' || process.argv.includes('--fresh');
+	if (cmd === 'start' || cmd === 'sprint') {
+		const rawArg = process.argv.find((a, i) => i >= 3 && !a.startsWith('-'));
+		const budget = Number(rawArg) || SPRINT_TIME_BANDS.SOFT_TARGET_MIN;
+		if (isFresh) startFreshSprintTimer(budget);
+		else startSprintTimer(budget);
+		console.log(`[timer] Started ${isFresh ? 'fresh ' : ''}${budget}m soft / ${SPRINT_TIME_BANDS.FREEZE_SCOPE_MIN}m freeze / ${SPRINT_TIME_BANDS.HARD_STOP_MIN}m hard clock.`);
 	} else if (cmd === 'check' || cmd === 'lap') {
 		const s = lapSprintTimer(parsePhaseArg(process.argv));
 		console.log(`${formatClockBanner(`timer:${s.laps[s.laps.length - 1]?.step ?? 'phase'}`)} (+${formatDurationCompact(s.lastDeltaMs)})`);

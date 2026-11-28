@@ -40,6 +40,7 @@ export interface StudioDefaultsConfig {
 	readonly marqueeSpeedPxPerSec?: number; readonly marqueePauseRatio?: number;
 	readonly graphRouting?: GraphEdgeRouting; readonly graphPacketSizePx?: number;
 	readonly cursorDragTargetFrames?: boolean; readonly controlConfig?: StudioControlConfig;
+	readonly shortcutOverrides?: Readonly<Record<string, string>>;
 }
 
 export const DEFAULT_ACCESSIBILITY_PREFS: AccessibilityPrefs = {
@@ -105,7 +106,8 @@ export function clampStudioDefaults(patch?: Partial<StudioDefaultsConfig>, base:
 		historyLimit: clampHistoryLimit(p.historyLimit ?? base.historyLimit),
 		hudZoneStaggerMs: clampStaggerMs(p.hudZoneStaggerMs ?? base.hudZoneStaggerMs),
 		...clampKnobFields(p, base),
-		controlConfig: p.controlConfig ? clampControlConfig(p.controlConfig, baseControl) : clampControlConfig(undefined, baseControl)
+		controlConfig: p.controlConfig ? clampControlConfig(p.controlConfig, baseControl) : clampControlConfig(undefined, baseControl),
+		shortcutOverrides: p.shortcutOverrides ?? base.shortcutOverrides ?? {}
 	};
 }
 

@@ -13,7 +13,7 @@ import { classifySprintTimeBand, SPRINT_TIME_BANDS } from '@studio/workers/qa_ti
 
 describe('v0.0.8 3-tier parametric corner cuts & anti-pinch geometry', () => {
 	test('locks v0.0.8 defaults (0.5rem base, 0.75rem station, 0.3125rem control) and clamps <= 28% height', () => {
-		expect(VERSION).toBe('0.1.2');
+		expect(VERSION).toBe('0.1.3');
 		expect(DEFAULT_CORNER_CUT_REM).toBe(0.5);
 		expect(DEFAULT_STATION_CORNER_CUT_REM).toBe(0.75);
 		expect(DEFAULT_CONTROL_CORNER_CUT_REM).toBe(0.3125);
@@ -78,8 +78,8 @@ describe('v0.0.8 35-tool MCP parity, studioDefaults persistence, collab filter &
 	test('persists and resets studioDefaults via MCP tools, emits CSS vars, and parses assistant intents', async () => {
 		const listRes = await handleBuilderMcpRpc({ jsonrpc: '2.0', id: 1, method: 'tools/list' });
 		const tools = (listRes.result as unknown as { tools: Array<{ name: string }> }).tools;
-		expect(tools.length).toBe(50);
-		expect(STUDIO_TOOL_REGISTRY.length).toBe(50);
+		expect(tools.length).toBe(52);
+		expect(STUDIO_TOOL_REGISTRY.length).toBe(52);
 		const cfgRes = await handleBuilderMcpRpc({
 			jsonrpc: '2.0', id: 2, method: 'tools/call',
 			params: {

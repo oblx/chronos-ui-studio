@@ -13,6 +13,8 @@ const FN_HEADER_RE = /^\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)|^\s*const\
 const CACHE_REL = 'studio/data/.qa-audit-cache.json';
 const HEX_ALLOW_RE = /(?:theme\.palettes|cursor\.presets|\/tokens\/|\/tests\/|sample\.|starter\.|tome\.ssg)/;
 const DEEP_RELATIVE_RE = /(?:from|import)\s+['"]\.\.\/\.\./;
+const CORNERED_CTL_RE = /\/(?:UiChamferButton|UiUtilityIconButton|UiBadge|UiInput|UiSelect|UiSlider|UiAccordionSection)\.svelte$/;
+const RECT_BORDER_RE = /\b(?:border|outline)(?:-(?:top|right|bottom|left|width|style|color|none|0|1|2|4|8))?\s*[:=\s"']/;
 const REQUIRED_SUBPATHS = ['./tokens', './wire', './input', './motion', './cursor', './machines', './atoms', './forms', './molecules', './organisms', './graph', './modals', './assistant', './canvas'] as const;
 
 function walkTree(dir: string, outFiles: string[], outDirs: string[]): void {
@@ -54,6 +56,7 @@ function checkCodeFile(file: string, raw: string, violations: AuditViolation[]):
 	if (file.endsWith('tooltip.machine.svelte.ts') && /\bsetInterval\s*\(/.test(raw)) violations.push({ rule: 'ZERO_TIMER_TOOLTIP', target: file, detail: 'Forbidden setInterval in tooltip machine' });
 	if (!HEX_ALLOW_RE.test(file) && HEX_LITERAL_RE.test(raw)) violations.push({ rule: 'NON_PALETTE_HEX', target: file, detail: 'Hardcoded hex color outside token palettes' });
 	if ((file.endsWith('.ts') || file.endsWith('.svelte')) && DEEP_RELATIVE_RE.test(raw)) violations.push({ rule: 'NO_DEEP_RELATIVE_IMPORTS', target: file, detail: 'Multi-level ../.. import forbidden; use @ui/* or @studio/* alias' });
+	if (CORNERED_CTL_RE.test(file) && RECT_BORDER_RE.test(raw)) violations.push({ rule: 'NO_RECTANGULAR_BORDER_ON_CORNERED_CTL', target: file, detail: 'Raw CSS border/outline rule found on cornered control' });
 }
 
 function checkSkillFrontmatter(file: string, lines: readonly string[], violations: AuditViolation[]): void {
@@ -107,9 +110,10 @@ function checkPackageAndDocs(rootDir: string, violations: AuditViolation[]): voi
 	const skillDirs = existsSync(skillsRoot) ? readdirSync(skillsRoot).filter((n) => statSync(join(skillsRoot, n)).isDirectory()) : [];
 	const staleSkills = skillDirs.filter((d) => { const p = join(skillsRoot, d, 'SKILL.md'); return !existsSync(p) || !readFileSync(p, 'utf8').includes(`version: "${VERSION}"`); });
 	if (skillDirs.length < 5 || staleSkills.length > 0) violations.push({ rule: 'DOCS_AND_SKILL_FRESHNESS', target: 'docs/skills', detail: `Expected >=5 skills at version "${VERSION}", stale: ${staleSkills.join(', ') || 'none'}` });
-	const sprintsDir = join(rootDir, 'docs/08-sprints'), archiveDir = join(sprintsDir, 'archive');
-	const sprintFiles = [...readdirSync(sprintsDir).filter((n) => n.endsWith('.md')), ...(existsSync(archiveDir) ? readdirSync(archiveDir).filter((n) => n.endsWith('.md')) : [])];
-	if (sprintFiles.length < 10) violations.push({ rule: 'SPRINT_ARCHIVE_REQUIRED', target: 'docs/08-sprints', detail: `Found ${sprintFiles.length} sprint logs, expected >= 10` });
+	const sprintFiles: string[] = [], sprintDirs: string[] = [];
+	walkTree(join(rootDir, 'docs/08-sprints'), sprintFiles, sprintDirs);
+	const mdSprints = sprintFiles.filter((f) => f.endsWith('.md'));
+	if (mdSprints.length < 10) violations.push({ rule: 'SPRINT_ARCHIVE_REQUIRED', target: 'docs/08-sprints', detail: `Found ${mdSprints.length} sprint logs, expected >= 10` });
 }
 
 export function runStaticAudit(rootDir: string = process.cwd(), opts?: { full?: boolean }): AuditViolation[] {

@@ -3,13 +3,13 @@
 	import {
 		MODAL_EXPANSION_CTX_KEY, type AccessibilityPrefs, type CornerKind, type CssCursorState,
 		type CursorPackDefinition, type EnvironmentCapabilityReport, type GamepadProfileId, type HudZoneId,
-		type LayoutDensity, type ModalExpansionBridge, type ModalGeometrySnapshot, type ModalLifecyclePhase, type MotionConfig,
+		type IntentKind, type LayoutDensity, type ModalExpansionBridge, type ModalGeometrySnapshot, type ModalLifecyclePhase, type MotionConfig,
 		type RegisteredUiEntity, type StudioDefaultsConfig, type ThemePack, type UiNode, type UiNodeTree,
 		type UiProjectDefinition, type VoiceCaptureMode, type WireTraceRecord
 	} from '@chronos-ui/svelte';
 	import type { UiBlueprint } from '@studio/config';
 	import type { UiComponentPrototype } from '@studio/core/engine';
-	import type { AiProfileSummary, StationLayerConfig, StudioUser, ZoneEditPayload } from '../state';
+	import type { AiProfileSummary, StationLayerConfig, StudioModalId, StudioUser, ZoneEditPayload } from '../state';
 
 	interface Props {
 		activeModalId: string | null; modalPhase?: ModalLifecyclePhase; modalExpanded: boolean; modalRestoreSnapshot: ModalGeometrySnapshot | null;
@@ -23,11 +23,11 @@
 		envCapabilities: EnvironmentCapabilityReport | null; activeAdapterBadge: string; stationLayer: StationLayerConfig;
 		studioChromeVisible: boolean; layoutDensity: LayoutDensity; blueprint: UiBlueprint; selectedZoneId: HudZoneId;
 		prototypes: readonly UiComponentPrototype[]; themes: readonly ThemePack[]; activeThemeId: string;
-		aiProfiles: readonly AiProfileSummary[]; project: UiProjectDefinition; entities: readonly RegisteredUiEntity[];
+		aiProfiles: readonly AiProfileSummary[]; project: UiProjectDefinition; projects?: readonly UiProjectDefinition[]; entities: readonly RegisteredUiEntity[];
 		selectedNodeId: string | null; undoStack: readonly UiNodeTree[]; lowMemoryMode: boolean; voiceMode: VoiceCaptureMode;
 		gamepadOverride: GamepadProfileId | null; cursorPacks: readonly CursorPackDefinition[];
 		activeCursorPackId: string | null; traces: readonly WireTraceRecord[]; user: StudioUser | null;
-		onCloseModal: () => void; onOpenCursors: () => void; onOpenZoneEdition: (zoneId?: HudZoneId) => void;
+		onCloseModal: () => void; onOpenModal?: (id: StudioModalId) => void; onOpenCursors: () => void; onOpenZoneEdition: (zoneId?: HudZoneId) => void;
 		onOpenExport: () => void; onUpdatePrefs: (patch: Partial<AccessibilityPrefs>) => void;
 		onSetCornerStyle: (cornerMode: CornerKind) => void; onSetCornerRadius: (cornerRadiusRem: number) => void;
 		onSetStudioDefaults: (patch: Partial<StudioDefaultsConfig>) => void; onResetStudioDefaults: () => void;
@@ -48,6 +48,9 @@
 		onToggleEntityVisibility: (uuid: string) => void; onPatchEntity: (uuid: string, patch: Partial<UiNode>) => void;
 		onSpawnQuickInZone: (zoneId: HudZoneId) => void; onJumpUndoSteps: (stepsBack: number) => void;
 		onCloneDerivedEntity: (uuid: string, name: string) => void; onCopiedUuid: (uuid: string) => void;
+		onSelectProject?: (id: string) => void; onLoadSample?: (sampleId: string) => void;
+		onOpenTomeTopic?: (topic: string) => void; onDispatchIntent?: (kind: IntentKind, payload: Record<string, unknown>) => void;
+		onStartSpotlight?: () => void; onSaveWorkspace?: () => void; onRebindShortcut?: (shortcutId: string, chord: string | null) => void;
 		onDevLogin: () => Promise<void>; onRefreshTraces: () => void;
 		onLogin: (email: string, pw: string) => Promise<string | null>;
 		onRegister: (email: string, pw: string, name: string) => Promise<string | null>;
@@ -69,9 +72,13 @@
 	{#await import('./tome/FieldTomeModal.svelte') then mod}
 		<mod.default open={true} topic={p.helpTopic} cornerMode={p.cornerMode} isLocked={p.isLocked} remainingSeconds={p.remainingSeconds} progressRatio={p.progressRatio} onClose={p.onCloseModal} />
 	{/await}
+{:else if p.activeModalId === 'global-search'}
+	{#await import('./search/GlobalSearchModal.svelte') then mod}
+		<mod.default open={true} cornerMode={p.cornerMode} entities={p.entities} projects={p.projects ?? [p.project]} activeProjectId={p.project.id} themes={p.themes} cursorPacks={p.cursorPacks} shortcutOverrides={p.studioDefaults.shortcutOverrides} onOpenModal={(id) => p.onOpenModal?.(id)} onInspectEntity={p.onInspectEntity} onSelectProject={(id) => p.onSelectProject?.(id)} onLoadSample={(id) => p.onLoadSample?.(id)} onSelectTheme={p.onSelectTheme} onApplyCursorPack={p.onApplyCursorPack} onOpenTomeTopic={(topic) => p.onOpenTomeTopic?.(topic)} onDispatchIntent={(k, pl) => p.onDispatchIntent?.(k, pl)} onStartSpotlight={() => p.onStartSpotlight?.()} onReplayHudSequence={() => p.onReplayHudSequence?.()} onSaveWorkspace={() => p.onSaveWorkspace?.()} onClose={p.onCloseModal} />
+	{/await}
 {:else if p.activeModalId === 'settings'}
 	{#await import('./SettingsModal.svelte') then mod}
-		<mod.default open={true} prefs={p.accessibility} motionConfig={p.motionConfig} studioDefaults={p.studioDefaults} envCapabilities={p.envCapabilities} activeAdapterBadge={p.activeAdapterBadge} themes={p.themes} activeThemeId={p.activeThemeId} aiProfiles={p.aiProfiles} projectNodeCount={p.project.nodes.length} traceCount={p.traces.length} undoCount={p.undoStack.length} redoCount={p.redoCount ?? 0} lowMemoryMode={p.lowMemoryMode} cornerMorphEnabled={p.stationLayer.cornerMorphEnabled} voiceMode={p.voiceMode} gamepadOverride={p.gamepadOverride} onUpdate={p.onUpdatePrefs} onSetCornerStyle={p.onSetCornerStyle} onSetCornerRadius={p.onSetCornerRadius} onSetStudioDefaults={p.onSetStudioDefaults} onResetStudioDefaults={p.onResetStudioDefaults} onSetMotionConfig={p.onSetMotionConfig} onSetMotionProfile={p.onSetMotionProfile} onSetControlConfig={p.onSetControlConfig} onSetHistoryLimit={p.onSetHistoryLimit} onSetTooltipInfoLevel={p.onSetTooltipInfoLevel} onReplayHudSequence={p.onReplayHudSequence} onToggleCornerMorph={(cornerMorphEnabled) => p.onConfigureStationLayer({ cornerMorphEnabled })} onSelectTheme={p.onSelectTheme} onSaveAiProfile={p.onSaveAiProfile} onToggleLowMemory={p.onToggleLowMemory} onSetVoiceMode={p.onSetVoiceMode} onSetGamepadOverride={p.onSetGamepadOverride} onOpenCursors={p.onOpenCursors} onClose={p.onCloseModal} />
+		<mod.default open={true} prefs={p.accessibility} motionConfig={p.motionConfig} studioDefaults={p.studioDefaults} envCapabilities={p.envCapabilities} activeAdapterBadge={p.activeAdapterBadge} themes={p.themes} activeThemeId={p.activeThemeId} aiProfiles={p.aiProfiles} projectNodeCount={p.project.nodes.length} traceCount={p.traces.length} undoCount={p.undoStack.length} redoCount={p.redoCount ?? 0} lowMemoryMode={p.lowMemoryMode} cornerMorphEnabled={p.stationLayer.cornerMorphEnabled} voiceMode={p.voiceMode} gamepadOverride={p.gamepadOverride} onUpdate={p.onUpdatePrefs} onSetCornerStyle={p.onSetCornerStyle} onSetCornerRadius={p.onSetCornerRadius} onSetStudioDefaults={p.onSetStudioDefaults} onResetStudioDefaults={p.onResetStudioDefaults} onSetMotionConfig={p.onSetMotionConfig} onSetMotionProfile={p.onSetMotionProfile} onSetControlConfig={p.onSetControlConfig} onSetHistoryLimit={p.onSetHistoryLimit} onSetTooltipInfoLevel={p.onSetTooltipInfoLevel} onReplayHudSequence={p.onReplayHudSequence} onToggleCornerMorph={(cornerMorphEnabled) => p.onConfigureStationLayer({ cornerMorphEnabled })} onSelectTheme={p.onSelectTheme} onSaveAiProfile={p.onSaveAiProfile} onToggleLowMemory={p.onToggleLowMemory} onSetVoiceMode={p.onSetVoiceMode} onSetGamepadOverride={p.onSetGamepadOverride} onRebindShortcut={p.onRebindShortcut} onOpenCursors={p.onOpenCursors} onClose={p.onCloseModal} />
 	{/await}
 {:else if p.activeModalId === 'station-builder'}
 	{#await import('./station/StationBuilderModal.svelte') then mod}
@@ -102,4 +109,3 @@
 		<mod.default open={true} project={p.project} cornerMode={p.cornerMode} onCopied={p.onCopiedExport} onClose={p.onCloseModal} />
 	{/await}
 {/if}
-

@@ -50,7 +50,7 @@
 			value = next;
 			oninput?.(next);
 		}}
-		class="ui-ctl ui-slider-input h-1.5 w-full cursor-pointer appearance-none outline-none disabled:opacity-50"
+		class="ui-ctl ui-slider-input h-1.5 w-full cursor-pointer appearance-none disabled:opacity-50"
 		style="background: linear-gradient(90deg, var(--ui-accent-vivid, var(--ui-primary)) {ratioPct}%, var(--ui-base-300) {ratioPct}%); accent-color: var(--ui-accent-vivid, var(--ui-primary));"
 	/>
 </label>

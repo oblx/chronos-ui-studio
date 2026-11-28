@@ -1,5 +1,5 @@
 import { moveSpatialFocusInDom } from './focus.spatial';
-import { createGamepadPollerState, processGamepadSnapshot, triggerGamepadHaptic, type GamepadPollerState } from './gamepad.adapter';
+import { createGamepadPollerState, processGamepadSnapshot, triggerGamepadHaptic, type GamepadPollerState } from './gamepad';
 import type { GamepadProfileId, GamepadSnapshot, InputModality, SemanticInputAction, VoiceCaptureMode } from './input.types';
 import { createVoiceInputAdapter } from './voice.adapter';
 

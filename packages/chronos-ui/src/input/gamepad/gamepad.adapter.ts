@@ -1,5 +1,5 @@
 import { detectGamepadProfile, STICK_DEADZONE } from './gamepad.profiles';
-import type { GamepadProfile, GamepadSnapshot, SemanticInputAction } from './input.types';
+import type { GamepadProfile, GamepadSnapshot, SemanticInputAction } from '../input.types';
 
 const REPEAT_DELAY_MS = 260;
 const NAV_REPEATABLE = new Set(['NAV_UP', 'NAV_DOWN', 'NAV_LEFT', 'NAV_RIGHT', 'ZOOM_IN', 'ZOOM_OUT']);

@@ -60,7 +60,7 @@
 	data-ui-cursor={disabled ? 'not-allowed' : 'pointer'}
 	{onclick}
 	class="ui-ctl ui-dur-micro ui-detent group relative inline-flex h-8 w-8 shrink-0 items-center justify-center {className}"
-	style="color: {active ? 'var(--ui-accent-vivid, var(--ui-accent))' : 'var(--ui-muted-content)'}; opacity: {active ? '1' : '0.88'}; background: transparent; border: none;"
+	style="color: {active ? 'var(--ui-accent-vivid, var(--ui-accent))' : 'var(--ui-muted-content)'}; opacity: {active ? '1' : '0.88'}; background: transparent;"
 >
 	<span aria-hidden="true" class="pointer-events-none absolute inset-0 z-0" style="{surface.surfaceStyle} background-color: {active ? 'var(--ui-state-active-bg, var(--ui-base-300))' : 'transparent'};"></span>
 	<UiVectorBorder {corners} {cornerMode} cutPx={surface.cutPx} maxCutRatio={CONTROL_MAX_CUT_RATIO} {strokeVar} />

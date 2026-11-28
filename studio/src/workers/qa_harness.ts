@@ -66,7 +66,7 @@ function runPlaywrightCli(args: readonly string[]): { readonly ok: boolean; read
 function buildBatchRunnerScript(opts: HarnessOptions): string {
 	const plan = opts.viewports.map((vp) => ({
 		width: vp.width, height: vp.height, label: `${vp.width}x${vp.height}`,
-		targets: vp.width < 640 ? opts.scenarios.filter((s) => s === 'responsive') : [...opts.scenarios]
+		targets: vp.width < 640 ? opts.scenarios.filter((s) => s === 'responsive' || s === 'latest') : [...opts.scenarios]
 	})).filter((p) => p.targets.length > 0);
 	const scriptEntries = [...new Set(plan.flatMap((p) => p.targets))]
 		.map((id) => `${JSON.stringify(id)}: (${SCENARIO_SCRIPTS[id]})`).join(',\n');
@@ -85,6 +85,7 @@ function buildBatchRunnerScript(opts: HarnessOptions): string {
 		await cleanGenesis(true);
 		for (const vp of plan) {
 			await page.setViewportSize({ width: vp.width, height: vp.height });
+			await page.waitForTimeout(120);
 			for (const sc of vp.targets) {
 				const t0 = Date.now();
 				try { const out = await scripts[sc](page); results.push({ scenario: sc, viewport: vp.label, pass: true, durationMs: Date.now() - t0, detail: JSON.stringify(out ?? 'PASS') }); }

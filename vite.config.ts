@@ -24,7 +24,9 @@ export default defineConfig(() => {
 				output: {
 					manualChunks: (id: string) => {
 						if (id.includes('node_modules/svelte')) return 'vendor-svelte';
+						if (id.includes('/packages/chronos-ui/src/organisms/graph/')) return 'chronos-graph';
 						if (id.includes('/packages/chronos-ui/src/')) return 'chronos-ui';
+						if (id.includes('/studio/src/core/') || id.includes('/studio/src/config/') || id.includes('/studio/src/client/panels/')) return 'studio-engine';
 						return undefined;
 					}
 				}

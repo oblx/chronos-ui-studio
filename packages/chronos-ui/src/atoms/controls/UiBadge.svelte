@@ -46,7 +46,7 @@
 <span
 	aria-label={ariaLabel}
 	data-corner-mode={cornerMode}
-	class="ui-font-mono ui-marquee-host relative inline-flex min-w-0 max-w-full shrink-0 items-center justify-center overflow-hidden whitespace-nowrap px-1.5 py-0.5 text-xs font-semibold leading-none {className}"
+	class="ui-badge-host ui-font-mono ui-marquee-host relative inline-flex min-w-0 max-w-full shrink-0 items-center justify-center overflow-hidden whitespace-nowrap px-1.5 py-0.5 text-xs font-semibold leading-none {className}"
 	style="color: {palette.fg};"
 >
 	<span

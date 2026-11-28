@@ -62,7 +62,7 @@
 	data-ui-cursor={disabled ? 'not-allowed' : 'pointer'}
 	aria-pressed={active}
 	class="ui-ctl ui-ctl-btn ui-dur-micro ui-detent ui-marquee-host relative inline-flex min-w-0 max-w-full shrink-0 items-center justify-center gap-1.5 overflow-hidden whitespace-nowrap text-xs font-semibold tracking-wide {className}"
-	style="color: {tone.fg}; background: transparent; border: none;"
+	style="color: {tone.fg}; background: transparent;"
 >
 	<span class="ui-ctl-bg pointer-events-none absolute inset-0 z-0" style="{surface.surfaceStyle} background-color: {tone.bg};" aria-hidden="true"></span>
 	<UiVectorBorder {corners} {cornerMode} cutPx={surface.cutPx} maxCutRatio={CONTROL_MAX_CUT_RATIO} strokeVar={tone.stroke} />

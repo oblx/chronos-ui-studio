@@ -1,5 +1,5 @@
-import { HUD_METRICS } from '../tokens';
-import type { GamepadProfile, SemanticInputActionType } from './input.types';
+import { HUD_METRICS } from '@ui/tokens';
+import type { GamepadProfile, SemanticInputActionType } from '../input.types';
 
 export const STICK_DEADZONE = HUD_METRICS.stickDeadzone;
 

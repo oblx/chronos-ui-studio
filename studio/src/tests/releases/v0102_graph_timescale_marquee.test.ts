@@ -20,7 +20,7 @@ const DRAG_SET = new Set<string>(CURSOR_DRAG_TARGET_STATES);
 
 describe('v0.1.2 Frameless Tip-Clean 21-State Cursors', () => {
 	test('emits zero decorative frames on 17 non-drag states, tip-clean pointers, and gated drag-target frames', () => {
-		expect(VERSION).toBe('0.1.2');
+		expect(VERSION).toBe('0.1.3');
 		const basePalette = resolveThemeCursorPalette(THEME_PACKS[0]);
 		for (const pack of BUILTIN_CURSOR_PACKS) {
 			const style = pack.slug as CursorPackStyleId;
@@ -115,10 +115,10 @@ describe('v0.1.2 Reusable UiEventGraph Organism, Subpath & Zero-Collision Layout
 
 describe('v0.1.2 50-Tool MCP Parity & Real-Number Knob Persistence', () => {
 	test('executes ui_configure_graph, ui_set_wire_timescale, ui_spawn_node(UiEventGraph) and emits CSS tokens', async () => {
-		expect(STUDIO_TOOL_REGISTRY.length).toBe(50);
+		expect(STUDIO_TOOL_REGISTRY.length).toBe(52);
 		const listRes = await handleBuilderMcpRpc({ jsonrpc: '2.0', id: 1201, method: 'tools/list' });
 		const tools = (listRes.result as { tools: readonly { name: string }[] }).tools.map((t) => t.name);
-		expect(tools.length).toBe(50);
+		expect(tools.length).toBe(52);
 		expect(tools).toContain('ui_configure_graph');
 		expect(tools).toContain('ui_set_wire_timescale');
 		const proj = await createStudioProject({ name: 'v012 Graph & TimeScale Spec' });

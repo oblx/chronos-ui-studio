@@ -4,10 +4,10 @@ description: Authoring and verifying bespoke 21-state concrete-hex CSS UI Level 
 license: MIT
 metadata:
   author: Oblx <code@oblx.dev>
-  version: "0.1.2"
+  version: "0.1.3"
 ---
 
-# Chronos 21-State Cursor Studio (`v0.1.2`)
+# Chronos 21-State Cursor Studio (`v0.1.3`)
 
 Use this skill when modifying `@chronos-ui/svelte/cursor`, built-in cursor packs, or the Cursor Studio workbench modal.
 

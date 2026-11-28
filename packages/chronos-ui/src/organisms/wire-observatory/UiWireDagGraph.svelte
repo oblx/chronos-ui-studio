@@ -72,14 +72,15 @@
 	let graphPackets = $derived.by<readonly UiGraphPacket[]>(() => {
 		const meanTraceMs = traces.length > 0
 			? traces.reduce((acc, t) => acc + (t.realDurationMs ?? t.stageMs), 0) / traces.length
-			: 0.05;
+			: 0.15;
 		const activeMs = activeTrace ? (activeTrace.realDurationMs ?? activeTrace.stageMs) : null;
 		const activeSet = activeTrace ? resolveTracePathNodes(activeTrace) : null;
 		return graphEdges
 			.filter((e) => !e.dimmed && (e.highlighted || !activeSet || (activeSet.has(e.fromNodeUuid) && activeSet.has(e.toNodeUuid)) || traces.length > 0))
 			.map((e) => {
 				const stageMs = Math.max(stats.get(e.fromNodeUuid)?.avgMs ?? 0, stats.get(e.toNodeUuid)?.avgMs ?? 0);
-				const realMs = Number(Math.max(0.005, activeMs ?? (stageMs > 0 ? stageMs : meanTraceMs)).toFixed(3));
+				const rawHopMs = activeMs ?? (stageMs > 0 ? stageMs : meanTraceMs);
+				const realMs = Number((activeMs !== null ? Math.max(0.01, rawHopMs) : Math.max(0.12, Math.min(0.36, rawHopMs))).toFixed(3));
 				const scaledMs = computeHumanScaledDurationMs(realMs, { multiplier: effMultiplier, curve: effCurve });
 				return {
 					id: `pkt-${e.id}-${effMultiplier}-${effCurve}`,

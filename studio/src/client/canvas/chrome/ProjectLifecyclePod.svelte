@@ -1,6 +1,6 @@
 <script lang="ts">
 	import {
-		HISTORY_LIMIT_BOUNDS, UiChamferButton, UiInput, UiPopover, UiUtilityIconButton, VERSION,
+		formatShortcutBadge, HISTORY_LIMIT_BOUNDS, UiChamferButton, UiInput, UiPopover, UiUtilityIconButton, VERSION,
 		type CornerKind, type UiProjectDefinition
 	} from '@chronos-ui/svelte';
 	import { STUDIO_UI_COPY } from '@studio/config';
@@ -17,6 +17,7 @@
 		undoCount?: number;
 		redoCount?: number;
 		historyLimit?: number;
+		shortcutOverrides?: Readonly<Record<string, string>>;
 		onUndo?: () => void;
 		onRedo?: () => void;
 		onSelectProject?: (id: string) => void;
@@ -30,15 +31,16 @@
 		cornerMode, isDirty, saveStatus = 'SAVED', compact = false,
 		projects = [], activeProjectId = '',
 		canUndo = false, canRedo = false, undoCount = 0, redoCount = 0, historyLimit = HISTORY_LIMIT_BOUNDS.defaultLimit,
-		onUndo, onRedo, onSelectProject, onCreateProject, onSaveWorkspace, onResetDefaultView, onCleanWorkspace
+		shortcutOverrides, onUndo, onRedo, onSelectProject, onCreateProject, onSaveWorkspace, onResetDefaultView, onCleanWorkspace
 	}: Props = $props();
 
 	let creating = $state(false);
 	let resetOpen = $state(false);
 	let newName = $state('');
 	let activeProject = $derived(projects.find((p) => p.id === activeProjectId) ?? projects[0]);
-	let undoTip = $derived(canUndo ? `Undo last change (${undoCount}/${historyLimit}) [Ctrl+Z]` : 'Nothing to undo');
-	let redoTip = $derived(canRedo ? `Redo change (${redoCount}/${historyLimit}) [Ctrl+Shift+Z]` : 'Nothing to redo');
+	let undoTip = $derived(canUndo ? `Undo last change (${undoCount}/${historyLimit}) [${formatShortcutBadge('history-undo', shortcutOverrides)}]` : 'Nothing to undo');
+	let redoTip = $derived(canRedo ? `Redo change (${redoCount}/${historyLimit}) [${formatShortcutBadge('history-redo', shortcutOverrides)}]` : 'Nothing to redo');
+	let saveTip = $derived(`Save Workspace (${formatShortcutBadge('project-save', shortcutOverrides)})`);
 
 	function submitCreate(e: SubmitEvent): void {
 		e.preventDefault();
@@ -98,7 +100,7 @@
 		{cornerMode}
 		icon="save"
 		variant={isDirty ? 'secondary' : 'ghost'}
-		tip="Save Workspace (Ctrl+S)"
+		tip={saveTip}
 		tipLevel={20}
 		onclick={onSaveWorkspace}
 		testId="workspace-save-btn"

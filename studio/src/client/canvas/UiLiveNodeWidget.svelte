@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import {
 		buildControlHtmlAttrs, computeHumanScaledDurationMs, formatSubMsDuration, UiBadge, UiBentoRadar,
-		UiChamferButton, UiChamferFrame, UiEventGraph, UiMathFormula, UiProgressGauge,
+		UiChamferButton, UiChamferFrame, UiMathFormula, UiProgressGauge,
 		type CornerKind, type GraphEdgeRouting, type UiFrameShape, type UiGraphEdge, type UiGraphLane,
 		type UiGraphNode, type UiGraphPacket, type UiNode, type WireTraceRecord
 	} from '@chronos-ui/svelte';
@@ -97,7 +97,7 @@
 	{:else if node.type === 'UiEventGraph'}
 		<UiChamferFrame outerClass="w-full" corners={node.corners} cornerMode={effectiveCornerMode} cornerRadiusRem={node.cornerRadiusRem} {shape} cornerEmbellishment={emb} cornerAnimation={anim} embellishmentConfig={embCfg} carets={true} className="flex flex-col gap-1.5 p-2.5">
 			<div class="flex items-center justify-between gap-2"><span class="ui-font-display text-xs font-semibold">{title}</span><span class="ui-font-mono text-[0.6rem]" style="color: var(--ui-primary);">{graphNodeShape} · {graphRouting}</span></div>
-			<div class="h-44 w-full"><UiEventGraph lanes={LIVE_GRAPH_LANES} nodes={liveGraphNodes} edges={liveGraphEdges} packets={liveGraphPackets} cornerMode={effectiveCornerMode} config={{ routing: graphRouting, nodeShape: graphNodeShape, timeScaleMultiplier: graphScale, showPackets: node.props.showPackets !== false }} testId={`live-event-graph-${node.id}`} onSelectNode={(id) => onNodeAction(node, id ?? 'clear')} /></div>
+			<div class="h-44 w-full">{#await import('@chronos-ui/svelte/graph') then graphMod}<graphMod.UiEventGraph lanes={LIVE_GRAPH_LANES} nodes={liveGraphNodes} edges={liveGraphEdges} packets={liveGraphPackets} cornerMode={effectiveCornerMode} config={{ routing: graphRouting, nodeShape: graphNodeShape, timeScaleMultiplier: graphScale, showPackets: node.props.showPackets !== false }} testId={`live-event-graph-${node.id}`} onSelectNode={(id) => onNodeAction(node, id ?? 'clear')} />{/await}</div>
 		</UiChamferFrame>
 	{:else if node.type === 'UiWireInspector'}
 		<UiChamferFrame outerClass="w-full" corners={node.corners} cornerMode={effectiveCornerMode} cornerRadiusRem={node.cornerRadiusRem} {shape} cornerEmbellishment={emb} cornerAnimation={anim} embellishmentConfig={embCfg} carets={true} className="flex flex-col gap-1.5 px-3.5 py-2.5">

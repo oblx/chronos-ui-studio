@@ -94,22 +94,28 @@ export function filterTracesByDagNode(traces: readonly WireTraceRecord[], nodeId
 	return traces.filter((t) => resolveTracePathNodes(t).has(nodeId));
 }
 
+const META_TIMING_KINDS = new Set(['UI_SET_STUDIO_DEFAULT', 'UI_SET_WIRE_TIMESCALE', 'UI_REVEAL_ZONE']);
+
 export function computeDagNodeStats(traces: readonly WireTraceRecord[], hasBit28: boolean): ReadonlyMap<string, WireDagNodeMetrics> {
-	const acc = new Map<string, { count: number; totalMs: number; errors: number }>();
-	for (const n of WIRE_DAG_NODES) acc.set(n.id, { count: 0, totalMs: 0, errors: 0 });
+	const acc = new Map<string, { count: number; sampleCount: number; totalMs: number; errors: number }>();
+	for (const n of WIRE_DAG_NODES) acc.set(n.id, { count: 0, sampleCount: 0, totalMs: 0, errors: 0 });
+	const hasWorkTraces = traces.some((t) => !META_TIMING_KINDS.has(t.kind));
 	for (const t of traces) {
 		const dur = t.realDurationMs ?? t.stageMs;
+		const includeInAvg = !hasWorkTraces || !META_TIMING_KINDS.has(t.kind);
 		for (const id of resolveTracePathNodes(t)) {
 			const slot = acc.get(id);
 			if (!slot) continue;
-			slot.count += 1; slot.totalMs += dur; if (!t.ok) slot.errors += 1;
+			slot.count += 1;
+			if (includeInAvg) { slot.sampleCount += 1; slot.totalMs += dur; }
+			if (!t.ok) slot.errors += 1;
 		}
 	}
 	const out = new Map<string, WireDagNodeMetrics>();
 	for (const n of WIRE_DAG_NODES) {
 		const s = acc.get(n.id)!;
 		const status: DagNodeStatus = n.column === 'SERVER_DAG' && !hasBit28 ? 'BLOCKED' : s.errors > 0 ? 'WARN' : 'NOMINAL';
-		out.set(n.id, { count: s.count, avgMs: s.count > 0 ? Number((s.totalMs / s.count).toFixed(3)) : 0, status });
+		out.set(n.id, { count: s.count, avgMs: s.sampleCount > 0 ? Number((s.totalMs / s.sampleCount).toFixed(3)) : 0, status });
 	}
 	return out;
 }

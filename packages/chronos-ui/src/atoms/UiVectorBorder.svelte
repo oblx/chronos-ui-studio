@@ -72,9 +72,11 @@
 				: cutPx
 	);
 	let strokePath = $derived(buildMorphableCornerPath(boxW, boxH, effectiveCut, tuple, 0.75));
+	let haloPath = $derived(buildMorphableCornerPath(boxW, boxH, effectiveCut, tuple, 0.2));
 	let morphCls = $derived(cornerMorph ? 'ui-morph-path' : '');
 	let perimeter = $derived((boxW + boxH) * 2);
 	let dashOffset = $derived(perimeter * (1 - Math.max(0, Math.min(1, progressRatio))));
+	let resolvedWidth = $derived(strokeWidth ? `${strokeWidth}px` : strokeWidthVar);
 </script>
 
 <svg
@@ -86,7 +88,23 @@
 	preserveAspectRatio="none"
 	aria-hidden="true"
 >
-	<path d={strokePath} fill="none" stroke={strokeVar} vector-effect="non-scaling-stroke" class={morphCls} style="stroke-width: {strokeWidth ? `${strokeWidth}px` : strokeWidthVar};" />
+	<path
+		d={haloPath}
+		data-ui-focus-halo="true"
+		fill="none"
+		stroke="var(--ui-accent-vivid, var(--ui-accent))"
+		vector-effect="non-scaling-stroke"
+		class="ui-vector-focus-halo {morphCls}"
+	/>
+	<path
+		d={strokePath}
+		data-ui-contour-path="true"
+		fill="none"
+		stroke={strokeVar}
+		vector-effect="non-scaling-stroke"
+		class="ui-vector-contour {morphCls}"
+		style="--ui-contour-stroke: {strokeVar}; --ui-contour-width: {resolvedWidth};"
+	/>
 	{#if progressRatio > 0}
 		<path d={strokePath} fill="none" stroke={progressStrokeVar} vector-effect="non-scaling-stroke" stroke-width="2" stroke-dasharray={perimeter} stroke-dashoffset={dashOffset} />
 	{/if}

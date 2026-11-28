@@ -57,7 +57,7 @@
 			oninput?.(next);
 		}}
 		{onkeydown}
-		class="ui-ctl ui-field-input relative z-10 w-full bg-transparent text-xs outline-none transition-colors disabled:opacity-50 {className}"
+		class="ui-ctl ui-field-input relative z-10 w-full bg-transparent text-xs transition-colors disabled:opacity-50 {className}"
 		style="color: var(--ui-base-content);"
 	/>
 </span>
